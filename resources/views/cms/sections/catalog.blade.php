@@ -47,16 +47,21 @@
                     <div class="lms-card lms-card-interactive h-100 d-flex flex-column border-0 shadow-sm" style="background: var(--lms-surface-card);">
                         <!-- Thumbnail Zoom Container -->
                         <div class="course-thumb-wrap position-relative">
-                            <!-- Visual Banner Background based on category -->
-                            <div class="w-100 h-100 d-flex align-items-center justify-content-center text-white" 
-                                 style="background: {{ $course->target_audience === 'CORPORATE' ? 'linear-gradient(135deg, #0F172A, #1E293B)' : 'linear-gradient(135deg, #723EC3, #2563EB)' }}; min-height: 180px;">
-                                <div class="text-center p-3">
-                                    <i class="bi {{ $course->target_audience === 'CORPORATE' ? 'bi-shield-check fs-1 text-warning' : 'bi-mortarboard-fill fs-1 text-light' }} d-block mb-1"></i>
-                                    <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-1 small fw-semibold">
-                                        {{ $course->category?->name ?? 'Enterprise Program' }}
-                                    </span>
+                            @if($course->thumbnailUrl())
+                                <div class="w-100 overflow-hidden position-relative" style="height: 180px;">
+                                    <img src="{{ $course->thumbnailUrl() }}" alt="{{ $course->title }}" class="w-100 h-100 object-fit-cover">
                                 </div>
-                            </div>
+                            @else
+                                <div class="w-100 h-100 d-flex align-items-center justify-content-center text-white" 
+                                     style="background: {{ $course->target_audience === 'CORPORATE' ? 'linear-gradient(135deg, #0F172A, #1E293B)' : 'linear-gradient(135deg, #723EC3, #2563EB)' }}; min-height: 180px;">
+                                    <div class="text-center p-3">
+                                        <i class="bi {{ $course->target_audience === 'CORPORATE' ? 'bi-shield-check fs-1 text-warning' : 'bi-mortarboard-fill fs-1 text-light' }} d-block mb-1"></i>
+                                        <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-1 small fw-semibold">
+                                            {{ $course->category?->name ?? 'Enterprise Program' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            @endif
 
                             <!-- Ribbon / Audience Badges -->
                             <div class="position-absolute top-0 start-0 m-3">

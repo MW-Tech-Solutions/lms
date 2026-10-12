@@ -66,6 +66,11 @@
                     </div>
                 </div>
             </div>
+            @if($course->thumbnailUrl())
+                <div class="col-lg-4 text-center text-lg-end">
+                    <img src="{{ $course->thumbnailUrl() }}" alt="{{ $course->title }}" class="img-fluid rounded-4 shadow-lg object-fit-cover w-100" style="max-height: 220px; border: 2px solid rgba(255,255,255,0.2);">
+                </div>
+            @endif
         </div>
     </div>
 </div>

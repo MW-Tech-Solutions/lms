@@ -24,6 +24,8 @@ class Course extends Model
         'category_id',
         'title',
         'slug',
+        'thumbnail',
+        'description',
         'target_audience',
         'format',
         'passing_grade',
@@ -32,6 +34,19 @@ class Course extends Model
         'currency',
         'is_published',
     ];
+
+    public function thumbnailUrl(): ?string
+    {
+        if (!$this->thumbnail) {
+            return null;
+        }
+
+        if (str_starts_with($this->thumbnail, 'http://') || str_starts_with($this->thumbnail, 'https://') || str_starts_with($this->thumbnail, '/')) {
+            return $this->thumbnail;
+        }
+
+        return asset('storage/' . $this->thumbnail);
+    }
 
     protected $casts = [
         'passing_grade' => 'integer',

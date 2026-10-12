@@ -106,6 +106,8 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
 
     Route::get('/courses', [CourseAdminController::class, 'index'])->name('courses.index');
     Route::post('/courses', [CourseAdminController::class, 'store'])->name('courses.store');
+    Route::put('/courses/{course}', [CourseAdminController::class, 'update'])->name('courses.update');
+    Route::delete('/courses/{course}', [CourseAdminController::class, 'destroy'])->name('courses.destroy');
 
     Route::get('/scorm', [ScormAdminController::class, 'index'])->name('scorm.index');
     Route::post('/scorm/upload', [ScormAdminController::class, 'upload'])->name('scorm.upload');

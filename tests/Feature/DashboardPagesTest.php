@@ -214,4 +214,54 @@ class DashboardPagesTest extends TestCase
         $this->assertDatabaseHas('course_resources', ['resource_type' => 'URL']);
         $this->assertDatabaseHas('course_resources', ['resource_type' => 'LABEL']);
     }
+
+    public function test_course_create_edit_and_thumbnail_flow(): void
+    {
+        $admin = User::where('email', 'admin@enterpriselms.com')->first();
+        $this->assertNotNull($admin);
+
+        // 1. Create a new course with thumbnail URL
+        $createResponse = $this->actingAs($admin)->post('/admin/courses', [
+            'title' => 'Kubernetes Security Mastery',
+            'slug' => 'kubernetes-security-mastery',
+            'description' => 'Comprehensive enterprise Kubernetes hardening guide.',
+            'thumbnail_url' => 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9',
+            'target_audience' => 'CORPORATE',
+            'format' => 'SELF_PACED',
+            'passing_grade' => 80,
+            'recertification_days' => 365,
+            'price_cents' => 9900,
+            'currency' => 'USD',
+            'is_published' => 1,
+        ]);
+        $createResponse->assertSessionHasNoErrors();
+        $createResponse->assertRedirect();
+
+        $course = \App\Models\Course::where('slug', 'kubernetes-security-mastery')->first();
+        $this->assertNotNull($course);
+        $this->assertEquals('https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9', $course->thumbnail);
+        $this->assertEquals('https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9', $course->thumbnailUrl());
+
+        // 2. Edit existing course and update thumbnail
+        $updateResponse = $this->actingAs($admin)->put('/admin/courses/' . $course->id, [
+            'title' => 'Kubernetes Security Mastery (Updated)',
+            'slug' => 'kubernetes-security-mastery-updated',
+            'description' => 'Updated syllabus description.',
+            'thumbnail_url' => 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b',
+            'target_audience' => 'BOTH',
+            'format' => 'TOPICS',
+            'passing_grade' => 85,
+            'recertification_days' => 180,
+            'price_cents' => 14900,
+            'currency' => 'USD',
+            'is_published' => 1,
+        ]);
+        $updateResponse->assertSessionHasNoErrors();
+        $updateResponse->assertRedirect();
+
+        $course->refresh();
+        $this->assertEquals('Kubernetes Security Mastery (Updated)', $course->title);
+        $this->assertEquals('https://images.unsplash.com/photo-1550751827-4bd374c3f58b', $course->thumbnail);
+        $this->assertEquals(85, $course->passing_grade);
+    }
 }
