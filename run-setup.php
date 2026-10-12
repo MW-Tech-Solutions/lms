@@ -37,59 +37,9 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-// Polyfill for missing ext-dom in shared hosting environments without DOMDocument
-if (!class_exists('DOMDocument')) {
-    if (!defined('LIBXML_NOERROR')) define('LIBXML_NOERROR', 0);
-    if (!defined('LIBXML_COMPACT')) define('LIBXML_COMPACT', 0);
-    if (!defined('LIBXML_HTML_NODEFDTD')) define('LIBXML_HTML_NODEFDTD', 0);
-    if (!defined('LIBXML_NOBLANKS')) define('LIBXML_NOBLANKS', 0);
-    if (!defined('LIBXML_NOXMLDECL')) define('LIBXML_NOXMLDECL', 0);
-
-    class DOMNode
-    {
-        public string $nodeValue = '';
-        public string $nodeName = 'body';
-        public array $childNodes = [];
-    }
-
-    class DOMText extends DOMNode
-    {
-        public function __construct(string $val = '')
-        {
-            $this->nodeValue = $val;
-            $this->nodeName = '#text';
-        }
-    }
-
-    class DOMComment extends DOMNode
-    {
-        public function __construct()
-        {
-            $this->nodeName = '#comment';
-        }
-    }
-
-    class DOMNodeList
-    {
-        public int $length = 1;
-        public function item(int $index): ?DOMNode
-        {
-            return new DOMNode();
-        }
-    }
-
-    class DOMDocument extends DOMNode
-    {
-        public function loadHTML(string $source, int $options = 0): bool
-        {
-            return true;
-        }
-
-        public function getElementsByTagName(string $name): DOMNodeList
-        {
-            return new DOMNodeList();
-        }
-    }
+// Load compatibility layer (mb_split, DOMDocument, Termwind stubs)
+if (file_exists(__DIR__ . '/bootstrap/compat.php')) {
+    require_once __DIR__ . '/bootstrap/compat.php';
 }
 
 // Bootstrap Laravel if authenticated

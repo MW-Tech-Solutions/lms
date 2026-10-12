@@ -6,6 +6,10 @@ declare(strict_types=1);
  * Enterprise Dual-Audience LMS - Root Gateway for Shared Hosting
  */
 
+if (file_exists(__DIR__ . '/bootstrap/compat.php')) {
+    require_once __DIR__ . '/bootstrap/compat.php';
+}
+
 // If request is for run-setup.php, serve it directly
 if (str_contains($_SERVER['REQUEST_URI'] ?? '', 'run-setup.php')) {
     require_once __DIR__ . '/run-setup.php';
