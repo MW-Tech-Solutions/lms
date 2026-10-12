@@ -59,6 +59,12 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // Prevent duplicate execution if database is already seeded
+        if (Tenant::where('subdomain', 'acme')->exists()) {
+            $this->command?->info('Demonstration tenant and seed records already exist. Skipping duplicate seed.');
+            return;
+        }
+
         // =========================================================================
         // 1. TENANT CREATION
         // =========================================================================

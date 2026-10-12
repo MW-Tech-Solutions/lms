@@ -62,6 +62,12 @@ if (!class_exists('DOMDocument')) {
         public string $textContent = '';
         public int $nodeType = 1;
 
+        public function __construct(string $name = 'body')
+        {
+            $this->nodeName = $name;
+            $this->childNodes = [new DOMText(' ')];
+        }
+
         public function __get(string $name): mixed
         {
             return $this->$name ?? null;
@@ -75,12 +81,13 @@ if (!class_exists('DOMDocument')) {
 
     class DOMText extends DOMNode
     {
-        public function __construct(string $val = '')
+        public function __construct(string $val = ' ')
         {
             $this->nodeValue = $val;
             $this->textContent = $val;
             $this->nodeName = '#text';
             $this->nodeType = 3;
+            $this->childNodes = [];
         }
     }
 
@@ -90,31 +97,50 @@ if (!class_exists('DOMDocument')) {
         {
             $this->nodeName = '#comment';
             $this->nodeType = 8;
+            $this->childNodes = [];
         }
     }
 
     class DOMNodeList
     {
         public int $length = 1;
+        private array $items = [];
+
+        public function __construct(array $items = [])
+        {
+            if (empty($items)) {
+                $node = new DOMNode('body');
+                $node->childNodes = [new DOMText(' ')];
+                $this->items = [$node];
+            } else {
+                $this->items = array_values($items);
+            }
+            $this->length = count($this->items);
+        }
 
         public function item(int $index): ?DOMNode
         {
-            return new DOMNode();
+            return $this->items[$index] ?? ($this->items[0] ?? new DOMNode());
         }
     }
 
     class DOMDocument extends DOMNode
     {
         public int $nodeType = 9;
+        protected string $loadedHtml = '';
 
         public function loadHTML(string $source, int $options = 0): bool
         {
+            $this->loadedHtml = (string) $source;
             return true;
         }
 
         public function getElementsByTagName(string $name): DOMNodeList
         {
-            return new DOMNodeList();
+            $node = new DOMNode($name);
+            $cleanText = trim(strip_tags($this->loadedHtml));
+            $node->childNodes = [new DOMText($cleanText !== '' ? $cleanText : ' ')];
+            return new DOMNodeList([$node]);
         }
     }
 }

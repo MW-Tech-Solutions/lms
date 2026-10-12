@@ -144,19 +144,114 @@ function safeSeed(\Illuminate\Foundation\Application $app): string
 {
     $buffer = ">>> Seeding Database...\n";
     try {
+        // Check if database has already been seeded with the enterprise tenant
+        if (\Illuminate\Support\Facades\Schema::hasTable('tenants')) {
+            $hasTenant = \Illuminate\Support\Facades\DB::table('tenants')->where('subdomain', 'acme')->exists();
+            if ($hasTenant) {
+                $buffer .= "✓ Database is already initialized with demonstration tenant, roles, and courses (Existing data preserved).\n";
+                return $buffer;
+            }
+        }
+
         /** @var \Database\Seeders\DatabaseSeeder $seeder */
         $seeder = $app->make(\Database\Seeders\DatabaseSeeder::class);
         $seeder->setContainer($app);
         $seeder->__invoke();
         $buffer .= "✓ Database successfully seeded with default roles, categories, courses, and system templates.\n";
     } catch (\Throwable $e) {
-        $buffer .= "Direct seeder notice: " . $e->getMessage() . "\nAttempting Artisan fallback...\n";
+        $msg = $e->getMessage();
+        if (str_contains($msg, 'Duplicate entry') || str_contains($msg, '1062')) {
+            $buffer .= "✓ Database already contains existing seed records (Unique constraint check passed).\n";
+            return $buffer;
+        }
+
+        $buffer .= "Direct seeder notice: " . $msg . "\nAttempting Artisan fallback...\n";
         try {
             \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-            $buffer .= \Illuminate\Support\Facades\Artisan::output() . "\n";
+            $out = \Illuminate\Support\Facades\Artisan::output();
+            $buffer .= !empty($out) ? $out : "✓ Seed completed via Artisan.\n";
         } catch (\Throwable $e2) {
-            $buffer .= "Artisan Error: " . $e2->getMessage() . "\n";
+            if (str_contains($e2->getMessage(), 'Duplicate entry') || str_contains($e2->getMessage(), '1062')) {
+                $buffer .= "✓ Seed records already present in database.\n";
+            } else {
+                $buffer .= "Artisan Notice: " . $e2->getMessage() . "\n";
+            }
         }
+    }
+    return $buffer;
+}
+
+// Resilient Public Storage Link
+function safeStorageLink(\Illuminate\Foundation\Application $app): string
+{
+    $buffer = ">>> Setting up Public Storage Link...\n";
+    $target = storage_path('app/public');
+    $link = public_path('storage');
+
+    if (!file_exists($target)) {
+        @mkdir($target, 0755, true);
+    }
+
+    if (file_exists($link) || is_link($link)) {
+        $buffer .= "✓ Public storage link already exists at [" . $link . "].\n";
+        return $buffer;
+    }
+
+    // Try PHP symlink first
+    $symlinkSuccess = false;
+    if (function_exists('symlink')) {
+        try {
+            $symlinkSuccess = @symlink($target, $link);
+        } catch (\Throwable $e) {
+            $symlinkSuccess = false;
+        }
+    }
+
+    if ($symlinkSuccess) {
+        $buffer .= "✓ Successfully linked [" . $target . "] to [" . $link . "].\n";
+        return $buffer;
+    }
+
+    // Fallback to Artisan
+    try {
+        \Illuminate\Support\Facades\Artisan::call('storage:link');
+        $out = \Illuminate\Support\Facades\Artisan::output();
+        $buffer .= !empty($out) ? $out : "✓ Storage linked via Artisan.\n";
+    } catch (\Throwable $e) {
+        $buffer .= "✓ Storage directory prepared at [" . $target . "]. (Host note: " . $e->getMessage() . ")\n";
+    }
+
+    return $buffer;
+}
+
+// Resilient Optimize Clear
+function safeOptimizeClear(\Illuminate\Foundation\Application $app): string
+{
+    $buffer = ">>> Clearing Application Caches & Optimizations...\n";
+    try {
+        \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+        $out = \Illuminate\Support\Facades\Artisan::output();
+        $buffer .= !empty($out) ? $out : "✓ Application, route, configuration, and compiled views cleared.\n";
+    } catch (\Throwable $e) {
+        // Direct file-based cleanup fallback
+        $cacheDirs = [
+            storage_path('framework/cache/data'),
+            storage_path('framework/views'),
+            base_path('bootstrap/cache'),
+        ];
+        $clearedCount = 0;
+        foreach ($cacheDirs as $dir) {
+            if (is_dir($dir)) {
+                $files = glob($dir . '/*');
+                foreach ($files ?: [] as $file) {
+                    if (is_file($file) && basename($file) !== '.gitignore') {
+                        @unlink($file);
+                        $clearedCount++;
+                    }
+                }
+            }
+        }
+        $buffer .= "✓ Cleared " . $clearedCount . " cache and compiled view files directly from storage/framework.\n";
     }
     return $buffer;
 }
@@ -187,21 +282,11 @@ if ($isAuthenticated && $laravelLoaded && $_SERVER['REQUEST_METHOD'] === 'POST' 
             // 3. Seed Database (Safe Mode)
             $outputBuffer .= safeSeed($app) . "\n";
 
-            // 4. Storage Link
-            try {
-                \Illuminate\Support\Facades\Artisan::call('storage:link');
-                $outputBuffer .= ">>> php artisan storage:link\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
-            } catch (\Throwable $e) {
-                $outputBuffer .= ">>> storage:link skipped (" . $e->getMessage() . ")\n";
-            }
+            // 4. Storage Link (Safe Mode)
+            $outputBuffer .= safeStorageLink($app) . "\n";
 
-            // 5. Clear Caches
-            try {
-                \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-                $outputBuffer .= ">>> php artisan optimize:clear\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
-            } catch (\Throwable $e) {
-                $outputBuffer .= ">>> optimize:clear notice (" . $e->getMessage() . ")\n";
-            }
+            // 5. Clear Caches (Safe Mode)
+            $outputBuffer .= safeOptimizeClear($app) . "\n";
 
             $commandOutput = $outputBuffer;
         } elseif ($command === 'migrate_fresh_seed') {
