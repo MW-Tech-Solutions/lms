@@ -294,24 +294,24 @@ function checkWritable(string $path): bool {
             </div>
 
             <div class="d-flex align-items-center gap-3">
-                @if($isAuthenticated)
+                <?php if ($isAuthenticated): ?>
                     <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-3 py-1.5 font-mono">
                         <i class="bi bi-shield-check me-1"></i> Authenticated Session
                     </span>
-                    <a href="{{ url('/') }}" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                    <a href="index.php" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-3">
                         <i class="bi bi-box-arrow-up-right me-1"></i> Open LMS App
                     </a>
                     <a href="?logout=1" class="btn btn-sm btn-danger rounded-pill px-3">
                         <i class="bi bi-box-arrow-right me-1"></i> Sign Out
                     </a>
-                @endif
+                <?php endif; ?>
             </div>
         </div>
     </header>
 
     <div class="container-fluid py-4 px-3 px-md-5">
 
-        @if(!$isAuthenticated)
+        <?php if (!$isAuthenticated): ?>
             <!-- Authentication PIN Card -->
             <div class="row justify-content-center pt-5">
                 <div class="col-md-5 col-lg-4">
@@ -326,11 +326,11 @@ function checkWritable(string $path): bool {
                             </div>
                         </div>
 
-                        @if($loginError)
+                        <?php if (!empty($loginError)): ?>
                             <div class="alert alert-danger py-2 small rounded-3 mb-3">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i> <?= htmlspecialchars($loginError) ?>
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> <?= htmlspecialchars((string) $loginError) ?>
                             </div>
-                        @endif
+                        <?php endif; ?>
 
                         <form method="POST" action="run-setup.php">
                             <input type="hidden" name="action" value="login">
@@ -346,14 +346,14 @@ function checkWritable(string $path): bool {
                     </div>
                 </div>
             </div>
-        @else
+        <?php else: ?>
 
-            @if($laravelError)
+            <?php if (!empty($laravelError)): ?>
                 <div class="alert alert-danger rounded-4 p-3 mb-4 shadow-sm">
                     <h6 class="fw-bold"><i class="bi bi-x-octagon-fill me-2"></i>Laravel Bootstrap Error</h6>
-                    <div><?= htmlspecialchars($laravelError) ?></div>
+                    <div><?= htmlspecialchars((string) $laravelError) ?></div>
                 </div>
-            @endif
+            <?php endif; ?>
 
             <div class="row g-4">
                 
@@ -588,7 +588,7 @@ System status: <?= $dbStatus ? 'READY' : 'ACTION REQUIRED' ?>
 
             </div>
 
-        @endif
+        <?php endif; ?>
 
     </div>
 
