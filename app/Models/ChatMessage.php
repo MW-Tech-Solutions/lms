@@ -1,0 +1,27 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class ChatMessage extends Model
+{
+    protected $fillable = [
+        'chat_id',
+        'user_id',
+        'message',
+    ];
+
+    public function chat(): BelongsTo
+    {
+        return $this->belongsTo(CourseChat::class, 'chat_id');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}

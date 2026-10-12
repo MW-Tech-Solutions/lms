@@ -15,6 +15,7 @@ class Context extends Model
     public const LEVEL_CATEGORY = 'CATEGORY';
     public const LEVEL_COURSE = 'COURSE';
     public const LEVEL_MODULE = 'MODULE';
+    public const LEVEL_BLOCK = 'BLOCK';
 
     protected $fillable = [
         'context_level',

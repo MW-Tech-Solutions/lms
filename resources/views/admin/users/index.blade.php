@@ -101,10 +101,15 @@
                             <input type="text" class="form-control" :value="selectedUserName" readonly disabled>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label small fw-semibold">Target Role</label>
+                            <label class="form-label small fw-semibold">Target Canonical Role</label>
                             <select name="role_id" class="form-select" required>
+                                @php
+                                    $moodleMeta = \App\Models\Role::getMoodleRolesList();
+                                @endphp
                                 @foreach($roles as $role)
-                                    <option value="{{ $role->id }}">{{ $role->name }}</option>
+                                    <option value="{{ $role->id }}">
+                                        {{ $moodleMeta[$role->name]['label'] ?? $role->name }} ({{ $role->name }})
+                                    </option>
                                 @endforeach
                             </select>
                         </div>

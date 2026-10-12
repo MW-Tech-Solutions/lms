@@ -283,6 +283,109 @@
                 </div>
             </div>
 
+            <!-- SECTION 4B: ANNOUNCEMENT & COUNTDOWN TOPBAR BANNER -->
+            <div class="col-12" x-data="{
+                topbarEnabled: '{{ $site_settings['topbar_enabled'] ?? '1' }}',
+                badgeText: '{{ $site_settings['topbar_badge_text'] ?? 'SPECIAL EVENT' }}',
+                promoText: '{{ $site_settings['topbar_promo_text'] ?? 'Get 50% Off Annual Enterprise Compliance & Accredited Certifications' }}',
+                btnText: '{{ $site_settings['topbar_btn_text'] ?? 'Claim Offer' }}',
+                btnUrl: '{{ $site_settings['topbar_btn_url'] ?? '/p/pricing' }}',
+                days: '{{ $site_settings['topbar_countdown_days'] ?? '04' }}',
+                hours: '{{ $site_settings['topbar_countdown_hours'] ?? '18' }}',
+                minutes: '{{ $site_settings['topbar_countdown_minutes'] ?? '35' }}',
+                seconds: '{{ $site_settings['topbar_countdown_seconds'] ?? '30' }}'
+            }">
+                <div class="lms-card p-4 shadow-sm border">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-3 mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1">
+                                <i class="bi bi-megaphone-fill text-warning me-2"></i>Announcement &amp; Countdown Topbar Banner
+                            </h5>
+                            <div class="text-secondary small">
+                                Configure the global countdown bar, promotional offer, badge, and CTA link displayed across all public and marketing pages.
+                            </div>
+                        </div>
+                        <div class="form-check form-switch fs-5">
+                            <input type="hidden" name="settings[topbar_enabled]" :value="topbarEnabled">
+                            <input class="form-check-input" type="checkbox" role="switch" id="topbarSwitch" 
+                                   :checked="topbarEnabled === '1'"
+                                   @change="topbarEnabled = $event.target.checked ? '1' : '0'">
+                            <label class="form-check-label fs-6 fw-bold" for="topbarSwitch" x-text="topbarEnabled === '1' ? 'Banner Active' : 'Banner Disabled'"></label>
+                        </div>
+                    </div>
+
+                    <!-- Live Visual Preview of Topbar Banner -->
+                    <div class="mb-4 p-3 rounded-4" style="background: linear-gradient(90deg, #120A2A 0%, #1E1242 50%, #2A175C 100%); color: #FFF; border: 1px solid rgba(255,255,255,0.1);">
+                        <div class="d-flex justify-content-between align-items-center small text-white-50 mb-2 font-mono" style="font-size: 0.7rem;">
+                            <span><i class="bi bi-eye-fill me-1"></i> LIVE BANNER PREVIEW</span>
+                            <span :class="topbarEnabled === '1' ? 'text-success' : 'text-danger'" x-text="topbarEnabled === '1' ? '● LIVE ON SITE' : '○ HIDDEN'"></span>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 rounded-3" style="background: rgba(0,0,0,0.2);">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="countdown-wrap d-flex align-items-center gap-1 font-mono fw-bold" style="font-size: 0.78rem;">
+                                    <span class="px-2 py-1 rounded text-white" style="background: rgba(255,255,255,0.12);" x-text="days + 'd'">04d</span>
+                                    <span>:</span>
+                                    <span class="px-2 py-1 rounded text-white" style="background: rgba(255,255,255,0.12);" x-text="hours + 'h'">18h</span>
+                                    <span>:</span>
+                                    <span class="px-2 py-1 rounded text-white" style="background: rgba(255,255,255,0.12);" x-text="minutes + 'm'">35m</span>
+                                    <span>:</span>
+                                    <span class="px-2 py-1 rounded text-white" style="background: rgba(255,255,255,0.12);" x-text="seconds + 's'">30s</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 small">
+                                    <span class="badge bg-warning text-dark fw-bold px-2 py-1 rounded-pill">
+                                        <i class="bi bi-fire me-1"></i> <span x-text="badgeText">SPECIAL EVENT</span>
+                                    </span>
+                                    <span class="fw-semibold text-truncate" style="max-width: 480px;" x-text="promoText">
+                                        Get 50% Off Annual Enterprise Compliance & Accredited Certifications
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge px-3 py-1.5 rounded-pill fw-bold text-dark" style="background: #FF9800;">
+                                    <span x-text="btnText">Claim Offer</span> <i class="bi bi-arrow-right ms-1"></i>
+                                </span>
+                                <span class="text-white-50"><i class="bi bi-x-lg"></i></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Configuration Fields Grid -->
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Pill Badge Label</label>
+                            <input type="text" name="settings[topbar_badge_text]" class="form-control" x-model="badgeText" placeholder="SPECIAL EVENT">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Announcement / Offer Headline</label>
+                            <input type="text" name="settings[topbar_promo_text]" class="form-control" x-model="promoText" placeholder="Get 50% Off Annual Enterprise Compliance & Accredited Certifications">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small fw-semibold">CTA Button Label</label>
+                            <input type="text" name="settings[topbar_btn_text]" class="form-control" x-model="btnText" placeholder="Claim Offer">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">CTA Button Link Destination (URL)</label>
+                            <input type="text" name="settings[topbar_btn_url]" class="form-control font-mono" x-model="btnUrl" placeholder="/p/pricing">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Countdown Clock Duration (Days / Hours / Mins / Secs)</label>
+                            <div class="input-group font-mono">
+                                <input type="number" name="settings[topbar_countdown_days]" class="form-control text-center" x-model="days" min="0" max="99" placeholder="04">
+                                <span class="input-group-text">Days</span>
+                                <input type="number" name="settings[topbar_countdown_hours]" class="form-control text-center" x-model="hours" min="0" max="23" placeholder="18">
+                                <span class="input-group-text">Hrs</span>
+                                <input type="number" name="settings[topbar_countdown_minutes]" class="form-control text-center" x-model="minutes" min="0" max="59" placeholder="35">
+                                <span class="input-group-text">Min</span>
+                                <input type="number" name="settings[topbar_countdown_seconds]" class="form-control text-center" x-model="seconds" min="0" max="59" placeholder="30">
+                                <span class="input-group-text">Sec</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- SECTION 5: HOMEPAGE HERO SECTION DIRECTIVES -->
             <div class="col-12">
                 <div class="lms-card p-4 shadow-sm">

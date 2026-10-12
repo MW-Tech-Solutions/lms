@@ -21,7 +21,7 @@ return new class extends Migration
         Schema::create('questions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('bank_id')->constrained('question_banks')->cascadeOnDelete();
-            $table->enum('type', ['SINGLE_CHOICE', 'MULTI_CHOICE', 'TRUE_FALSE', 'SHORT_ANSWER', 'FILL_BLANK', 'ESSAY']);
+            $table->string('type', 32); // SINGLE_CHOICE, MULTI_CHOICE, TRUE_FALSE, SHORT_ANSWER, MATCHING, NUMERICAL, ESSAY, DRAG_DROP, CALCULATED, CLOZE
             $table->text('question_text');
             $table->unsignedInteger('points')->default(1);
             $table->json('metadata_json')->nullable();

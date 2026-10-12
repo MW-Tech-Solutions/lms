@@ -13,9 +13,14 @@ class Question extends Model
     public const TYPE_SINGLE_CHOICE = 'SINGLE_CHOICE';
     public const TYPE_MULTI_CHOICE = 'MULTI_CHOICE';
     public const TYPE_TRUE_FALSE = 'TRUE_FALSE';
+    public const TYPE_MATCHING = 'MATCHING';
     public const TYPE_SHORT_ANSWER = 'SHORT_ANSWER';
+    public const TYPE_NUMERICAL = 'NUMERICAL';
     public const TYPE_FILL_BLANK = 'FILL_BLANK';
     public const TYPE_ESSAY = 'ESSAY';
+    public const TYPE_DRAG_DROP = 'DRAG_DROP';
+    public const TYPE_CALCULATED = 'CALCULATED';
+    public const TYPE_CLOZE = 'CLOZE';
 
     protected $fillable = [
         'bank_id',

@@ -55,7 +55,7 @@ return new class extends Migration
         Schema::create('course_modules', function (Blueprint $table) {
             $table->id();
             $table->foreignId('section_id')->constrained('course_sections')->cascadeOnDelete();
-            $table->enum('module_type', ['LESSON', 'VIDEO', 'SCORM', 'QUIZ', 'ASSIGNMENT', 'ATTENDANCE', 'FORUM', 'LIVE_SESSION']);
+            $table->string('module_type', 32); // All Moodle activities and resources (LESSON, QUIZ, ASSIGNMENT, FORUM, H5P, SCORM, WORKSHOP, CHAT, GLOSSARY, WIKI, CHOICE, FEEDBACK, PAGE, BOOK, FILE, FOLDER, URL, LABEL, etc.)
             $table->unsignedBigInteger('instance_id')->nullable();
             $table->integer('sort_order')->default(0);
             $table->boolean('is_mandatory')->default(true);

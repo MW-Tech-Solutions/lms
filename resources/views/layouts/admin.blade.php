@@ -150,7 +150,7 @@
             <ul class="nav flex-column mb-2">
                 <li class="nav-item">
                     <a class="nav-link text-nowrap {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
-                        <div class="sidebar-icon-box" style="background: #F2ECFB; color: #723EC3;">
+                        <div class="sidebar-icon-box">
                             <i class="bi bi-speedometer2"></i>
                         </div>
                         <span class="text-nowrap">Executive Dashboard</span>
@@ -158,7 +158,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-nowrap {{ request()->routeIs('admin.compliance*') ? 'active' : '' }}" href="{{ route('admin.compliance.index') }}">
-                        <div class="sidebar-icon-box" style="background: #E6F9F1; color: #059669;">
+                        <div class="sidebar-icon-box">
                             <i class="bi bi-shield-check"></i>
                         </div>
                         <span class="text-nowrap">Compliance &amp; Audits</span>
@@ -170,7 +170,7 @@
             <ul class="nav flex-column mb-2">
                 <li class="nav-item">
                     <a class="nav-link text-nowrap {{ request()->routeIs('admin.courses*') ? 'active' : '' }}" href="{{ route('admin.courses.index') }}">
-                        <div class="sidebar-icon-box" style="background: #E5F5FD; color: #0284C7;">
+                        <div class="sidebar-icon-box">
                             <i class="bi bi-journal-richtext"></i>
                         </div>
                         <span class="text-nowrap">Course Curriculum</span>
@@ -178,7 +178,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-nowrap {{ request()->routeIs('admin.scorm*') ? 'active' : '' }}" href="{{ route('admin.scorm.index') }}">
-                        <div class="sidebar-icon-box" style="background: #FFF2E5; color: #EA580C;">
+                        <div class="sidebar-icon-box">
                             <i class="bi bi-box-seam"></i>
                         </div>
                         <span class="text-nowrap">SCORM Registry</span>
@@ -186,7 +186,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-nowrap {{ request()->routeIs('admin.quizzes*') ? 'active' : '' }}" href="{{ route('admin.quizzes.index') }}">
-                        <div class="sidebar-icon-box" style="background: #FFF8E5; color: #D97706;">
+                        <div class="sidebar-icon-box">
                             <i class="bi bi-patch-question"></i>
                         </div>
                         <span class="text-nowrap">Assessments &amp; Anti-Cheat</span>
@@ -194,7 +194,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-nowrap {{ request()->routeIs('admin.gradebook*') ? 'active' : '' }}" href="{{ route('admin.gradebook.index') }}">
-                        <div class="sidebar-icon-box" style="background: #EDE9FE; color: #6366F1;">
+                        <div class="sidebar-icon-box">
                             <i class="bi bi-calculator"></i>
                         </div>
                         <span class="text-nowrap">Weighted Gradebook</span>
@@ -202,7 +202,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-nowrap {{ request()->routeIs('admin.attendance*') ? 'active' : '' }}" href="{{ route('admin.attendance.index') }}">
-                        <div class="sidebar-icon-box" style="background: #FCE7F3; color: #DB2777;">
+                        <div class="sidebar-icon-box">
                             <i class="bi bi-qr-code-scan"></i>
                         </div>
                         <span class="text-nowrap">Rolling QR Attendance</span>
@@ -214,7 +214,7 @@
             <ul class="nav flex-column mb-3">
                 <li class="nav-item">
                     <a class="nav-link text-nowrap {{ request()->routeIs('admin.cms*') ? 'active' : '' }}" href="{{ route('admin.cms.index') }}">
-                        <div class="sidebar-icon-box" style="background: #CCFBF1; color: #0D9488;">
+                        <div class="sidebar-icon-box">
                             <i class="bi bi-layers"></i>
                         </div>
                         <span class="text-nowrap">Headless CMS Engine</span>
@@ -222,7 +222,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-nowrap {{ request()->routeIs('admin.settings*') ? 'active' : '' }}" href="{{ route('admin.settings.index') }}">
-                        <div class="sidebar-icon-box" style="background: #F3E8FF; color: #9333EA;">
+                        <div class="sidebar-icon-box">
                             <i class="bi bi-sliders"></i>
                         </div>
                         <span class="text-nowrap">Site Dynamic Settings</span>
@@ -230,7 +230,7 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link text-nowrap {{ request()->routeIs('admin.users*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
-                        <div class="sidebar-icon-box" style="background: #FEF3C7; color: #B45309;">
+                        <div class="sidebar-icon-box">
                             <i class="bi bi-people"></i>
                         </div>
                         <span class="text-nowrap">CBAC Users &amp; Roles</span>

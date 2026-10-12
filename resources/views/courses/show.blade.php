@@ -101,28 +101,75 @@
                                     @foreach($sec->modules as $mod)
                                         <li class="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-bottom">
                                             <div class="d-flex align-items-center gap-3">
-                                                @switch($mod->module_type)
-                                                    @case('VIDEO')
-                                                        <span class="badge rounded-circle p-2" style="background: var(--tj-bg-rose); color: #DC2626;"><i class="bi bi-play-circle-fill"></i></span>
-                                                        @break
-                                                    @case('SCORM')
-                                                        <span class="badge rounded-circle p-2" style="background: var(--tj-bg-peach); color: #FF4D00;"><i class="bi bi-box-seam-fill"></i></span>
-                                                        @break
-                                                    @case('QUIZ')
-                                                        <span class="badge rounded-circle p-2" style="background: var(--tj-bg-cyan); color: #0284C7;"><i class="bi bi-patch-question-fill"></i></span>
-                                                        @break
-                                                    @case('ASSIGNMENT')
-                                                        <span class="badge rounded-circle p-2" style="background: var(--tj-bg-purple); color: var(--lms-accent);"><i class="bi bi-file-earmark-arrow-up-fill"></i></span>
-                                                        @break
-                                                    @case('ATTENDANCE')
-                                                        <span class="badge rounded-circle p-2" style="background: var(--tj-bg-mint); color: #059669;"><i class="bi bi-qr-code"></i></span>
-                                                        @break
-                                                    @default
-                                                        <span class="badge rounded-circle p-2" style="background: var(--tj-bg-purple); color: var(--lms-accent);"><i class="bi bi-file-text-fill"></i></span>
-                                                @endswitch
+                                                <span class="curriculum-sidebar-icon">
+                                                    @switch($mod->module_type)
+                                                        @case('VIDEO')
+                                                            <i class="bi bi-play-circle-fill"></i>
+                                                            @break
+                                                        @case('SCORM')
+                                                            <i class="bi bi-box-seam-fill"></i>
+                                                            @break
+                                                        @case('QUIZ')
+                                                            <i class="bi bi-patch-question-fill"></i>
+                                                            @break
+                                                        @case('ASSIGNMENT')
+                                                            <i class="bi bi-file-earmark-arrow-up-fill"></i>
+                                                            @break
+                                                        @case('ATTENDANCE')
+                                                            <i class="bi bi-qr-code"></i>
+                                                            @break
+                                                        @case('LESSON')
+                                                            <i class="bi bi-diagram-3-fill"></i>
+                                                            @break
+                                                        @case('FEEDBACK')
+                                                            <i class="bi bi-chat-left-heart-fill"></i>
+                                                            @break
+                                                        @case('CHOICE')
+                                                            <i class="bi bi-ui-radios-grid"></i>
+                                                            @break
+                                                        @case('FORUM')
+                                                            <i class="bi bi-chat-square-quote-fill"></i>
+                                                            @break
+                                                        @case('H5P')
+                                                            <i class="bi bi-badge-hd-fill"></i>
+                                                            @break
+                                                        @case('WORKSHOP')
+                                                            <i class="bi bi-people-fill"></i>
+                                                            @break
+                                                        @case('CHAT')
+                                                            <i class="bi bi-chat-dots-fill"></i>
+                                                            @break
+                                                        @case('GLOSSARY')
+                                                            <i class="bi bi-spellcheck"></i>
+                                                            @break
+                                                        @case('WIKI')
+                                                            <i class="bi bi-book-half"></i>
+                                                            @break
+                                                        @case('PAGE')
+                                                            <i class="bi bi-file-earmark-richtext-fill"></i>
+                                                            @break
+                                                        @case('BOOK')
+                                                            <i class="bi bi-journal-bookmark-fill"></i>
+                                                            @break
+                                                        @case('FILE')
+                                                            <i class="bi bi-file-earmark-arrow-down-fill"></i>
+                                                            @break
+                                                        @case('FOLDER')
+                                                            <i class="bi bi-folder2-open"></i>
+                                                            @break
+                                                        @case('URL')
+                                                            <i class="bi bi-link-45deg"></i>
+                                                            @break
+                                                        @case('LABEL')
+                                                            <i class="bi bi-card-text"></i>
+                                                            @break
+                                                        @default
+                                                            <i class="bi bi-file-text-fill"></i>
+                                                    @endswitch
+                                                </span>
                                                 <div>
-                                                    <div class="fw-semibold small text-dark">{{ $mod->module_type }} Activity (Module {{ $mod->sort_order + 1 }})</div>
-                                                    <div class="text-muted" style="font-size: 0.75rem;">Self-paced interactive completion</div>
+                                                    <div class="fw-semibold small text-dark">{{ $mod->title ?? ($mod->module_type . ' Activity') }}</div>
+                                                    <div class="text-muted" style="font-size: 0.75rem;">{{ $mod->module_type }} &bull; Self-paced interactive completion</div>
                                                 </div>
                                             </div>
                                             @if($mod->is_mandatory)

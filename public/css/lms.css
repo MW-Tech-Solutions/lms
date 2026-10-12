@@ -1308,8 +1308,9 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .admin-sidebar .nav-link.active .sidebar-icon-box {
-  background: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.22) !important;
   color: #FFFFFF !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
 }
 
 .sidebar-icon-box {
@@ -1322,6 +1323,53 @@ h1, h2, h3, h4, h5, h6,
   font-size: 1rem;
   flex-shrink: 0;
   transition: all 0.2s ease;
+  background: rgba(114, 62, 195, 0.08);
+  color: var(--lms-accent);
+  border: 1px solid rgba(114, 62, 195, 0.12);
+}
+
+[data-bs-theme="dark"] .sidebar-icon-box {
+  background: rgba(255, 255, 255, 0.06);
+  color: #CBD5E1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-sidebar .nav-link:hover .sidebar-icon-box {
+  background: var(--lms-accent);
+  color: #FFFFFF;
+  border-color: var(--lms-accent);
+}
+
+.curriculum-sidebar-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  background: rgba(114, 62, 195, 0.08);
+  color: var(--lms-accent);
+  border: 1px solid rgba(114, 62, 195, 0.12);
+}
+
+[data-bs-theme="dark"] .curriculum-sidebar-icon {
+  background: rgba(255, 255, 255, 0.06);
+  color: #CBD5E1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.list-group-item.active .curriculum-sidebar-icon {
+  background: rgba(255, 255, 255, 0.22) !important;
+  color: #FFFFFF !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.list-group-item:hover .curriculum-sidebar-icon {
+  background: var(--lms-accent);
+  color: #FFFFFF;
 }
 
 .admin-stat-card {

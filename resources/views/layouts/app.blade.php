@@ -3,7 +3,7 @@
       x-data="{ 
           darkMode: localStorage.getItem('lms_theme') === 'dark',
           isScrolled: false,
-          showTopbar: true,
+          showTopbar: {{ ($site_settings['topbar_enabled'] ?? '1') === '0' ? 'false' : 'true' }},
           showBackToTop: false,
           mobileMenuOpen: false,
           toggleTheme() {
@@ -12,13 +12,16 @@
               document.documentElement.setAttribute('data-bs-theme', this.darkMode ? 'dark' : 'light');
           },
           countdown: {
-              days: '04',
-              hours: '18',
-              minutes: '42',
-              seconds: '55',
+              days: '{{ str_pad((string)($site_settings['topbar_countdown_days'] ?? '4'), 2, '0', STR_PAD_LEFT) }}',
+              hours: '{{ str_pad((string)($site_settings['topbar_countdown_hours'] ?? '18'), 2, '0', STR_PAD_LEFT) }}',
+              minutes: '{{ str_pad((string)($site_settings['topbar_countdown_minutes'] ?? '35'), 2, '0', STR_PAD_LEFT) }}',
+              seconds: '{{ str_pad((string)($site_settings['topbar_countdown_seconds'] ?? '30'), 2, '0', STR_PAD_LEFT) }}',
               timer: null,
               start() {
-                  let totalSec = (4 * 86400) + (18 * 3600) + (42 * 60) + 55;
+                  let totalSec = ({{ (int)($site_settings['topbar_countdown_days'] ?? 4) }} * 86400) + 
+                                 ({{ (int)($site_settings['topbar_countdown_hours'] ?? 18) }} * 3600) + 
+                                 ({{ (int)($site_settings['topbar_countdown_minutes'] ?? 35) }} * 60) + 
+                                 {{ (int)($site_settings['topbar_countdown_seconds'] ?? 30) }};
                   this.timer = setInterval(() => {
                       if (totalSec > 0) {
                           totalSec--;
@@ -90,27 +93,30 @@
     @stack('styles')
 </head>
 <body>
-    <!-- 1. EDUNEX PROMO & COUNTDOWN TOPBAR -->
+    @if(($site_settings['topbar_enabled'] ?? '1') !== '0')
+    <!-- 1. EDUNEX PROMO & COUNTDOWN TOPBAR (DYNAMIC FROM ADMIN SETTINGS) -->
     <div class="edunex-topbar" x-show="showTopbar" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" x-cloak>
         <div class="container d-flex flex-wrap align-items-center justify-content-between gap-2">
             <div class="d-flex align-items-center gap-3 mx-auto mx-lg-0">
                 <div class="countdown-wrap">
-                    <span class="countdown-box" x-text="countdown.days + 'd'">04d</span>
+                    <span class="countdown-box" x-text="countdown.days + 'd'">{{ str_pad((string)($site_settings['topbar_countdown_days'] ?? '4'), 2, '0', STR_PAD_LEFT) }}d</span>
                     <span class="text-white-50">:</span>
-                    <span class="countdown-box" x-text="countdown.hours + 'h'">18h</span>
+                    <span class="countdown-box" x-text="countdown.hours + 'h'">{{ str_pad((string)($site_settings['topbar_countdown_hours'] ?? '18'), 2, '0', STR_PAD_LEFT) }}h</span>
                     <span class="text-white-50">:</span>
-                    <span class="countdown-box" x-text="countdown.minutes + 'm'">42m</span>
+                    <span class="countdown-box" x-text="countdown.minutes + 'm'">{{ str_pad((string)($site_settings['topbar_countdown_minutes'] ?? '35'), 2, '0', STR_PAD_LEFT) }}m</span>
                     <span class="text-white-50">:</span>
-                    <span class="countdown-box" x-text="countdown.seconds + 's'">55s</span>
+                    <span class="countdown-box" x-text="countdown.seconds + 's'">{{ str_pad((string)($site_settings['topbar_countdown_seconds'] ?? '30'), 2, '0', STR_PAD_LEFT) }}s</span>
                 </div>
                 <div class="d-none d-md-flex align-items-center gap-2 small">
-                    <span class="badge bg-warning text-dark fw-bold px-2"><i class="bi bi-fire me-1"></i> SPECIAL EVENT</span>
+                    <span class="badge bg-warning text-dark fw-bold px-2">
+                        <i class="bi bi-fire me-1"></i> {{ $site_settings['topbar_badge_text'] ?? 'SPECIAL EVENT' }}
+                    </span>
                     <span>{{ $site_settings['topbar_promo_text'] ?? 'Get 50% Off Annual Enterprise Compliance & Accredited Certifications' }}</span>
                 </div>
             </div>
             <div class="d-flex align-items-center gap-3 ms-auto ms-lg-0">
-                <a href="{{ route('cms.show', ['slug' => 'pricing']) }}" class="topbar-claim-btn">
-                    <span>Claim Offer</span>
+                <a href="{{ $site_settings['topbar_btn_url'] ?? route('cms.show', ['slug' => 'pricing']) }}" class="topbar-claim-btn">
+                    <span>{{ $site_settings['topbar_btn_text'] ?? 'Claim Offer' }}</span>
                     <i class="bi bi-arrow-right"></i>
                 </a>
                 <button type="button" class="topbar-close-btn" @click="showTopbar = false" title="Dismiss">
@@ -119,6 +125,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <!-- 2. EDUNEX MAIN NAVBAR (STRICT 1-LINE FIT TO SCREEN) -->
     <nav class="navbar navbar-expand-lg lms-navbar sticky-top px-3" :class="{ 'header-sticky': isScrolled }">

@@ -31,6 +31,25 @@ use App\Models\SiteSetting;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\UserProfile;
+use App\Models\CourseGroup;
+use App\Models\CourseBadge;
+use App\Models\CourseCompetency;
+use App\Models\CourseForum;
+use App\Models\ForumDiscussion;
+use App\Models\ForumPost;
+use App\Models\CourseLesson;
+use App\Models\LessonPage;
+use App\Models\CourseFeedback;
+use App\Models\FeedbackItem;
+use App\Models\CourseChoice;
+use App\Models\CourseH5p;
+use App\Models\CourseWorkshop;
+use App\Models\CourseChat;
+use App\Models\CourseGlossary;
+use App\Models\GlossaryEntry;
+use App\Models\CourseWiki;
+use App\Models\WikiPage;
+use App\Models\CourseResource;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -107,70 +126,155 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // =========================================================================
-        // 4. ROLE & PERMISSION MATRIX
+        // 4. ROLE & PERMISSION MATRIX (MOODLE CANONICAL CBAC HIERARCHY)
         // =========================================================================
-        $roleSuper = Role::create(['name' => Role::SUPER_ADMIN, 'is_system' => true]);
-        $roleManager = Role::create(['name' => Role::CORP_MANAGER, 'is_system' => true]);
-        $roleInstructor = Role::create(['name' => Role::INSTRUCTOR, 'is_system' => true]);
-        $roleTrainer = Role::create(['name' => Role::TRAINER, 'is_system' => true]);
-        $roleEmp = Role::create(['name' => Role::LEARNER_EMPLOYEE, 'is_system' => true]);
-        $roleStudent = Role::create(['name' => Role::LEARNER_STUDENT, 'is_system' => true]);
+        $roleSuper = Role::firstOrCreate(['name' => Role::SUPER_ADMIN], ['is_system' => true]);
+        $roleManager = Role::firstOrCreate(['name' => Role::MANAGER], ['is_system' => true]);
+        $roleCreator = Role::firstOrCreate(['name' => Role::COURSE_CREATOR], ['is_system' => true]);
+        $roleTeacher = Role::firstOrCreate(['name' => Role::TEACHER], ['is_system' => true]);
+        $roleTeacherNonEdit = Role::firstOrCreate(['name' => Role::TEACHER_NON_EDITING], ['is_system' => true]);
+        $roleStudent = Role::firstOrCreate(['name' => Role::STUDENT], ['is_system' => true]);
+        $roleGuest = Role::firstOrCreate(['name' => Role::GUEST], ['is_system' => true]);
+        $roleAuthUser = Role::firstOrCreate(['name' => Role::AUTHENTICATED_USER], ['is_system' => true]);
+
+        // Legacy / Alias Enterprise Roles
+        $roleCorpManager = Role::firstOrCreate(['name' => Role::CORP_MANAGER], ['is_system' => true]);
+        $roleInstructor = Role::firstOrCreate(['name' => Role::INSTRUCTOR], ['is_system' => true]);
+        $roleTrainer = Role::firstOrCreate(['name' => Role::TRAINER], ['is_system' => true]);
+        $roleEmp = Role::firstOrCreate(['name' => Role::LEARNER_EMPLOYEE], ['is_system' => true]);
+        $roleLearnerStudent = Role::firstOrCreate(['name' => Role::LEARNER_STUDENT], ['is_system' => true]);
 
         $permissions = [
-            'course:create', 'course:publish', 'course:view',
-            'quiz:attempt', 'quiz:proctor', 'quiz:grade',
-            'grade:modify', 'grade:view',
+            'course:create', 'course:publish', 'course:view', 'course:edit', 'course:delete',
+            'quiz:attempt', 'quiz:proctor', 'quiz:grade', 'quiz:create',
+            'assignment:submit', 'assignment:grade', 'assignment:blind_grade',
+            'grade:modify', 'grade:view', 'grade:calculate',
             'compliance:signoff', 'compliance:audit', 'audit:export',
             'scorm:upload', 'scorm:track',
-            'attendance:record', 'attendance:override',
+            'attendance:record', 'attendance:override', 'attendance:self_mark',
+            'forum:post', 'forum:moderate', 'forum:grade',
+            'lesson:author', 'lesson:attempt',
+            'feedback:respond', 'feedback:view_reports',
+            'choice:vote', 'choice:manage',
+            'h5p:author', 'h5p:attempt',
+            'workshop:submit', 'workshop:assess', 'workshop:grade',
+            'chat:participate', 'chat:moderate',
+            'glossary:view', 'glossary:contribute',
+            'wiki:view', 'wiki:edit',
+            'resource:view', 'resource:manage',
             'cms:manage', 'settings:edit', 'user:assign_role',
         ];
 
         $permMap = [];
         foreach ($permissions as $p) {
-            $permMap[$p] = Permission::create(['name' => $p]);
+            $permMap[$p] = Permission::firstOrCreate(['name' => $p]);
         }
 
-        // Grant Permissions: Super Admin (All)
+        // 1. Site Administrator: bypass any capability restriction
         $roleSuper->permissions()->sync(array_values(array_map(fn ($p) => $p->id, $permMap)));
 
-        // Corporate HR Manager
+        // 2. Manager: delegated admin (System / Category)
         $roleManager->permissions()->sync([
+            $permMap['course:create']->id,
+            $permMap['course:publish']->id,
+            $permMap['course:view']->id,
             $permMap['compliance:signoff']->id,
             $permMap['compliance:audit']->id,
             $permMap['audit:export']->id,
             $permMap['grade:modify']->id,
+            $permMap['grade:view']->id,
             $permMap['attendance:override']->id,
-            $permMap['course:view']->id,
+            $permMap['user:assign_role']->id,
         ]);
+        $roleCorpManager->permissions()->sync($roleManager->permissions->pluck('id')->toArray());
 
-        // Academic Instructor
-        $roleInstructor->permissions()->sync([
+        // 3. Course Creator: create courses in categories
+        $roleCreator->permissions()->sync([
             $permMap['course:create']->id,
             $permMap['course:publish']->id,
             $permMap['course:view']->id,
+            $permMap['course:edit']->id,
+        ]);
+
+        // 4. Teacher (Editing): designs and delivers instruction
+        $roleTeacher->permissions()->sync([
+            $permMap['course:view']->id,
+            $permMap['course:edit']->id,
+            $permMap['quiz:create']->id,
             $permMap['quiz:proctor']->id,
             $permMap['quiz:grade']->id,
+            $permMap['assignment:grade']->id,
+            $permMap['assignment:blind_grade']->id,
             $permMap['grade:modify']->id,
             $permMap['grade:view']->id,
-            $permMap['scorm:upload']->id,
+            $permMap['grade:calculate']->id,
             $permMap['attendance:record']->id,
+            $permMap['forum:moderate']->id,
+            $permMap['forum:grade']->id,
+            $permMap['lesson:author']->id,
+            $permMap['feedback:view_reports']->id,
+            $permMap['choice:manage']->id,
+            $permMap['h5p:author']->id,
+            $permMap['workshop:grade']->id,
+            $permMap['chat:moderate']->id,
+            $permMap['glossary:contribute']->id,
+            $permMap['wiki:edit']->id,
+            $permMap['resource:manage']->id,
+            $permMap['scorm:upload']->id,
         ]);
+        $roleInstructor->permissions()->sync($roleTeacher->permissions->pluck('id')->toArray());
 
-        // Corporate Employee
-        $roleEmp->permissions()->sync([
+        // 5. Non-editing Teacher: facilitates and evaluates without altering structure
+        $roleTeacherNonEdit->permissions()->sync([
             $permMap['course:view']->id,
-            $permMap['quiz:attempt']->id,
-            $permMap['scorm:track']->id,
+            $permMap['quiz:proctor']->id,
+            $permMap['quiz:grade']->id,
+            $permMap['assignment:grade']->id,
             $permMap['grade:view']->id,
+            $permMap['attendance:record']->id,
+            $permMap['forum:moderate']->id,
+            $permMap['chat:moderate']->id,
+            $permMap['glossary:view']->id,
+            $permMap['wiki:view']->id,
+            $permMap['resource:view']->id,
         ]);
+        $roleTrainer->permissions()->sync($roleTeacherNonEdit->permissions->pluck('id')->toArray());
 
-        // Public Academic Student
+        // 6. Student: consumes learning materials and takes assessments
         $roleStudent->permissions()->sync([
             $permMap['course:view']->id,
             $permMap['quiz:attempt']->id,
+            $permMap['assignment:submit']->id,
             $permMap['scorm:track']->id,
             $permMap['grade:view']->id,
+            $permMap['attendance:self_mark']->id,
+            $permMap['forum:post']->id,
+            $permMap['lesson:attempt']->id,
+            $permMap['feedback:respond']->id,
+            $permMap['choice:vote']->id,
+            $permMap['h5p:attempt']->id,
+            $permMap['workshop:submit']->id,
+            $permMap['workshop:assess']->id,
+            $permMap['chat:participate']->id,
+            $permMap['glossary:view']->id,
+            $permMap['glossary:contribute']->id,
+            $permMap['wiki:view']->id,
+            $permMap['wiki:edit']->id,
+            $permMap['resource:view']->id,
+        ]);
+        $roleEmp->permissions()->sync($roleStudent->permissions->pluck('id')->toArray());
+        $roleLearnerStudent->permissions()->sync($roleStudent->permissions->pluck('id')->toArray());
+
+        // 7. Guest: read-only access to open courses
+        $roleGuest->permissions()->sync([
+            $permMap['course:view']->id,
+            $permMap['resource:view']->id,
+            $permMap['glossary:view']->id,
+        ]);
+
+        // 8. Authenticated User: baseline logged-in privileges
+        $roleAuthUser->permissions()->sync([
+            $permMap['course:view']->id,
         ]);
 
         // =========================================================================
@@ -339,6 +443,16 @@ class DatabaseSeeder extends Seeder
             'label_admin_portal' => 'Admin & Audits',
             'label_switch_light' => 'Switch to Light Mode',
             'label_switch_dark' => 'Switch to Dark Mode',
+            // Topbar Promo & Countdown Banner Settings (Dynamic from Admin)
+            'topbar_enabled' => '1',
+            'topbar_badge_text' => 'SPECIAL EVENT',
+            'topbar_promo_text' => 'Get 50% Off Annual Enterprise Compliance & Accredited Certifications',
+            'topbar_btn_text' => 'Claim Offer',
+            'topbar_btn_url' => '/p/pricing',
+            'topbar_countdown_days' => '04',
+            'topbar_countdown_hours' => '18',
+            'topbar_countdown_minutes' => '35',
+            'topbar_countdown_seconds' => '30',
         ];
 
         foreach ($siteSettings as $k => $v) {
@@ -561,7 +675,7 @@ class DatabaseSeeder extends Seeder
             'bank_id' => $bank->id,
             'type' => Question::TYPE_SINGLE_CHOICE,
             'question_text' => 'Under ISO/IEC 27001:2022, what is the mandatory frequency for reviewing the Statement of Applicability (SoA)?',
-            'points' => 25,
+            'points' => 10,
         ]);
         QuestionOption::create(['question_id' => $q1->id, 'option_text' => 'Annually or upon significant organizational/technological change', 'is_correct' => true, 'sort_order' => 1]);
         QuestionOption::create(['question_id' => $q1->id, 'option_text' => 'Every 5 years', 'is_correct' => false, 'sort_order' => 2]);
@@ -571,7 +685,7 @@ class DatabaseSeeder extends Seeder
             'bank_id' => $bank->id,
             'type' => Question::TYPE_TRUE_FALSE,
             'question_text' => 'Multi-factor authentication (MFA) is strictly required for remote access under Annex A.9.',
-            'points' => 25,
+            'points' => 10,
         ]);
         QuestionOption::create(['question_id' => $q2->id, 'option_text' => 'True', 'is_correct' => true, 'sort_order' => 1]);
         QuestionOption::create(['question_id' => $q2->id, 'option_text' => 'False', 'is_correct' => false, 'sort_order' => 2]);
@@ -580,7 +694,7 @@ class DatabaseSeeder extends Seeder
             'bank_id' => $bank->id,
             'type' => Question::TYPE_MULTI_CHOICE,
             'question_text' => 'Which controls are categorized under Organizational controls in ISO 27001:2022?',
-            'points' => 25,
+            'points' => 10,
         ]);
         QuestionOption::create(['question_id' => $q3->id, 'option_text' => 'Policies for information security', 'is_correct' => true, 'sort_order' => 1]);
         QuestionOption::create(['question_id' => $q3->id, 'option_text' => 'Information security roles and responsibilities', 'is_correct' => true, 'sort_order' => 2]);
@@ -590,29 +704,76 @@ class DatabaseSeeder extends Seeder
             'bank_id' => $bank->id,
             'type' => Question::TYPE_SHORT_ANSWER,
             'question_text' => 'What does the CIA triad stand for in information security governance?',
-            'points' => 25,
+            'points' => 10,
+        ]);
+
+        $q5 = Question::create([
+            'bank_id' => $bank->id,
+            'type' => Question::TYPE_MATCHING,
+            'question_text' => 'Match each ISO 27001 control clause to its primary focus domain.',
+            'points' => 15,
+        ]);
+        QuestionOption::create(['question_id' => $q5->id, 'option_text' => 'Clause 5 -> Organizational Controls; Clause 6 -> People Controls; Clause 7 -> Physical Controls; Clause 8 -> Technological Controls', 'is_correct' => true, 'sort_order' => 1]);
+
+        $q6 = Question::create([
+            'bank_id' => $bank->id,
+            'type' => Question::TYPE_NUMERICAL,
+            'question_text' => 'What is the minimum recommended RSA key length (in bits) for digital certificate root authorities through 2030?',
+            'points' => 10,
+        ]);
+
+        $q7 = Question::create([
+            'bank_id' => $bank->id,
+            'type' => Question::TYPE_ESSAY,
+            'question_text' => 'Draft a concise executive escalation protocol for a suspected ransomware exfiltration incident.',
+            'points' => 15,
+        ]);
+
+        $q8 = Question::create([
+            'bank_id' => $bank->id,
+            'type' => Question::TYPE_DRAG_DROP,
+            'question_text' => 'Arrange the following incident response phases in chronological sequence: Identification, Containment, Eradication, Recovery, Lessons Learned.',
+            'points' => 10,
+        ]);
+
+        $q9 = Question::create([
+            'bank_id' => $bank->id,
+            'type' => Question::TYPE_CALCULATED,
+            'question_text' => 'Calculate allowed annual downtime in minutes for an enterprise service level agreement (SLA) target of 99.9% availability.',
+            'points' => 10,
         ]);
 
         $quizIso = Quiz::create([
             'title' => 'ISO 27001 Annual Recertification Exam',
             'time_limit_minutes' => 30,
-            'shuffle_questions' => false,
+            'shuffle_questions' => true,
             'max_attempts' => 2,
             'passing_percentage' => 80,
+            'safe_browser_enforced' => true,
+            'adaptive_mode' => true,
+            'penalty_rate' => 0.10,
             'anti_cheat_flags' => [
                 'blur_detection' => true,
                 'block_copy_paste' => true,
                 'webcam_snapshots' => true,
+                'safe_exam_browser' => true,
             ],
         ]);
-        $quizIso->questions()->attach([$q1->id, $q2->id, $q3->id, $q4->id]);
+        $quizIso->questions()->attach([$q1->id, $q2->id, $q3->id, $q4->id, $q5->id, $q6->id, $q7->id, $q8->id, $q9->id]);
 
         $assignment = Assignment::create([
             'title' => 'SOC 2 & ISO 27001 Mapping Defense Dossier',
             'instructions' => 'Submit a detailed technical report demonstrating encryption standards across cloud microservices.',
-            'max_file_size_mb' => 20,
+            'max_file_size_mb' => 25,
             'allowed_mime_types' => 'pdf,docx,zip',
             'max_points' => 100,
+            'is_blind_marking' => true,
+            'marking_workflow_enabled' => true,
+            'rubric_json' => [
+                ['criterion' => 'Executive Alignment', 'weight' => 25, 'description' => 'Maps controls to corporate risk appetite.'],
+                ['criterion' => 'Cryptographic Controls Verification', 'weight' => 50, 'description' => 'Validates TLS 1.3 and AES-256 ciphers.'],
+                ['criterion' => 'Remediation Roadmap', 'weight' => 25, 'description' => 'Specifies milestones and auditor signoff steps.'],
+            ],
         ]);
 
         $attSession = AttendanceSession::create([
@@ -625,30 +786,259 @@ class DatabaseSeeder extends Seeder
             'radius_meters' => 50,
         ]);
 
-        // Curriculum Sections & Modules
+        // =========================================================================
+        // MOODLE SUBSYSTEMS: GROUPS, BADGES & COMPETENCIES
+        // =========================================================================
+        CourseGroup::create([
+            'course_id' => $courseIso->id,
+            'name' => 'Cohort Alpha - Internal SecOps',
+            'group_mode' => 'SEPARATE',
+            'description' => 'Dedicated cohort partition for internal cybersecurity staff.',
+        ]);
+        CourseGroup::create([
+            'course_id' => $courseIso->id,
+            'name' => 'Cohort Beta - Third-Party Auditors',
+            'group_mode' => 'VISIBLE',
+            'description' => 'Cross-visible review stream for external accreditation inspectors.',
+        ]);
+
+        CourseBadge::create([
+            'course_id' => $courseIso->id,
+            'name' => 'Certified ISO 27001 Lead Auditor',
+            'description' => 'Demonstrated mastery across risk management, cryptographic controls, and Annex A audit readiness.',
+            'criteria_type' => 'COURSE_COMPLETION',
+            'criteria_meta_json' => ['passing_grade' => 80, 'completion_required' => true],
+            'is_active' => true,
+        ]);
+
+        CourseCompetency::create([
+            'course_id' => $courseIso->id,
+            'idnumber' => 'COMP-SEC-01',
+            'framework_name' => 'NIST CSF & ISO 27001',
+            'description' => 'Information Security Risk Mitigation Framework: ability to evaluate residual risk and architect defensive countermeasures.',
+        ]);
+        CourseCompetency::create([
+            'course_id' => $courseIso->id,
+            'idnumber' => 'COMP-SEC-02',
+            'framework_name' => 'FIPS 140-3',
+            'description' => 'Cryptographic Key Lifecycle Governance: mastery of HSM key rotations, PKI hierarchies, and certificate revocation.',
+        ]);
+
+        // =========================================================================
+        // MOODLE CORE INTERACTIVE & TRACKING MODULES
+        // =========================================================================
+        $forum = CourseForum::create([
+            'course_id' => $courseIso->id,
+            'name' => 'ISO 27001 Implementation & Audit Discussion Forum',
+            'type' => 'STANDARD',
+            'intro' => 'Collaborate with instructors and peers on applying updated control requirements.',
+            'grade_enabled' => true,
+            'grade_max' => 100,
+        ]);
+        $disc = ForumDiscussion::create([
+            'forum_id' => $forum->id,
+            'user_id' => $userSuper->id,
+            'name' => 'Annex A.5 Organizational Controls Discussion',
+            'is_pinned' => true,
+        ]);
+        ForumPost::create([
+            'discussion_id' => $disc->id,
+            'user_id' => $userInstructor->id,
+            'subject' => 'Re: Threat Intelligence Clause A.5.7',
+            'message' => 'We integrate automated STIX/TAXII feeds into SIEM to satisfy proactive telemetry criteria.',
+        ]);
+
+        $lesson = CourseLesson::create([
+            'course_id' => $courseIso->id,
+            'name' => 'Adaptive Branching Incident Response Simulation',
+            'intro' => 'A dynamic branching exercise where each triage decision redirects your mitigation route.',
+            'grade_max' => 100,
+            'allow_retakes' => true,
+        ]);
+        LessonPage::create([
+            'lesson_id' => $lesson->id,
+            'title' => 'Stage 1: Ransomware Perimeter Alert',
+            'content_html' => 'A tier-1 endpoint alerts on unexpected volume encryption. Do you isolate network ports immediately or execute memory imaging first?',
+            'page_type' => 'QUESTION',
+            'qtype' => 'MULTICHOICE',
+            'jumps_json' => [
+                ['text' => 'Quarantine affected subnet via microsegmentation (Safe Path)', 'score' => 10],
+                ['text' => 'Power cycle the affected server (Destroys volatile RAM evidence - Remedial Path)', 'score' => 0],
+            ],
+            'sort_order' => 1,
+        ]);
+
+        $feedback = CourseFeedback::create([
+            'course_id' => $courseIso->id,
+            'name' => 'Annual Course Quality & Auditor Feedback Survey',
+            'intro' => 'Please provide non-graded evaluations of course materials, lab simulations, and proctoring experience.',
+            'is_anonymous' => true,
+            'multiple_submit' => false,
+        ]);
+        FeedbackItem::create([
+            'feedback_id' => $feedback->id,
+            'name' => 'Overall instructional depth & clarity',
+            'typ' => 'NUMERIC',
+            'presentation' => 'Rate from 1 to 5',
+            'is_required' => true,
+            'position' => 1,
+        ]);
+
+        $choice = CourseChoice::create([
+            'course_id' => $courseIso->id,
+            'name' => 'Select Your Supervised Proctored Exam Slot',
+            'intro' => 'Reserve your virtual proctoring slot for the final certification examination.',
+            'options_json' => [
+                'Monday 09:00 UTC (European Track)',
+                'Wednesday 14:00 UTC (Americas Track)',
+                'Friday 02:00 UTC (Asia-Pacific Track)',
+            ],
+            'allow_multiple' => false,
+            'show_results' => true,
+        ]);
+
+        $h5p = CourseH5p::create([
+            'course_id' => $courseIso->id,
+            'title' => 'Interactive Phishing & Social Engineering Checkpoint (H5P)',
+            'package_type' => 'INTERACTIVE_VIDEO',
+            'parameters_json' => ['video_source' => 'sample.mp4', 'checkpoints' => []],
+            'grade_max' => 100.0,
+        ]);
+
+        $workshop = CourseWorkshop::create([
+            'course_id' => $courseIso->id,
+            'name' => 'Peer Review: Incident Response Runbook Evaluation',
+            'intro' => 'Multi-phase peer evaluation: Grade 1 for your submission quality (80%), Grade 2 for grading accuracy assessing peer submissions (20%).',
+            'phase' => 'SUBMISSION',
+            'grade_submission_max' => 80.0,
+            'grade_assessment_max' => 20.0,
+        ]);
+
+        $chat = CourseChat::create([
+            'course_id' => $courseIso->id,
+            'name' => 'Live SOC Office Hours & Real-time Consultation',
+            'intro' => 'Direct text consultation channel with certified enterprise lead auditors.',
+        ]);
+        \App\Models\ChatMessage::create([
+            'chat_id' => $chat->id,
+            'user_id' => $userInstructor->id,
+            'message' => 'Welcome to the live ISMS consultation stream. Post your questions here.',
+        ]);
+
+        $glossary = CourseGlossary::create([
+            'course_id' => $courseIso->id,
+            'name' => 'Information Security & Compliance Lexicon',
+            'intro' => 'Definitive searchable terminology guide for ISO/IEC 27001:2022 and SOC 2.',
+            'is_global' => false,
+            'allow_comments' => true,
+        ]);
+        GlossaryEntry::create([
+            'glossary_id' => $glossary->id,
+            'user_id' => $userSuper->id,
+            'concept' => 'Statement of Applicability (SoA)',
+            'definition' => 'Mandatory document identifying which of the ISO 27001 Annex A controls are applicable, with justifications for inclusion or exclusion.',
+            'is_approved' => true,
+        ]);
+        GlossaryEntry::create([
+            'glossary_id' => $glossary->id,
+            'user_id' => $userSuper->id,
+            'concept' => 'Zero Trust Architecture (ZTA)',
+            'definition' => 'A cybersecurity paradigm focused on resource protection where trust is never granted implicitly, requiring continuous verification.',
+            'is_approved' => true,
+        ]);
+
+        $wiki = CourseWiki::create([
+            'course_id' => $courseIso->id,
+            'name' => 'Collaborative Cyber Defense Playbook Wiki',
+            'intro' => 'Co-authored operational playbook maintained and referenced by certified audit cohorts.',
+            'first_page_title' => 'First Response Standard Operating Procedures',
+        ]);
+        WikiPage::create([
+            'wiki_id' => $wiki->id,
+            'title' => 'First Response Standard Operating Procedures',
+            'content_markdown' => "## Emergency Protocol\n1. Confirm anomaly via SIEM correlation.\n2. Preserve volatile forensic state in RAM.\n3. Escalate to Chief Information Security Officer.",
+            'last_edited_by_user_id' => $userInstructor->id,
+        ]);
+
+
+        // =========================================================================
+        // MOODLE CONTENT RESOURCES (Page, Book, File, Folder, URL, Label)
+        // =========================================================================
+        $resPage = CourseResource::create([
+            'course_id' => $courseIso->id,
+            'resource_type' => 'PAGE',
+            'title' => 'Executive Governance Policy & Scope',
+            'content_html' => '<div class="prose"><h4>Scope of Information Security Management</h4><p>This program covers cloud microservices, continuous integration pipelines, and customer data repositories under strict ISO 27001 surveillance.</p></div>',
+        ]);
+        $resBook = CourseResource::create([
+            'course_id' => $courseIso->id,
+            'resource_type' => 'BOOK',
+            'title' => 'ISO 27001 Implementation Handbook (Chapters 1-6)',
+            'content_html' => '<h4>Chapter 1: Organizational Context & Stakeholder Requirements</h4><p>Details internal and external issues affecting organizational security posture.</p>',
+        ]);
+        $resFile = CourseResource::create([
+            'course_id' => $courseIso->id,
+            'resource_type' => 'FILE',
+            'title' => 'Auditor_Evidence_Collection_Checklist_2026.pdf',
+            'file_path' => 'resources/Auditor_Evidence_Collection_Checklist_2026.pdf',
+            'content_html' => '<p>Official downloadable reference checklist for internal and third-party compliance reviews.</p>',
+        ]);
+        $resFolder = CourseResource::create([
+            'course_id' => $courseIso->id,
+            'resource_type' => 'FOLDER',
+            'title' => 'Regulatory SOP Templates & Defense Artifacts',
+            'content_html' => '<p>Categorized directory containing policy templates, threat register spreadsheets, and sample signoff forms.</p>',
+        ]);
+        $resUrl = CourseResource::create([
+            'course_id' => $courseIso->id,
+            'resource_type' => 'URL',
+            'title' => 'ISO/IEC Standards Directory (Official Reference)',
+            'external_url' => 'https://www.iso.org/isoiec-27001-information-security.html',
+            'content_html' => '<p>Direct web bridge to official international standard documentation.</p>',
+        ]);
+        $resLabel = CourseResource::create([
+            'course_id' => $courseIso->id,
+            'resource_type' => 'LABEL',
+            'title' => 'Important Milestone Notice',
+            'content_html' => '<div class="alert alert-primary mb-0"><i class="bi bi-info-circle-fill me-2"></i><strong>Audit Milestone:</strong> Complete the Adaptive Simulation and Survey before initiating final proctored exam attempt.</div>',
+        ]);
+
+        // Curriculum Sections & Modules (Linking All Moodle Activities & Resources)
         $sec1 = CourseSection::create([
             'course_id' => $courseIso->id,
             'title' => 'Section 1: Information Security Management Systems (ISMS)',
             'sort_order' => 0,
         ]);
-        CourseModule::create(['section_id' => $sec1->id, 'module_type' => CourseModule::TYPE_LESSON, 'instance_id' => 1, 'sort_order' => 0, 'is_mandatory' => true]);
-        CourseModule::create(['section_id' => $sec1->id, 'module_type' => CourseModule::TYPE_VIDEO, 'instance_id' => 1, 'sort_order' => 1, 'is_mandatory' => true]);
+        CourseModule::create(['section_id' => $sec1->id, 'module_type' => CourseModule::TYPE_LABEL, 'instance_id' => $resLabel->id, 'sort_order' => 0, 'is_mandatory' => false]);
+        CourseModule::create(['section_id' => $sec1->id, 'module_type' => CourseModule::TYPE_PAGE, 'instance_id' => $resPage->id, 'sort_order' => 1, 'is_mandatory' => true]);
+        CourseModule::create(['section_id' => $sec1->id, 'module_type' => CourseModule::TYPE_BOOK, 'instance_id' => $resBook->id, 'sort_order' => 2, 'is_mandatory' => true]);
+        CourseModule::create(['section_id' => $sec1->id, 'module_type' => CourseModule::TYPE_LESSON, 'instance_id' => $lesson->id, 'sort_order' => 3, 'is_mandatory' => true]);
 
         $sec2 = CourseSection::create([
             'course_id' => $courseIso->id,
-            'title' => 'Section 2: SCORM Telemetry & Phishing Simulation',
+            'title' => 'Section 2: SCORM Telemetry, H5P & Collaborative Interaction',
             'sort_order' => 1,
         ]);
         CourseModule::create(['section_id' => $sec2->id, 'module_type' => CourseModule::TYPE_SCORM, 'instance_id' => $scormPkg->id, 'sort_order' => 0, 'is_mandatory' => true]);
-        CourseModule::create(['section_id' => $sec2->id, 'module_type' => CourseModule::TYPE_ATTENDANCE, 'instance_id' => $attSession->id, 'sort_order' => 1, 'is_mandatory' => false]);
+        CourseModule::create(['section_id' => $sec2->id, 'module_type' => CourseModule::TYPE_H5P, 'instance_id' => $h5p->id, 'sort_order' => 1, 'is_mandatory' => true]);
+        CourseModule::create(['section_id' => $sec2->id, 'module_type' => CourseModule::TYPE_FORUM, 'instance_id' => $forum->id, 'sort_order' => 2, 'is_mandatory' => false]);
+        CourseModule::create(['section_id' => $sec2->id, 'module_type' => CourseModule::TYPE_WORKSHOP, 'instance_id' => $workshop->id, 'sort_order' => 3, 'is_mandatory' => false]);
+        CourseModule::create(['section_id' => $sec2->id, 'module_type' => CourseModule::TYPE_GLOSSARY, 'instance_id' => $glossary->id, 'sort_order' => 4, 'is_mandatory' => false]);
+        CourseModule::create(['section_id' => $sec2->id, 'module_type' => CourseModule::TYPE_WIKI, 'instance_id' => $wiki->id, 'sort_order' => 5, 'is_mandatory' => false]);
+        CourseModule::create(['section_id' => $sec2->id, 'module_type' => CourseModule::TYPE_CHAT, 'instance_id' => $chat->id, 'sort_order' => 6, 'is_mandatory' => false]);
+        CourseModule::create(['section_id' => $sec2->id, 'module_type' => CourseModule::TYPE_ATTENDANCE, 'instance_id' => $attSession->id, 'sort_order' => 7, 'is_mandatory' => false]);
 
         $sec3 = CourseSection::create([
             'course_id' => $courseIso->id,
-            'title' => 'Section 3: Proctored Assessment & Audit Submission',
+            'title' => 'Section 3: Proctored Assessment, Feedback & Audit Submission',
             'sort_order' => 2,
         ]);
-        CourseModule::create(['section_id' => $sec3->id, 'module_type' => CourseModule::TYPE_QUIZ, 'instance_id' => $quizIso->id, 'sort_order' => 0, 'is_mandatory' => true]);
-        CourseModule::create(['section_id' => $sec3->id, 'module_type' => CourseModule::TYPE_ASSIGNMENT, 'instance_id' => $assignment->id, 'sort_order' => 1, 'is_mandatory' => true]);
+        CourseModule::create(['section_id' => $sec3->id, 'module_type' => CourseModule::TYPE_CHOICE, 'instance_id' => $choice->id, 'sort_order' => 0, 'is_mandatory' => false]);
+        CourseModule::create(['section_id' => $sec3->id, 'module_type' => CourseModule::TYPE_FILE, 'instance_id' => $resFile->id, 'sort_order' => 1, 'is_mandatory' => false]);
+        CourseModule::create(['section_id' => $sec3->id, 'module_type' => CourseModule::TYPE_ASSIGNMENT, 'instance_id' => $assignment->id, 'sort_order' => 2, 'is_mandatory' => true]);
+        CourseModule::create(['section_id' => $sec3->id, 'module_type' => CourseModule::TYPE_QUIZ, 'instance_id' => $quizIso->id, 'sort_order' => 3, 'is_mandatory' => true]);
+        CourseModule::create(['section_id' => $sec3->id, 'module_type' => CourseModule::TYPE_FEEDBACK, 'instance_id' => $feedback->id, 'sort_order' => 4, 'is_mandatory' => false]);
+        CourseModule::create(['section_id' => $sec3->id, 'module_type' => CourseModule::TYPE_URL, 'instance_id' => $resUrl->id, 'sort_order' => 5, 'is_mandatory' => false]);
 
         // Cloud Course Sections
         $secCloud = CourseSection::create([
@@ -656,21 +1046,23 @@ class DatabaseSeeder extends Seeder
             'title' => 'Section 1: Cloud-Native Microservices & Kubernetes Security',
             'sort_order' => 0,
         ]);
-        CourseModule::create(['section_id' => $secCloud->id, 'module_type' => CourseModule::TYPE_LESSON, 'instance_id' => 1, 'sort_order' => 0, 'is_mandatory' => true]);
-        CourseModule::create(['section_id' => $secCloud->id, 'module_type' => CourseModule::TYPE_VIDEO, 'instance_id' => 1, 'sort_order' => 1, 'is_mandatory' => true]);
+        CourseModule::create(['section_id' => $secCloud->id, 'module_type' => CourseModule::TYPE_PAGE, 'instance_id' => $resPage->id, 'sort_order' => 0, 'is_mandatory' => true]);
+        CourseModule::create(['section_id' => $secCloud->id, 'module_type' => CourseModule::TYPE_QUIZ, 'instance_id' => $quizIso->id, 'sort_order' => 1, 'is_mandatory' => true]);
 
-        // Weighted Gradebook
+        // Weighted Gradebook Subsystem (Weighted scoring + Calculation Formula)
         $gradeCatExam = GradeCategory::create([
             'course_id' => $courseIso->id,
             'name' => 'Proctored Examinations',
-            'weight_percentage' => 50.0,
+            'weight_percentage' => 40.0,
             'drop_lowest_count' => 0,
+            'calculation_formula' => '= [QUIZ_SCORE] * 1.0',
         ]);
         $gradeCatPractical = GradeCategory::create([
             'course_id' => $courseIso->id,
-            'name' => 'Audit Submissions',
-            'weight_percentage' => 50.0,
+            'name' => 'Audit Submissions & Defense Dossiers',
+            'weight_percentage' => 60.0,
             'drop_lowest_count' => 0,
+            'calculation_formula' => '= [ASSIGNMENT_SCORE] * 1.0',
         ]);
         $gradeItemQuiz = GradeItem::create([
             'course_id' => $courseIso->id,
@@ -686,6 +1078,7 @@ class DatabaseSeeder extends Seeder
             'item_id' => $assignment->id,
             'max_score' => 100.0,
         ]);
+
 
         // =========================================================================
         // 10. ENROLLMENTS & SAMPLE CERTIFICATES
