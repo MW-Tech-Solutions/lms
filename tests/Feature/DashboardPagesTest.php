@@ -220,10 +220,13 @@ class DashboardPagesTest extends TestCase
         $admin = User::where('email', 'admin@enterpriselms.com')->first();
         $this->assertNotNull($admin);
 
+        $testSlug = 'k8s-sec-' . uniqid();
+        $updatedSlug = $testSlug . '-updated';
+
         // 1. Create a new course with thumbnail URL
         $createResponse = $this->actingAs($admin)->post('/admin/courses', [
             'title' => 'Kubernetes Security Mastery',
-            'slug' => 'kubernetes-security-mastery',
+            'slug' => $testSlug,
             'description' => 'Comprehensive enterprise Kubernetes hardening guide.',
             'thumbnail_url' => 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9',
             'target_audience' => 'CORPORATE',
@@ -237,7 +240,7 @@ class DashboardPagesTest extends TestCase
         $createResponse->assertSessionHasNoErrors();
         $createResponse->assertRedirect();
 
-        $course = \App\Models\Course::where('slug', 'kubernetes-security-mastery')->first();
+        $course = \App\Models\Course::where('slug', $testSlug)->first();
         $this->assertNotNull($course);
         $this->assertEquals('https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9', $course->thumbnail);
         $this->assertEquals('https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9', $course->thumbnailUrl());
@@ -245,7 +248,7 @@ class DashboardPagesTest extends TestCase
         // 2. Edit existing course and update thumbnail
         $updateResponse = $this->actingAs($admin)->put('/admin/courses/' . $course->id, [
             'title' => 'Kubernetes Security Mastery (Updated)',
-            'slug' => 'kubernetes-security-mastery-updated',
+            'slug' => $updatedSlug,
             'description' => 'Updated syllabus description.',
             'thumbnail_url' => 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b',
             'target_audience' => 'BOTH',

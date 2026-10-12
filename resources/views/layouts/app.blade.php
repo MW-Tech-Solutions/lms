@@ -62,8 +62,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
-    <!-- Edunex LMS Design System & Tokens -->
-    <link rel="stylesheet" href="{{ asset('css/lms.css') }}">
+    <!-- Edunex LMS Design System & Tokens (Cache-Busted) -->
+    <link rel="stylesheet" href="{{ asset('css/lms.css') }}?v={{ filemtime(public_path('css/lms.css')) }}">
 
     <!-- Dynamic Theme Variables from CMS (Overrides Entire System) -->
     <style>
@@ -357,13 +357,21 @@
         </div>
     </nav>
 
-    <!-- 3. MOBILE NAVIGATION DRAWER (ALPINE.JS NATIVE) -->
-    <div class="lms-mobile-drawer" 
+    <!-- 3. MOBILE NAVIGATION DRAWER (ALPINE.JS NATIVE - STRICTLY MOBILE ONLY) -->
+    <div class="lms-mobile-drawer d-lg-none" 
+         x-show="mobileMenuOpen"
          :class="{ 'open': mobileMenuOpen }"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 -translate-x-full"
+         x-transition:enter-end="opacity-100 translate-x-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-x-0"
+         x-transition:leave-end="opacity-0 -translate-x-full"
          tabindex="-1" 
          id="mobileOffcanvas"
          @keydown.escape.window="mobileMenuOpen = false"
-         x-cloak>
+         x-cloak
+         style="display: none; position: fixed; top: 0; bottom: 0; left: 0; width: 310px; max-width: 86vw; height: 100vh; z-index: 1065;">
         <div class="p-3 border-bottom d-flex align-items-center justify-content-between" style="background: var(--lms-surface-card);">
             <a class="d-flex align-items-center gap-2 text-decoration-none" href="{{ url('/') }}">
                 @if(!empty($site_settings['brand_logo_url']))
@@ -454,10 +462,12 @@
     </div>
 
     <!-- Offcanvas Backdrop -->
-    <div class="lms-drawer-backdrop" 
+    <div class="lms-drawer-backdrop d-lg-none" 
+         x-show="mobileMenuOpen"
          :class="{ 'open': mobileMenuOpen }" 
          @click="mobileMenuOpen = false" 
-         x-cloak>
+         x-cloak
+         style="display: none; position: fixed; inset: 0; z-index: 1060; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(3px);">
     </div>
 
     <!-- 4. FLOATING FLASH TOAST NOTIFICATION (AUTO-DISMISS WITH TIMER) -->

@@ -402,6 +402,15 @@ h1, h2, h3, h4, h5, h6,
   visibility: visible !important;
 }
 
+@media (min-width: 992px) {
+  .lms-mobile-drawer,
+  .lms-drawer-backdrop {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
 /* ==========================================================================
    EDUNEX BUTTONS (FLIP TEXT & HOVER TRANSFORMS)
    ========================================================================== */
