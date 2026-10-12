@@ -75,6 +75,22 @@ if ($isAuthenticated) {
     }
 }
 
+// PHP Extension Requirements Check
+$hasDomExtension = class_exists('DOMDocument');
+$hasXmlExtension = extension_loaded('xml');
+$hasPdoMysql = extension_loaded('pdo_mysql');
+$missingRequiredExtensions = [];
+
+if (!$hasDomExtension) {
+    $missingRequiredExtensions[] = 'dom (Required for Laravel Artisan & Termwind)';
+}
+if (!$hasXmlExtension) {
+    $missingRequiredExtensions[] = 'xml';
+}
+if (!$hasPdoMysql) {
+    $missingRequiredExtensions[] = 'pdo_mysql';
+}
+
 // Execute Command Handler
 $commandOutput = null;
 $commandName = null;
@@ -355,6 +371,30 @@ function checkWritable(string $path): bool {
                 </div>
             <?php endif; ?>
 
+            <?php if (!empty($missingRequiredExtensions)): ?>
+                <div class="alert alert-warning border-warning border-opacity-50 rounded-4 p-3 mb-4 shadow-sm" style="background: rgba(245, 158, 11, 0.12); color: #FDE68A;">
+                    <div class="d-flex align-items-start gap-3">
+                        <i class="bi bi-exclamation-diamond-fill text-warning fs-4 mt-0.5"></i>
+                        <div>
+                            <h6 class="fw-bold text-white mb-1">Missing Required PHP Extension: <?= htmlspecialchars(implode(', ', $missingRequiredExtensions)) ?></h6>
+                            <p class="small mb-2 text-white-50">
+                                Laravel Artisan and Termwind require the <code>dom</code> (DOMDocument) and <code>xml</code> extensions to render migration output. Without them, migrations halt with <em>Class "DOMDocument" not found</em>.
+                            </p>
+                            <div class="small fw-semibold text-warning">
+                                <strong>How to enable in cPanel in 10 seconds:</strong>
+                                <ol class="mb-0 mt-1 ps-3 text-white-50">
+                                    <li>Open your <strong>cPanel</strong> dashboard.</li>
+                                    <li>In the search box, type <strong>Select PHP Version</strong> (or <strong>MultiPHP INI Editor</strong>).</li>
+                                    <li>Click on the <strong>Extensions</strong> tab.</li>
+                                    <li>Find and check the checkbox for <strong>dom</strong> and <strong>xml</strong> (and <strong>pdo_mysql</strong>).</li>
+                                    <li>Refresh this page and re-run your setup!</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <div class="row g-4">
                 
                 <!-- Left Column: Diagnostic Cards & Actions -->
@@ -367,6 +407,14 @@ function checkWritable(string $path): bool {
                             <span class="badge bg-primary bg-opacity-25 text-primary small">PHP <?= PHP_VERSION ?></span>
                         </div>
                         <ul class="list-unstyled mb-0 small">
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-10">
+                                <span class="text-secondary">PHP DOM (DOMDocument):</span>
+                                <?php if ($hasDomExtension): ?>
+                                    <span class="text-success fw-bold font-mono"><i class="bi bi-check-circle-fill"></i> Enabled</span>
+                                <?php else: ?>
+                                    <span class="text-danger fw-bold font-mono" title="Enable in cPanel > Select PHP Version > Extensions"><i class="bi bi-x-circle-fill"></i> Disabled</span>
+                                <?php endif; ?>
+                            </li>
                             <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-10">
                                 <span class="text-secondary">Database Connection:</span>
                                 <?php if ($dbStatus): ?>
