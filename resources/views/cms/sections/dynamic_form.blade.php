@@ -141,14 +141,14 @@
                                 <div class="perf-divider"></div>
 
                                 <div>
-                                    <div class="perf-stat-label">PERFORMANCE?</div>
+                                    <div class="perf-stat-label">PERFORMANCE</div>
                                     <div class="perf-stat-value">&gt; 95%</div>
                                 </div>
 
                                 <div class="perf-divider"></div>
 
                                 <div>
-                                    <div class="perf-stat-label">STRCUTURE?</div>
+                                    <div class="perf-stat-label">STRUCTURE</div>
                                     <div class="perf-stat-value">&gt; 93%</div>
                                 </div>
                             </div>

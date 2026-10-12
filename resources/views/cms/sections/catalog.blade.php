@@ -116,20 +116,22 @@
                             </div>
 
                             <!-- Price & Action CTA -->
-                            <div class="d-flex justify-content-between align-items-center pt-2 mt-auto">
+                            <div class="d-flex justify-content-between align-items-center gap-2 pt-2 mt-auto">
                                 <div>
                                     @if($course->price_cents > 0)
-                                        <span class="text-decoration-line-through text-muted small me-1">$69.00</span>
-                                        <span class="fs-4 fw-bold font-mono" style="color: var(--lms-accent);">
-                                            {{ $course->formattedPrice() }}
-                                        </span>
+                                        <div class="d-flex align-items-baseline gap-1.5 flex-wrap">
+                                            <span class="fs-4 fw-bold font-mono text-nowrap" style="color: var(--lms-accent);">
+                                                {{ $course->formattedPrice() }}
+                                            </span>
+                                            <span class="text-decoration-line-through text-muted small text-nowrap">$69.00</span>
+                                        </div>
                                     @else
                                         <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold">
                                             Included in Corporate Plan
                                         </span>
                                     @endif
                                 </div>
-                                <a href="{{ route('courses.show', $course->slug) }}" class="tj-btn-primary py-2 px-3 small">
+                                <a href="{{ route('courses.show', $course->slug) }}" class="tj-btn-primary py-2 px-3 small text-nowrap flex-shrink-0">
                                     <span>View Details</span>
                                     <span class="btn-icon"><i class="bi bi-arrow-right"></i></span>
                                 </a>

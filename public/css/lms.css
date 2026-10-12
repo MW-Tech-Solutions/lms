@@ -1491,4 +1491,76 @@ h1, h2, h3, h4, h5, h6,
   background-color: #090C15 !important;
 }
 
+/* ==========================================================================
+   MOBILE RESPONSIVENESS & TOUCH OPTIMIZATIONS
+   ========================================================================== */
+@media (max-width: 991.98px) {
+  .lms-navbar {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+  .navbar-brand {
+    max-width: calc(100vw - 150px);
+  }
+  .navbar-brand span {
+    font-size: 1.05rem !important;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .edunex-topbar {
+    font-size: 0.75rem;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .countdown-box {
+    min-width: 26px;
+    padding: 2px 4px;
+    font-size: 0.72rem;
+  }
+  .topbar-claim-btn {
+    font-size: 0.72rem;
+    padding: 3px 8px;
+  }
+  .topbar-close-btn {
+    font-size: 0.75rem;
+  }
+  .bento-perf-card,
+  .bento-secure-card {
+    border-radius: 20px;
+    padding: 1.5rem 1.15rem;
+  }
+  .bento-perf-title,
+  .bento-secure-title {
+    font-size: 1.45rem;
+  }
+  .perf-grade-a {
+    font-size: 2.6rem;
+  }
+  .perf-divider {
+    height: 36px;
+    margin: 0 0.75rem;
+  }
+  .perf-stat-value {
+    font-size: 1.4rem;
+  }
+  .laptop-base {
+    width: 100%;
+    margin-left: 0;
+  }
+  .bento-laptop-container {
+    border-radius: 18px;
+    padding: 1rem 0.75rem 0 0.75rem;
+  }
+  .back-to-top-btn {
+    bottom: 16px;
+    right: 16px;
+    width: 38px;
+    height: 38px;
+    opacity: 0.85;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  }
+}
+
+
 

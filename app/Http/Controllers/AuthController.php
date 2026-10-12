@@ -84,15 +84,25 @@ class AuthController extends Controller
             'is_active' => true,
         ]);
 
+        $jobTitle = match ($user->user_type) {
+            'HYBRID' => 'Faculty & Curriculum Instructor',
+            'EMPLOYEE' => 'Corporate Associate',
+            default => 'Student Scholar',
+        };
+
         UserProfile::create([
             'user_id' => $user->id,
-            'job_title' => $user->user_type === 'EMPLOYEE' ? 'Corporate Associate' : 'Student Scholar',
+            'job_title' => $jobTitle,
             'timezone' => 'UTC',
             'locale' => 'en',
         ]);
 
         // Assign default CBAC Role
-        $roleName = $user->user_type === 'EMPLOYEE' ? Role::LEARNER_EMPLOYEE : Role::LEARNER_STUDENT;
+        $roleName = match ($user->user_type) {
+            'HYBRID' => Role::TEACHER,
+            'EMPLOYEE' => Role::LEARNER_EMPLOYEE,
+            default => Role::LEARNER_STUDENT,
+        };
         $role = Role::where('name', $roleName)->first();
         $context = Context::where('context_level', Context::LEVEL_SYSTEM)->first();
 

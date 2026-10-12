@@ -19,7 +19,7 @@
          }">
         
         <div class="row justify-content-center">
-            <div class="col-md-9 col-lg-7 col-xl-6">
+            <div class="col-md-10 col-lg-8 col-xl-7">
 
                 <!-- Main Register Card -->
                 <div class="lms-card p-4 p-md-5 shadow-lg border position-relative" 
@@ -39,33 +39,56 @@
                         </p>
                     </div>
 
-                    <!-- Dual Audience Persona Selector -->
-                    <div class="row g-2.5 mb-4">
-                        <div class="col-6">
+                    <!-- 3-Way Persona Selector -->
+                    <div class="row g-2 mb-4">
+                        <div class="col-4">
                             <button type="button" 
-                                    class="btn w-100 p-3 text-start border rounded-4 d-flex flex-column transition-all shadow-sm"
-                                    :class="audience === 'EMPLOYEE' ? 'border-primary bg-primary bg-opacity-10 shadow' : 'border bg-body text-secondary'"
+                                    class="btn w-100 p-2.5 text-start border rounded-3 d-flex flex-column transition-all shadow-sm h-100"
+                                    :class="audience === 'EMPLOYEE' ? 'border-primary bg-primary bg-opacity-10 shadow' : 'border-0 bg-body text-secondary'"
                                     @click="audience = 'EMPLOYEE'">
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <i class="bi bi-building fs-5" :class="audience === 'EMPLOYEE' ? 'text-primary' : 'text-muted'"></i>
-                                    <span class="fw-bold" style="font-size: 0.92rem;">Corporate Associate</span>
+                                <div class="d-flex align-items-center gap-1.5 mb-1">
+                                    <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                                         style="width: 24px; height: 24px; background: rgba(var(--tj-color-theme-primary-rgb, 114, 62, 195), 0.12); color: var(--lms-accent);">
+                                        <i class="bi bi-building" style="font-size: 0.8rem;"></i>
+                                    </div>
+                                    <span class="fw-bold text-truncate" style="font-size: 0.82rem;">Corporate</span>
                                 </div>
-                                <span class="small" :class="audience === 'EMPLOYEE' ? 'text-primary' : 'text-muted'" style="font-size: 0.72rem; line-height: 1.3;">
-                                    Compliance tracks &amp; recertification cycles
+                                <span class="small text-muted text-truncate" style="font-size: 0.68rem; line-height: 1.2;">
+                                    Compliance & audits
                                 </span>
                             </button>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
                             <button type="button" 
-                                    class="btn w-100 p-3 text-start border rounded-4 d-flex flex-column transition-all shadow-sm"
-                                    :class="audience === 'STUDENT' ? 'border-primary bg-primary bg-opacity-10 shadow' : 'border bg-body text-secondary'"
+                                    class="btn w-100 p-2.5 text-start border rounded-3 d-flex flex-column transition-all shadow-sm h-100"
+                                    :class="audience === 'STUDENT' ? 'border-primary bg-primary bg-opacity-10 shadow' : 'border-0 bg-body text-secondary'"
                                     @click="audience = 'STUDENT'">
-                                <div class="d-flex align-items-center gap-2 mb-1">
-                                    <i class="bi bi-mortarboard fs-5" :class="audience === 'STUDENT' ? 'text-primary' : 'text-muted'"></i>
-                                    <span class="fw-bold" style="font-size: 0.92rem;">Academic Student</span>
+                                <div class="d-flex align-items-center gap-1.5 mb-1">
+                                    <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                                         style="width: 24px; height: 24px; background: rgba(var(--tj-color-theme-primary-rgb, 114, 62, 195), 0.12); color: var(--lms-accent);">
+                                        <i class="bi bi-mortarboard" style="font-size: 0.8rem;"></i>
+                                    </div>
+                                    <span class="fw-bold text-truncate" style="font-size: 0.82rem;">Student</span>
                                 </div>
-                                <span class="small" :class="audience === 'STUDENT' ? 'text-primary' : 'text-muted'" style="font-size: 0.72rem; line-height: 1.3;">
-                                    Degree cohorts &amp; accredited certifications
+                                <span class="small text-muted text-truncate" style="font-size: 0.68rem; line-height: 1.2;">
+                                    Degrees & cohorts
+                                </span>
+                            </button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" 
+                                    class="btn w-100 p-2.5 text-start border rounded-3 d-flex flex-column transition-all shadow-sm h-100"
+                                    :class="audience === 'HYBRID' ? 'border-primary bg-primary bg-opacity-10 shadow' : 'border-0 bg-body text-secondary'"
+                                    @click="audience = 'HYBRID'">
+                                <div class="d-flex align-items-center gap-1.5 mb-1">
+                                    <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                                         style="width: 24px; height: 24px; background: rgba(var(--tj-color-theme-primary-rgb, 114, 62, 195), 0.12); color: var(--lms-accent);">
+                                        <i class="bi bi-journal-code" style="font-size: 0.8rem;"></i>
+                                    </div>
+                                    <span class="fw-bold text-truncate" style="font-size: 0.82rem;">Faculty</span>
+                                </div>
+                                <span class="small text-muted text-truncate" style="font-size: 0.68rem; line-height: 1.2;">
+                                    Teaching & grading
                                 </span>
                             </button>
                         </div>
@@ -124,30 +147,140 @@
                             </div>
                         </div>
 
-                        <!-- Corporate Specific Fields -->
+                        <!-- 1. Corporate Specific Fields -->
                         <div x-show="audience === 'EMPLOYEE'" x-transition class="p-3.5 rounded-4 mb-3 border" style="background: var(--lms-bg-secondary); border-color: var(--lms-border) !important;">
-                            <div class="fw-bold small text-primary mb-2 d-flex align-items-center gap-1.5">
-                                <i class="bi bi-shield-check"></i> Organizational Context
+                            <div class="d-flex align-items-center gap-2 mb-2.5">
+                                <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" 
+                                     style="width: 28px; height: 28px; background: rgba(var(--tj-color-theme-primary-rgb, 114, 62, 195), 0.12); color: var(--lms-accent);">
+                                    <i class="bi bi-shield-check" style="font-size: 0.88rem;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold small" style="color: var(--lms-text-primary); font-size: 0.85rem;">Organizational Context</div>
+                                    <div class="text-secondary" style="font-size: 0.68rem;">Verified enterprise affiliation for compliance &amp; certification audits</div>
+                                </div>
                             </div>
                             <div class="row g-2.5">
                                 <div class="col-md-6">
                                     <label class="form-label small fw-semibold text-secondary mb-1">Corporate Employee ID</label>
-                                    <input type="text" 
-                                           name="employee_id" 
-                                           class="form-control font-mono fs-6 rounded-3" 
-                                           placeholder="EMP-94021" 
-                                           value="{{ old('employee_id') }}">
+                                    <div class="input-group rounded-3 border overflow-hidden" style="background: var(--lms-bg-body);">
+                                        <span class="input-group-text bg-transparent border-0 text-muted ps-3">
+                                            <i class="bi bi-card-text"></i>
+                                        </span>
+                                        <input type="text" 
+                                               name="employee_id" 
+                                               autocomplete="off"
+                                               class="form-control border-0 bg-transparent ps-2 fs-6 font-mono" 
+                                               placeholder="EMP-94021" 
+                                               value="{{ old('employee_id') }}">
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label small fw-semibold text-secondary mb-1">Assigned Department</label>
-                                    <select name="department_id" class="form-select fs-6 rounded-3">
-                                        <option value="">General Corporate Workforce</option>
-                                        @foreach(\App\Models\Department::all() as $dept)
-                                            <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
-                                                {{ $dept->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
+                                    <div class="input-group rounded-3 border overflow-hidden" style="background: var(--lms-bg-body);">
+                                        <span class="input-group-text bg-transparent border-0 text-muted ps-3">
+                                            <i class="bi bi-building"></i>
+                                        </span>
+                                        <select name="department_id" class="form-select border-0 bg-transparent ps-2 fs-6">
+                                            <option value="">General Corporate Workforce</option>
+                                            @foreach(\App\Models\Department::all() as $dept)
+                                                <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
+                                                    {{ $dept->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Academic Student Specific Fields -->
+                        <div x-show="audience === 'STUDENT'" x-transition class="p-3.5 rounded-4 mb-3 border" style="background: var(--lms-bg-secondary); border-color: var(--lms-border) !important;">
+                            <div class="d-flex align-items-center gap-2 mb-2.5">
+                                <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" 
+                                     style="width: 28px; height: 28px; background: rgba(var(--tj-color-theme-primary-rgb, 114, 62, 195), 0.12); color: var(--lms-accent);">
+                                    <i class="bi bi-mortarboard" style="font-size: 0.88rem;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold small" style="color: var(--lms-text-primary); font-size: 0.85rem;">Academic Scholar Context</div>
+                                    <div class="text-secondary" style="font-size: 0.68rem;">Higher education accreditation &amp; degree program track</div>
+                                </div>
+                            </div>
+                            <div class="row g-2.5">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-secondary mb-1">Student / Scholar ID</label>
+                                    <div class="input-group rounded-3 border overflow-hidden" style="background: var(--lms-bg-body);">
+                                        <span class="input-group-text bg-transparent border-0 text-muted ps-3">
+                                            <i class="bi bi-person-badge"></i>
+                                        </span>
+                                        <input type="text" 
+                                               name="employee_id" 
+                                               autocomplete="off"
+                                               class="form-control border-0 bg-transparent ps-2 fs-6 font-mono" 
+                                               placeholder="STU-2026-99" 
+                                               value="{{ old('employee_id') }}">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-secondary mb-1">Academic Program / School</label>
+                                    <div class="input-group rounded-3 border overflow-hidden" style="background: var(--lms-bg-body);">
+                                        <span class="input-group-text bg-transparent border-0 text-muted ps-3">
+                                            <i class="bi bi-book"></i>
+                                        </span>
+                                        <select name="department_id" class="form-select border-0 bg-transparent ps-2 fs-6">
+                                            <option value="">Graduate &amp; Undergraduate Studies</option>
+                                            @foreach(\App\Models\Department::all() as $dept)
+                                                <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
+                                                    {{ $dept->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Faculty / Educator Specific Fields -->
+                        <div x-show="audience === 'HYBRID'" x-transition class="p-3.5 rounded-4 mb-3 border" style="background: var(--lms-bg-secondary); border-color: var(--lms-border) !important;">
+                            <div class="d-flex align-items-center gap-2 mb-2.5">
+                                <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" 
+                                     style="width: 28px; height: 28px; background: rgba(var(--tj-color-theme-primary-rgb, 114, 62, 195), 0.12); color: var(--lms-accent);">
+                                    <i class="bi bi-journal-code" style="font-size: 0.88rem;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-bold small" style="color: var(--lms-text-primary); font-size: 0.85rem;">Faculty &amp; Educator Context</div>
+                                    <div class="text-secondary" style="font-size: 0.68rem;">Curriculum authoring, grading authority, and proctoring access</div>
+                                </div>
+                            </div>
+                            <div class="row g-2.5">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-secondary mb-1">Faculty Staff ID</label>
+                                    <div class="input-group rounded-3 border overflow-hidden" style="background: var(--lms-bg-body);">
+                                        <span class="input-group-text bg-transparent border-0 text-muted ps-3">
+                                            <i class="bi bi-person-vcard"></i>
+                                        </span>
+                                        <input type="text" 
+                                               name="employee_id" 
+                                               autocomplete="off"
+                                               class="form-control border-0 bg-transparent ps-2 fs-6 font-mono" 
+                                               placeholder="FAC-5001" 
+                                               value="{{ old('employee_id') }}">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-secondary mb-1">Assigned Academic Faculty</label>
+                                    <div class="input-group rounded-3 border overflow-hidden" style="background: var(--lms-bg-body);">
+                                        <span class="input-group-text bg-transparent border-0 text-muted ps-3">
+                                            <i class="bi bi-building-check"></i>
+                                        </span>
+                                        <select name="department_id" class="form-select border-0 bg-transparent ps-2 fs-6">
+                                            <option value="">General Academic Faculty</option>
+                                            @foreach(\App\Models\Department::all() as $dept)
+                                                <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
+                                                    {{ $dept->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </div>

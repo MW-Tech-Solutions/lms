@@ -95,10 +95,10 @@
 <body>
     @if(($site_settings['topbar_enabled'] ?? '1') !== '0')
     <!-- 1. EDUNEX PROMO & COUNTDOWN TOPBAR (DYNAMIC FROM ADMIN SETTINGS) -->
-    <div class="edunex-topbar" x-show="showTopbar" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" x-cloak>
-        <div class="container d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <div class="d-flex align-items-center gap-3 mx-auto mx-lg-0">
-                <div class="countdown-wrap">
+    <div class="edunex-topbar" x-show="showTopbar" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" x-cloak style="overflow-x: hidden;">
+        <div class="container d-flex align-items-center justify-content-between gap-2 flex-nowrap">
+            <div class="d-flex align-items-center gap-2 gap-md-3 min-w-0">
+                <div class="countdown-wrap flex-shrink-0">
                     <span class="countdown-box" x-text="countdown.days + 'd'">{{ str_pad((string)($site_settings['topbar_countdown_days'] ?? '4'), 2, '0', STR_PAD_LEFT) }}d</span>
                     <span class="text-white-50">:</span>
                     <span class="countdown-box" x-text="countdown.hours + 'h'">{{ str_pad((string)($site_settings['topbar_countdown_hours'] ?? '18'), 2, '0', STR_PAD_LEFT) }}h</span>
@@ -107,19 +107,19 @@
                     <span class="text-white-50">:</span>
                     <span class="countdown-box" x-text="countdown.seconds + 's'">{{ str_pad((string)($site_settings['topbar_countdown_seconds'] ?? '30'), 2, '0', STR_PAD_LEFT) }}s</span>
                 </div>
-                <div class="d-none d-md-flex align-items-center gap-2 small">
-                    <span class="badge bg-warning text-dark fw-bold px-2">
+                <div class="d-none d-md-flex align-items-center gap-2 small text-truncate">
+                    <span class="badge bg-warning text-dark fw-bold px-2 flex-shrink-0">
                         <i class="bi bi-fire me-1"></i> {{ $site_settings['topbar_badge_text'] ?? 'SPECIAL EVENT' }}
                     </span>
-                    <span>{{ $site_settings['topbar_promo_text'] ?? 'Get 50% Off Annual Enterprise Compliance & Accredited Certifications' }}</span>
+                    <span class="text-truncate">{{ $site_settings['topbar_promo_text'] ?? 'Get 50% Off Annual Enterprise Compliance & Accredited Certifications' }}</span>
                 </div>
             </div>
-            <div class="d-flex align-items-center gap-3 ms-auto ms-lg-0">
-                <a href="{{ $site_settings['topbar_btn_url'] ?? route('cms.show', ['slug' => 'pricing']) }}" class="topbar-claim-btn">
+            <div class="d-flex align-items-center gap-2 gap-md-3 flex-shrink-0 ms-auto">
+                <a href="{{ $site_settings['topbar_btn_url'] ?? route('cms.show', ['slug' => 'pricing']) }}" class="topbar-claim-btn text-nowrap">
                     <span>{{ $site_settings['topbar_btn_text'] ?? 'Claim Offer' }}</span>
                     <i class="bi bi-arrow-right"></i>
                 </a>
-                <button type="button" class="topbar-close-btn" @click="showTopbar = false" title="Dismiss">
+                <button type="button" class="topbar-close-btn flex-shrink-0" @click="showTopbar = false" title="Dismiss">
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
@@ -306,7 +306,7 @@
 
                 @auth
                     <!-- Management Hub Button -->
-                    <a href="{{ route('admin.dashboard') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold text-nowrap d-inline-flex align-items-center gap-1" style="font-size: 0.85rem; height: 36px;">
+                    <a href="{{ route('admin.dashboard') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold text-nowrap d-none d-md-inline-flex align-items-center gap-1" style="font-size: 0.85rem; height: 36px;">
                         <i class="bi bi-grid-fill"></i>
                         <span>Management Hub</span>
                     </a>
@@ -340,17 +340,17 @@
                         </ul>
                     </div>
                 @else
-                    <a href="{{ route('login') }}" class="tj-btn-outline py-1 px-3 text-nowrap" style="font-size: 0.85rem; height: 36px;">
+                    <a href="{{ route('login') }}" class="tj-btn-outline py-1 px-3 text-nowrap d-none d-lg-inline-flex" style="font-size: 0.85rem; height: 36px;">
                         <span>Log In</span>
                     </a>
-                    <a href="{{ route('register') }}" class="tj-btn-primary py-1 px-3 text-nowrap" style="font-size: 0.85rem; height: 36px;">
+                    <a href="{{ route('register') }}" class="tj-btn-primary py-1 px-3 text-nowrap d-none d-lg-inline-flex" style="font-size: 0.85rem; height: 36px;">
                         <span>Enroll Now</span>
                         <span class="btn-icon"><i class="bi bi-arrow-right"></i></span>
                     </a>
                 @endauth
 
                 <!-- Mobile Hamburger Button -->
-                <button class="navbar-toggler border-0 shadow-none p-1 ms-1 d-lg-none" type="button" @click="mobileMenuOpen = true">
+                <button class="navbar-toggler border-0 shadow-none p-1 ms-1 d-lg-none" type="button" @click="mobileMenuOpen = true" title="Toggle Navigation Menu">
                     <i class="bi bi-list fs-2 text-primary"></i>
                 </button>
             </div>
