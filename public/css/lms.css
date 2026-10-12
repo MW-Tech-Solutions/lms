@@ -359,6 +359,50 @@ h1, h2, h3, h4, h5, h6,
 }
 
 /* ==========================================================================
+   MOBILE NAVIGATION DRAWER & BACKDROP (ALPINE.JS NATIVE)
+   ========================================================================== */
+.lms-mobile-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 320px;
+  max-width: 86vw;
+  height: 100vh;
+  background-color: var(--lms-surface-card);
+  border-right: 1px solid var(--lms-border);
+  z-index: 1065;
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s ease;
+  box-shadow: 10px 0 35px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+}
+
+.lms-mobile-drawer.open {
+  transform: translateX(0) !important;
+  visibility: visible !important;
+}
+
+.lms-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 1060;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.lms-drawer-backdrop.open {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ==========================================================================
    EDUNEX BUTTONS (FLIP TEXT & HOVER TRANSFORMS)
    ========================================================================== */
 .tj-btn-primary {

@@ -357,48 +357,108 @@
         </div>
     </nav>
 
-    <!-- 3. OFFCANVAS MOBILE DRAWER -->
-    <div class="offcanvas offcanvas-start border-0" tabindex="-1" id="mobileOffcanvas" 
-         x-show="mobileMenuOpen" 
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="-translate-x-full"
-         x-transition:enter-end="translate-x-0"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="translate-x-0"
-         x-transition:leave-end="-translate-x-full"
-         x-cloak
-         style="background: var(--lms-surface-card); width: 320px; display: block; z-index: 1060; position: fixed; top: 0; bottom: 0; left: 0;">
-        <div class="offcanvas-header border-bottom p-3 d-flex align-items-center justify-content-between">
-            <h5 class="offcanvas-title fw-bold" style="font-family: var(--lms-font-heading); color: var(--lms-accent);">
-                {{ $site_settings['brand_name'] ?? 'Edunex' }}
-            </h5>
-            <button type="button" class="btn-close" @click="mobileMenuOpen = false"></button>
-        </div>
-        <div class="offcanvas-body p-3">
-            <form action="{{ route('courses.index') }}" method="GET" class="mb-4">
-                <div class="input-group">
-                    <input type="text" name="search" class="form-control" placeholder="Search courses...">
-                    <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
-                </div>
-            </form>
-            <ul class="nav flex-column gap-2 mb-4">
-                <li class="nav-item"><a class="nav-link fw-semibold" href="{{ url('/') }}">Home</a></li>
-                <li class="nav-item"><a class="nav-link fw-semibold" href="{{ route('courses.index') }}">Courses</a></li>
-                <li class="nav-item"><a class="nav-link fw-semibold" href="{{ route('corporate.compliance') }}">Corporate Compliance</a></li>
-                <li class="nav-item"><a class="nav-link fw-semibold" href="{{ route('cms.show', ['slug' => 'pricing']) }}">Pricing</a></li>
-            </ul>
-            <div class="d-grid gap-2 border-top pt-3">
-                @auth
-                    <a href="{{ route('admin.dashboard') }}" class="tj-btn-primary text-center">Dashboard</a>
+    <!-- 3. MOBILE NAVIGATION DRAWER (ALPINE.JS NATIVE) -->
+    <div class="lms-mobile-drawer" 
+         :class="{ 'open': mobileMenuOpen }"
+         tabindex="-1" 
+         id="mobileOffcanvas"
+         @keydown.escape.window="mobileMenuOpen = false"
+         x-cloak>
+        <div class="p-3 border-bottom d-flex align-items-center justify-content-between" style="background: var(--lms-surface-card);">
+            <a class="d-flex align-items-center gap-2 text-decoration-none" href="{{ url('/') }}">
+                @if(!empty($site_settings['brand_logo_url']))
+                    <img src="{{ $site_settings['brand_logo_url'] }}" alt="Logo" height="28">
                 @else
-                    <a href="{{ route('login') }}" class="tj-btn-outline text-center">Sign In</a>
-                    <a href="{{ route('register') }}" class="tj-btn-primary text-center">Enroll Now</a>
+                    <span class="badge rounded-3 p-1.5 shadow-sm" style="background: linear-gradient(135deg, var(--lms-accent), #FF4D00); font-size: 0.85rem; color: #FFF;">
+                        <i class="bi bi-mortarboard-fill"></i>
+                    </span>
+                @endif
+                <div class="d-flex flex-column">
+                    <span class="fw-bold" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary); font-size: 1.05rem; line-height: 1.1;">
+                        {{ $site_settings['brand_name'] ?? 'Enterprise Academy' }}
+                    </span>
+                    <span class="text-muted" style="font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Enterprise LMS</span>
+                </div>
+            </a>
+            <button type="button" class="btn-close" @click="mobileMenuOpen = false" aria-label="Close"></button>
+        </div>
+
+        <div class="p-3 d-flex flex-column justify-content-between h-100 overflow-y-auto">
+            <div>
+                <!-- Search Box -->
+                <form action="{{ route('courses.index') }}" method="GET" class="mb-3">
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                        <input type="text" name="search" class="form-control border-start-0 ps-0" placeholder="Search courses, tracks...">
+                    </div>
+                </form>
+
+                <!-- Navigation Links -->
+                <ul class="nav flex-column gap-1 mb-3">
+                    <li class="nav-item">
+                        <a class="nav-link rounded-3 px-3 py-2 fw-semibold d-flex align-items-center gap-2 {{ request()->routeIs('home') ? 'bg-primary-subtle text-primary' : 'text-body' }}" href="{{ url('/') }}">
+                            <i class="bi bi-house-door"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-3 px-3 py-2 fw-semibold d-flex align-items-center gap-2 {{ request()->routeIs('courses.*') ? 'bg-primary-subtle text-primary' : 'text-body' }}" href="{{ route('courses.index') }}">
+                            <i class="bi bi-book"></i> Courses &amp; Programs
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-3 px-3 py-2 fw-semibold d-flex align-items-center gap-2 {{ request()->routeIs('corporate.compliance') ? 'bg-primary-subtle text-primary' : 'text-body' }}" href="{{ route('corporate.compliance') }}">
+                            <i class="bi bi-shield-check text-primary"></i> Corporate Compliance
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-3 px-3 py-2 fw-semibold d-flex align-items-center gap-2 {{ request()->is('p/pricing') ? 'bg-primary-subtle text-primary' : 'text-body' }}" href="{{ route('cms.show', ['slug' => 'pricing']) }}">
+                            <i class="bi bi-tag"></i> Pricing Plans
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Bottom Actions -->
+            <div class="border-top pt-3 mt-auto">
+                @auth
+                    <div class="d-flex align-items-center gap-2 mb-3 px-2">
+                        <i class="bi bi-person-circle fs-3 text-primary"></i>
+                        <div class="min-w-0">
+                            <div class="fw-bold small text-truncate text-body">{{ Auth::user()->name }}</div>
+                            <div class="text-muted text-truncate" style="font-size: 0.72rem;">{{ Auth::user()->email }}</div>
+                            <span class="badge bg-primary-subtle text-primary mt-0.5" style="font-size: 0.65rem;">{{ Auth::user()->user_type }}</span>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <a href="{{ route('my-learning') }}" class="btn btn-outline-primary rounded-pill py-2 small fw-semibold text-center">
+                            <i class="bi bi-collection-play me-1"></i> My Learning
+                        </a>
+                        <a href="{{ route('admin.dashboard') }}" class="tj-btn-primary text-center py-2 small">
+                            <i class="bi bi-speedometer2 me-1"></i> Management Dashboard
+                        </a>
+                        <form method="POST" action="{{ route('logout') }}" class="mt-1">
+                            @csrf
+                            <button type="submit" class="btn btn-light w-100 text-danger border rounded-pill py-1.5 small fw-semibold">
+                                <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+                            </button>
+                        </form>
+                    </div>
+                @else
+                    <div class="d-grid gap-2">
+                        <a href="{{ route('login') }}" class="tj-btn-outline text-center py-2">Sign In</a>
+                        <a href="{{ route('register') }}" class="tj-btn-primary text-center py-2">Enroll Now &rarr;</a>
+                    </div>
                 @endauth
             </div>
         </div>
     </div>
+
     <!-- Offcanvas Backdrop -->
-    <div class="modal-backdrop fade show" x-show="mobileMenuOpen" @click="mobileMenuOpen = false" x-cloak style="z-index: 1050;"></div>
+    <div class="lms-drawer-backdrop" 
+         :class="{ 'open': mobileMenuOpen }" 
+         @click="mobileMenuOpen = false" 
+         x-cloak>
+    </div>
 
     <!-- 4. FLOATING FLASH TOAST NOTIFICATION (AUTO-DISMISS WITH TIMER) -->
     @if(session('success') || session('status') || session('error'))
