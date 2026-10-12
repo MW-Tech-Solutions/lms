@@ -28,9 +28,18 @@
              });
          }
      }">
-    <div class="row g-0">
+    <div class="d-flex flex-nowrap" style="min-height: calc(100vh - 65px);">
         <!-- Curriculum Sidebar (Left) -->
-        <div class="col-lg-3 col-md-4 player-sidebar p-3" x-show="sidebarOpen">
+        <div class="player-sidebar p-3 flex-shrink-0" 
+             x-show="sidebarOpen" 
+             x-transition:enter="transition ease-out duration-200" 
+             x-transition:enter-start="-translate-x-full opacity-0" 
+             x-transition:enter-end="translate-x-0 opacity-100" 
+             x-transition:leave="transition ease-in duration-150" 
+             x-transition:leave-start="translate-x-0 opacity-100" 
+             x-transition:leave-end="-translate-x-full opacity-0" 
+             x-cloak 
+             style="width: 320px; min-width: 320px; max-width: 320px;">
             <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
                 <a href="{{ route('my-learning') }}" class="btn btn-sm btn-outline-secondary">
                     <i class="bi bi-arrow-left me-1"></i> {{ $site_settings['label_my_courses'] ?? 'My Learning' }}
@@ -149,8 +158,8 @@
             </div>
         </div>
 
-        <!-- Active Module Viewport (Right) -->
-        <div class="col-lg-9 col-md-8 player-content p-4 p-md-5 d-flex flex-column justify-content-between">
+        <!-- Active Module Viewport (Right - Dynamically Fills Full Screen When Sidebar is Collapsed) -->
+        <div class="player-content p-4 p-md-5 d-flex flex-column justify-content-between flex-grow-1 w-100" style="min-width: 0;">
             <div>
                 <!-- Top Toolbar -->
                 <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">

@@ -111,6 +111,9 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::post('/scorm/upload', [ScormAdminController::class, 'upload'])->name('scorm.upload');
 
     Route::get('/quizzes', [QuizAdminController::class, 'index'])->name('quizzes.index');
+    Route::post('/quizzes', [QuizAdminController::class, 'store'])->name('quizzes.store');
+    Route::put('/quizzes/{quiz}', [QuizAdminController::class, 'update'])->name('quizzes.update');
+    Route::post('/quizzes/{quiz}/toggle', [QuizAdminController::class, 'toggleStatus'])->name('quizzes.toggle');
 
     Route::get('/gradebook', [GradebookAdminController::class, 'index'])->name('gradebook.index');
     Route::post('/gradebook/override', [GradebookAdminController::class, 'override'])->name('gradebook.override');
@@ -124,5 +127,9 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::post('/settings', [SettingsAdminController::class, 'update'])->name('settings.update');
 
     Route::get('/users', [UserAdminController::class, 'index'])->name('users.index');
+    Route::post('/users', [UserAdminController::class, 'store'])->name('users.store');
+    Route::put('/users/{user}', [UserAdminController::class, 'update'])->name('users.update');
     Route::post('/users/assign-role', [UserAdminController::class, 'assignRole'])->name('users.assign-role');
+    Route::post('/users/remove-role', [UserAdminController::class, 'removeRole'])->name('users.remove-role');
+    Route::post('/users/roles', [UserAdminController::class, 'storeRole'])->name('users.store-role');
 });

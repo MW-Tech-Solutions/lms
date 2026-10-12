@@ -99,4 +99,9 @@ class Role extends Model
     {
         return $this->hasMany(RoleAssignment::class);
     }
+
+    public function roleAssignments(): HasMany
+    {
+        return $this->hasMany(RoleAssignment::class);
+    }
 }

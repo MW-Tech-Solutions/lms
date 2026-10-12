@@ -887,12 +887,16 @@ h1, h2, h3, h4, h5, h6,
   overflow-y: auto;
   border-right: 1px solid var(--lms-border);
   background-color: var(--lms-surface-card);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .player-content {
   height: calc(100vh - 65px);
   overflow-y: auto;
   background-color: var(--lms-bg-body);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* Exam Layout */

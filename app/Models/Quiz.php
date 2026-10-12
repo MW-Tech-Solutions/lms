@@ -36,4 +36,17 @@ class Quiz extends Model
     {
         return $this->hasMany(QuizAttempt::class);
     }
+
+    public function isActive(): bool
+    {
+        if (isset($this->attributes['is_active'])) {
+            return (bool) $this->attributes['is_active'];
+        }
+        return (bool) ($this->anti_cheat_flags['is_active'] ?? true);
+    }
+
+    public function hasAntiCheatFlag(string $flag): bool
+    {
+        return !empty($this->anti_cheat_flags[$flag]);
+    }
 }
