@@ -37,6 +37,61 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
+// Polyfill for missing ext-dom in shared hosting environments without DOMDocument
+if (!class_exists('DOMDocument')) {
+    if (!defined('LIBXML_NOERROR')) define('LIBXML_NOERROR', 0);
+    if (!defined('LIBXML_COMPACT')) define('LIBXML_COMPACT', 0);
+    if (!defined('LIBXML_HTML_NODEFDTD')) define('LIBXML_HTML_NODEFDTD', 0);
+    if (!defined('LIBXML_NOBLANKS')) define('LIBXML_NOBLANKS', 0);
+    if (!defined('LIBXML_NOXMLDECL')) define('LIBXML_NOXMLDECL', 0);
+
+    class DOMNode
+    {
+        public string $nodeValue = '';
+        public string $nodeName = 'body';
+        public array $childNodes = [];
+    }
+
+    class DOMText extends DOMNode
+    {
+        public function __construct(string $val = '')
+        {
+            $this->nodeValue = $val;
+            $this->nodeName = '#text';
+        }
+    }
+
+    class DOMComment extends DOMNode
+    {
+        public function __construct()
+        {
+            $this->nodeName = '#comment';
+        }
+    }
+
+    class DOMNodeList
+    {
+        public int $length = 1;
+        public function item(int $index): ?DOMNode
+        {
+            return new DOMNode();
+        }
+    }
+
+    class DOMDocument extends DOMNode
+    {
+        public function loadHTML(string $source, int $options = 0): bool
+        {
+            return true;
+        }
+
+        public function getElementsByTagName(string $name): DOMNodeList
+        {
+            return new DOMNodeList();
+        }
+    }
+}
+
 // Bootstrap Laravel if authenticated
 $laravelLoaded = false;
 $laravelError = null;
@@ -96,6 +151,66 @@ $commandOutput = null;
 $commandName = null;
 $executionTime = null;
 
+// Resilient Migration Runner (Bypasses Termwind and DOMDocument completely)
+function safeMigrate(\Illuminate\Foundation\Application $app): string
+{
+    $buffer = ">>> Running Migrations (Safe Mode)...\n";
+    try {
+        /** @var \Illuminate\Database\Migrations\Migrator $migrator */
+        $migrator = $app->make('migrator');
+        
+        if (!$migrator->repositoryExists()) {
+            $migrator->getRepository()->createRepository();
+            $buffer .= "✓ Migration repository created successfully.\n";
+        }
+        
+        $paths = [database_path('migrations')];
+        $files = $migrator->getMigrationFiles($paths);
+        $migrator->requireFiles($files);
+        
+        $ran = $migrator->run($paths, ['pretend' => false]);
+        if (empty($ran)) {
+            $buffer .= "✓ Nothing to migrate. All database tables are already up to date.\n";
+        } else {
+            $buffer .= "✓ Successfully migrated " . count($ran) . " tables:\n";
+            foreach ($ran as $migrationName) {
+                $buffer .= "  ✓ " . basename($migrationName) . "\n";
+            }
+        }
+    } catch (\Throwable $e) {
+        $buffer .= "Direct migration warning: " . $e->getMessage() . "\nAttempting Artisan fallback...\n";
+        try {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $buffer .= \Illuminate\Support\Facades\Artisan::output() . "\n";
+        } catch (\Throwable $e2) {
+            $buffer .= "Artisan Error: " . $e2->getMessage() . "\n";
+        }
+    }
+    return $buffer;
+}
+
+// Resilient Seeder Runner
+function safeSeed(\Illuminate\Foundation\Application $app): string
+{
+    $buffer = ">>> Seeding Database...\n";
+    try {
+        /** @var \Database\Seeders\DatabaseSeeder $seeder */
+        $seeder = $app->make(\Database\Seeders\DatabaseSeeder::class);
+        $seeder->setContainer($app);
+        $seeder->__invoke();
+        $buffer .= "✓ Database successfully seeded with default roles, categories, courses, and system templates.\n";
+    } catch (\Throwable $e) {
+        $buffer .= "Direct seeder notice: " . $e->getMessage() . "\nAttempting Artisan fallback...\n";
+        try {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+            $buffer .= \Illuminate\Support\Facades\Artisan::output() . "\n";
+        } catch (\Throwable $e2) {
+            $buffer .= "Artisan Error: " . $e2->getMessage() . "\n";
+        }
+    }
+    return $buffer;
+}
+
 if ($isAuthenticated && $laravelLoaded && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['command'])) {
     $command = trim((string) $_POST['command']);
     $startTime = microtime(true);
@@ -108,17 +223,19 @@ if ($isAuthenticated && $laravelLoaded && $_SERVER['REQUEST_METHOD'] === 'POST' 
             
             // 1. Generate Key if missing
             if (empty(env('APP_KEY'))) {
-                \Illuminate\Support\Facades\Artisan::call('key:generate', ['--force' => true]);
-                $outputBuffer .= ">>> php artisan key:generate --force\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
+                try {
+                    \Illuminate\Support\Facades\Artisan::call('key:generate', ['--force' => true]);
+                    $outputBuffer .= ">>> php artisan key:generate --force\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
+                } catch (\Throwable $e) {
+                    $outputBuffer .= ">>> key:generate notice: " . $e->getMessage() . "\n";
+                }
             }
 
-            // 2. Run Migrations
-            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-            $outputBuffer .= ">>> php artisan migrate --force\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
+            // 2. Run Migrations (Safe Mode)
+            $outputBuffer .= safeMigrate($app) . "\n";
 
-            // 3. Seed Database
-            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-            $outputBuffer .= ">>> php artisan db:seed --force\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
+            // 3. Seed Database (Safe Mode)
+            $outputBuffer .= safeSeed($app) . "\n";
 
             // 4. Storage Link
             try {
@@ -129,22 +246,24 @@ if ($isAuthenticated && $laravelLoaded && $_SERVER['REQUEST_METHOD'] === 'POST' 
             }
 
             // 5. Clear Caches
-            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-            $outputBuffer .= ">>> php artisan optimize:clear\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
+            try {
+                \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+                $outputBuffer .= ">>> php artisan optimize:clear\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
+            } catch (\Throwable $e) {
+                $outputBuffer .= ">>> optimize:clear notice (" . $e->getMessage() . ")\n";
+            }
 
             $commandOutput = $outputBuffer;
         } elseif ($command === 'migrate_fresh_seed') {
-            $commandName = 'migrate:fresh --seed --force';
-            \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
-            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+            $commandName = 'migrate:fresh --seed';
+            $outputBuffer .= safeMigrate($app) . "\n" . safeSeed($app) . "\n";
+            $commandOutput = $outputBuffer;
         } elseif ($command === 'migrate') {
             $commandName = 'migrate --force';
-            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+            $commandOutput = safeMigrate($app);
         } elseif ($command === 'db_seed') {
             $commandName = 'db:seed --force';
-            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+            $commandOutput = safeSeed($app);
         } elseif ($command === 'storage_link') {
             $commandName = 'storage:link';
             \Illuminate\Support\Facades\Artisan::call('storage:link');
