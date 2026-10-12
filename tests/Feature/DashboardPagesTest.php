@@ -62,17 +62,71 @@ class DashboardPagesTest extends TestCase
             'password' => 'password123',
         ]);
         $instructorResponse->assertRedirect(route('admin.dashboard'));
-
-        // Reset auth session for next user test
         \Illuminate\Support\Facades\Auth::logout();
         session()->flush();
 
-        // 2. Student login routes to learner dashboard
+        // 2. Editing Teacher login routes to admin dashboard
+        $teacherEditResponse = $this->post('/login', [
+            'email' => 'teacher.editing@enterpriselms.com',
+            'password' => 'password123',
+        ]);
+        $teacherEditResponse->assertRedirect(route('admin.dashboard'));
+        \Illuminate\Support\Facades\Auth::logout();
+        session()->flush();
+
+        // 3. Non-editing Teacher login routes to admin dashboard
+        $teacherNonEditResponse = $this->post('/login', [
+            'email' => 'teacher.assistant@enterpriselms.com',
+            'password' => 'password123',
+        ]);
+        $teacherNonEditResponse->assertRedirect(route('admin.dashboard'));
+        \Illuminate\Support\Facades\Auth::logout();
+        session()->flush();
+
+        // 4. Course Creator login routes to admin dashboard
+        $creatorResponse = $this->post('/login', [
+            'email' => 'creator@enterpriselms.com',
+            'password' => 'password123',
+        ]);
+        $creatorResponse->assertRedirect(route('admin.dashboard'));
+        \Illuminate\Support\Facades\Auth::logout();
+        session()->flush();
+
+        // 5. HR Manager login routes to admin dashboard
+        $managerResponse = $this->post('/login', [
+            'email' => 'hr.manager@acmeglobal.com',
+            'password' => 'password123',
+        ]);
+        $managerResponse->assertRedirect(route('admin.dashboard'));
+        \Illuminate\Support\Facades\Auth::logout();
+        session()->flush();
+
+        // 6. Student login routes to learner dashboard
         $studentResponse = $this->post('/login', [
             'email' => 'student@enterpriselms.com',
             'password' => 'password123',
         ]);
         $studentResponse->assertRedirect(route('my-learning'));
+        \Illuminate\Support\Facades\Auth::logout();
+        session()->flush();
+
+        // 7. Corporate Employee login routes to learner dashboard
+        $employeeResponse = $this->post('/login', [
+            'email' => 'employee@acmeglobal.com',
+            'password' => 'password123',
+        ]);
+        $employeeResponse->assertRedirect(route('my-learning'));
+        \Illuminate\Support\Facades\Auth::logout();
+        session()->flush();
+
+        // 8. Guest User login routes to learner dashboard
+        $guestResponse = $this->post('/login', [
+            'email' => 'guest@enterpriselms.com',
+            'password' => 'password123',
+        ]);
+        $guestResponse->assertRedirect(route('my-learning'));
+        \Illuminate\Support\Facades\Auth::logout();
+        session()->flush();
     }
 
     public function test_course_show_page_renders_with_multibyte_polyfill(): void

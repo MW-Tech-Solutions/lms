@@ -414,6 +414,112 @@ class DatabaseSeeder extends Seeder
             'role_id' => $roleStudent->id,
             'context_id' => $ctxSystem->id,
         ]);
+        // 6. Course Creator
+        $userCreator = User::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Clara Oswald (Course Creator)',
+            'email' => 'creator@enterpriselms.com',
+            'password' => $defaultPassword,
+            'user_type' => 'HYBRID',
+            'employee_id' => 'CRT-501',
+            'is_active' => true,
+        ]);
+        UserProfile::create([
+            'user_id' => $userCreator->id,
+            'job_title' => 'Curriculum Architect & Course Creator',
+            'timezone' => 'UTC',
+            'locale' => 'en',
+        ]);
+        RoleAssignment::create([
+            'user_id' => $userCreator->id,
+            'role_id' => $roleCreator->id,
+            'context_id' => $ctxCategory->id,
+        ]);
+
+        // 7. Teacher (Editing) - Canonical Moodle Editing Instructor
+        $userTeacherEdit = User::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Marcus Aurelius (Editing Teacher)',
+            'email' => 'teacher.editing@enterpriselms.com',
+            'password' => $defaultPassword,
+            'user_type' => 'HYBRID',
+            'employee_id' => 'TCH-101',
+            'is_active' => true,
+        ]);
+        UserProfile::create([
+            'user_id' => $userTeacherEdit->id,
+            'job_title' => 'Senior Instructional Designer & Lead Evaluator',
+            'timezone' => 'UTC',
+            'locale' => 'en',
+        ]);
+        RoleAssignment::create([
+            'user_id' => $userTeacherEdit->id,
+            'role_id' => $roleTeacher->id,
+            'context_id' => $ctxTenant->id,
+        ]);
+
+        // 8. Non-editing Teacher - Facilitator & Grader
+        $userTeacherNonEdit = User::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Elena Rostova (Non-editing Teacher)',
+            'email' => 'teacher.assistant@enterpriselms.com',
+            'password' => $defaultPassword,
+            'user_type' => 'HYBRID',
+            'employee_id' => 'TA-202',
+            'is_active' => true,
+        ]);
+        UserProfile::create([
+            'user_id' => $userTeacherNonEdit->id,
+            'job_title' => 'Teaching Assistant & Evaluation Moderator',
+            'timezone' => 'UTC',
+            'locale' => 'en',
+        ]);
+        RoleAssignment::create([
+            'user_id' => $userTeacherNonEdit->id,
+            'role_id' => $roleTeacherNonEdit->id,
+            'context_id' => $ctxTenant->id,
+        ]);
+
+        // 9. Guest User
+        $userGuest = User::create([
+            'name' => 'Guest Visitor (Read-Only)',
+            'email' => 'guest@enterpriselms.com',
+            'password' => $defaultPassword,
+            'user_type' => 'STUDENT',
+            'is_active' => true,
+        ]);
+        UserProfile::create([
+            'user_id' => $userGuest->id,
+            'job_title' => 'Public Visitor',
+            'timezone' => 'UTC',
+            'locale' => 'en',
+        ]);
+        RoleAssignment::create([
+            'user_id' => $userGuest->id,
+            'role_id' => $roleGuest->id,
+            'context_id' => $ctxSystem->id,
+        ]);
+
+        // 10. Authenticated User (Standard User Account)
+        $userAuth = User::create([
+            'name' => 'David Miller (Standard User)',
+            'email' => 'user@enterpriselms.com',
+            'password' => $defaultPassword,
+            'user_type' => 'EMPLOYEE',
+            'employee_id' => 'USR-900',
+            'is_active' => true,
+        ]);
+        UserProfile::create([
+            'user_id' => $userAuth->id,
+            'job_title' => 'Authenticated Enterprise Learner',
+            'timezone' => 'UTC',
+            'locale' => 'en',
+        ]);
+        RoleAssignment::create([
+            'user_id' => $userAuth->id,
+            'role_id' => $roleAuthUser->id,
+            'context_id' => $ctxSystem->id,
+        ]);
 
         // =========================================================================
         // 6. ZERO-HARDCODING SITE SETTINGS

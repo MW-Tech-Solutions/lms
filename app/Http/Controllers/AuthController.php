@@ -36,9 +36,10 @@ class AuthController extends Controller
 
             /** @var User $user */
             $user = Auth::user();
-            \App\Services\AuditService::log('USER_LOGIN', $user, null, ['email' => $user->email]);
-
-            $isAdminRole = $user->roleAssignments()->whereHas('role', fn ($q) => $q->whereIn('name', ['SUPER_ADMIN', 'CORP_MANAGER', 'INSTRUCTOR']))->exists();
+            $isAdminRole = $user->roleAssignments()->whereHas('role', fn ($q) => $q->whereIn('name', [
+                'SUPER_ADMIN', 'MANAGER', 'COURSE_CREATOR', 'TEACHER', 'TEACHER_NON_EDITING',
+                'CORP_MANAGER', 'INSTRUCTOR', 'TRAINER'
+            ]))->exists();
 
             $intendedUrl = session()->get('url.intended');
             if (!$isAdminRole && $intendedUrl && str_contains($intendedUrl, '/admin')) {

@@ -21,52 +21,77 @@
                      role: 'Super Administrator',
                      email: 'admin@enterpriselms.com',
                      badge: 'Admin Console',
-                     icon: 'bi-shield-shaded',
-                     color: '#723EC3'
+                     icon: 'bi-shield-shaded'
                  },
                  'manager': {
                      name: 'Sarah Connor',
                      role: 'Corporate HR Manager',
                      email: 'hr.manager@acmeglobal.com',
                      badge: 'Compliance & Audits',
-                     icon: 'bi-briefcase-fill',
-                     color: '#059669'
+                     icon: 'bi-briefcase-fill'
+                 },
+                 'creator': {
+                     name: 'Clara Oswald',
+                     role: 'Course Creator',
+                     email: 'creator@enterpriselms.com',
+                     badge: 'Curriculum Architect',
+                     icon: 'bi-folder-plus'
+                 },
+                 'teacher_edit': {
+                     name: 'Marcus Aurelius',
+                     role: 'Teacher (Editing)',
+                     email: 'teacher.editing@enterpriselms.com',
+                     badge: 'Editing Faculty',
+                     icon: 'bi-pencil-square'
+                 },
+                 'teacher_nonedit': {
+                     name: 'Elena Rostova',
+                     role: 'Non-editing Teacher',
+                     email: 'teacher.assistant@enterpriselms.com',
+                     badge: 'Tutor & Grader',
+                     icon: 'bi-person-check-fill'
                  },
                  'instructor': {
                      name: 'Dr. Robert Oppenheimer',
                      role: 'Curriculum & Faculty Lead',
                      email: 'instructor@enterpriselms.com',
                      badge: 'Curriculum & Grading',
-                     icon: 'bi-journal-code',
-                     color: '#D97706'
+                     icon: 'bi-journal-code'
                  },
                  'employee': {
                      name: 'John Doe',
                      role: 'Corporate Employee',
                      email: 'employee@acmeglobal.com',
                      badge: 'Workforce Learner',
-                     icon: 'bi-person-badge',
-                     color: '#2563EB'
+                     icon: 'bi-person-badge'
                  },
                  'student': {
                      name: 'Emma Watson',
-                     role: 'Academic Student',
+                     role: 'Academic Student / Scholar',
                      email: 'student@enterpriselms.com',
                      badge: 'Degree Scholar',
-                     icon: 'bi-mortarboard-fill',
-                     color: '#0D9488'
+                     icon: 'bi-mortarboard-fill'
+                 },
+                 'guest': {
+                     name: 'Guest Visitor',
+                     role: 'Guest User (Read-Only)',
+                     email: 'guest@enterpriselms.com',
+                     badge: 'Public Guest',
+                     icon: 'bi-incognito'
                  }
              },
              applyAccount(key) {
                  this.selectedRole = key;
                  const acc = this.accounts[key];
-                 document.getElementById('loginEmail').value = acc.email;
-                 document.getElementById('loginPassword').value = 'password123';
+                 if (acc) {
+                     document.getElementById('loginEmail').value = acc.email;
+                     document.getElementById('loginPassword').value = 'password123';
+                 }
              }
          }">
         
         <div class="row justify-content-center">
-            <div class="col-md-9 col-lg-6 col-xl-5">
+            <div class="col-md-10 col-lg-8 col-xl-7">
 
                 <!-- Main Login Card -->
                 <div class="lms-card p-4 p-md-5 shadow-lg border position-relative" 
@@ -97,67 +122,126 @@
                             </span>
                         </div>
 
-                        <!-- Persona Buttons Grid -->
-                        <div class="d-grid gap-1.5" style="grid-template-columns: repeat(2, 1fr);">
+                        <!-- Persona Buttons Grid (All Moodle Roles: Admin, Manager, Creator, Editing Teacher, Non-editing Teacher, Employee, Student, Guest) -->
+                        <div class="d-grid gap-2" style="grid-template-columns: repeat(2, 1fr);">
+                            <!-- 1. Super Admin -->
                             <button type="button" 
                                     @click="applyAccount('admin')"
                                     class="btn btn-sm text-start p-2 rounded-3 border transition-all d-flex align-items-center gap-2"
                                     :class="selectedRole === 'admin' ? 'border-primary bg-primary bg-opacity-10 shadow-sm' : 'border-0 bg-body'">
-                                <i class="bi bi-shield-shaded text-purple fs-6"></i>
+                                <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" 
+                                     style="width: 28px; height: 28px; background: var(--lms-bg-card, rgba(255,255,255,0.06)); border: 1px solid var(--lms-border); color: var(--lms-accent, #723EC3);">
+                                    <i class="bi bi-shield-shaded" style="font-size: 0.85rem;"></i>
+                                </div>
                                 <div class="text-truncate">
-                                    <div class="fw-bold text-body small text-truncate" style="font-size: 0.76rem;">Super Admin</div>
-                                    <div class="text-muted text-truncate font-mono" style="font-size: 0.64rem;">admin@enterpriselms</div>
+                                    <div class="fw-bold text-body small text-truncate" style="font-size: 0.74rem;">Super Admin</div>
+                                    <div class="text-muted text-truncate font-mono" style="font-size: 0.62rem;">admin@enterpriselms</div>
                                 </div>
                             </button>
 
+                            <!-- 2. HR Manager -->
                             <button type="button" 
                                     @click="applyAccount('manager')"
                                     class="btn btn-sm text-start p-2 rounded-3 border transition-all d-flex align-items-center gap-2"
                                     :class="selectedRole === 'manager' ? 'border-primary bg-primary bg-opacity-10 shadow-sm' : 'border-0 bg-body'">
-                                <i class="bi bi-briefcase-fill text-success fs-6"></i>
+                                <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" 
+                                     style="width: 28px; height: 28px; background: var(--lms-bg-card, rgba(255,255,255,0.06)); border: 1px solid var(--lms-border); color: var(--lms-accent, #723EC3);">
+                                    <i class="bi bi-briefcase-fill" style="font-size: 0.85rem;"></i>
+                                </div>
                                 <div class="text-truncate">
-                                    <div class="fw-bold text-body small text-truncate" style="font-size: 0.76rem;">HR Manager</div>
-                                    <div class="text-muted text-truncate font-mono" style="font-size: 0.64rem;">hr.manager@acme</div>
+                                    <div class="fw-bold text-body small text-truncate" style="font-size: 0.74rem;">HR Manager</div>
+                                    <div class="text-muted text-truncate font-mono" style="font-size: 0.62rem;">hr.manager@acme</div>
                                 </div>
                             </button>
 
+                            <!-- 3. Course Creator -->
                             <button type="button" 
-                                    @click="applyAccount('instructor')"
+                                    @click="applyAccount('creator')"
                                     class="btn btn-sm text-start p-2 rounded-3 border transition-all d-flex align-items-center gap-2"
-                                    :class="selectedRole === 'instructor' ? 'border-primary bg-primary bg-opacity-10 shadow-sm' : 'border-0 bg-body'">
-                                <i class="bi bi-journal-code text-warning fs-6"></i>
+                                    :class="selectedRole === 'creator' ? 'border-primary bg-primary bg-opacity-10 shadow-sm' : 'border-0 bg-body'">
+                                <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" 
+                                     style="width: 28px; height: 28px; background: var(--lms-bg-card, rgba(255,255,255,0.06)); border: 1px solid var(--lms-border); color: var(--lms-accent, #723EC3);">
+                                    <i class="bi bi-folder-plus" style="font-size: 0.85rem;"></i>
+                                </div>
                                 <div class="text-truncate">
-                                    <div class="fw-bold text-body small text-truncate" style="font-size: 0.76rem;">Instructor / Lead</div>
-                                    <div class="text-muted text-truncate font-mono" style="font-size: 0.64rem;">instructor@enterpriselms</div>
+                                    <div class="fw-bold text-body small text-truncate" style="font-size: 0.74rem;">Course Creator</div>
+                                    <div class="text-muted text-truncate font-mono" style="font-size: 0.62rem;">creator@enterpriselms</div>
                                 </div>
                             </button>
 
+                            <!-- 4. Teacher (Editing) -->
+                            <button type="button" 
+                                    @click="applyAccount('teacher_edit')"
+                                    class="btn btn-sm text-start p-2 rounded-3 border transition-all d-flex align-items-center gap-2"
+                                    :class="selectedRole === 'teacher_edit' ? 'border-primary bg-primary bg-opacity-10 shadow-sm' : 'border-0 bg-body'">
+                                <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" 
+                                     style="width: 28px; height: 28px; background: var(--lms-bg-card, rgba(255,255,255,0.06)); border: 1px solid var(--lms-border); color: var(--lms-accent, #723EC3);">
+                                    <i class="bi bi-pencil-square" style="font-size: 0.85rem;"></i>
+                                </div>
+                                <div class="text-truncate">
+                                    <div class="fw-bold text-body small text-truncate" style="font-size: 0.74rem;">Teacher (Editing)</div>
+                                    <div class="text-muted text-truncate font-mono" style="font-size: 0.62rem;">teacher.editing@enterpriselms</div>
+                                </div>
+                            </button>
+
+                            <!-- 5. Non-editing Teacher -->
+                            <button type="button" 
+                                    @click="applyAccount('teacher_nonedit')"
+                                    class="btn btn-sm text-start p-2 rounded-3 border transition-all d-flex align-items-center gap-2"
+                                    :class="selectedRole === 'teacher_nonedit' ? 'border-primary bg-primary bg-opacity-10 shadow-sm' : 'border-0 bg-body'">
+                                <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" 
+                                     style="width: 28px; height: 28px; background: var(--lms-bg-card, rgba(255,255,255,0.06)); border: 1px solid var(--lms-border); color: var(--lms-accent, #723EC3);">
+                                    <i class="bi bi-person-check-fill" style="font-size: 0.85rem;"></i>
+                                </div>
+                                <div class="text-truncate">
+                                    <div class="fw-bold text-body small text-truncate" style="font-size: 0.74rem;">Non-editing Teacher</div>
+                                    <div class="text-muted text-truncate font-mono" style="font-size: 0.62rem;">teacher.assistant@enterpriselms</div>
+                                </div>
+                            </button>
+
+                            <!-- 6. Corporate Employee -->
                             <button type="button" 
                                     @click="applyAccount('employee')"
                                     class="btn btn-sm text-start p-2 rounded-3 border transition-all d-flex align-items-center gap-2"
                                     :class="selectedRole === 'employee' ? 'border-primary bg-primary bg-opacity-10 shadow-sm' : 'border-0 bg-body'">
-                                <i class="bi bi-person-badge text-primary fs-6"></i>
+                                <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" 
+                                     style="width: 28px; height: 28px; background: var(--lms-bg-card, rgba(255,255,255,0.06)); border: 1px solid var(--lms-border); color: var(--lms-accent, #723EC3);">
+                                    <i class="bi bi-person-badge" style="font-size: 0.85rem;"></i>
+                                </div>
                                 <div class="text-truncate">
-                                    <div class="fw-bold text-body small text-truncate" style="font-size: 0.76rem;">Employee</div>
-                                    <div class="text-muted text-truncate font-mono" style="font-size: 0.64rem;">employee@acme</div>
+                                    <div class="fw-bold text-body small text-truncate" style="font-size: 0.74rem;">Corporate Employee</div>
+                                    <div class="text-muted text-truncate font-mono" style="font-size: 0.62rem;">employee@acme</div>
                                 </div>
                             </button>
-                        </div>
 
-                        <!-- Student Full-Width Pill -->
-                        <div class="mt-1.5">
+                            <!-- 7. Academic Student / Scholar -->
                             <button type="button" 
                                     @click="applyAccount('student')"
-                                    class="btn btn-sm text-start p-2 rounded-3 border transition-all w-100 d-flex align-items-center justify-content-between"
+                                    class="btn btn-sm text-start p-2 rounded-3 border transition-all d-flex align-items-center gap-2"
                                     :class="selectedRole === 'student' ? 'border-primary bg-primary bg-opacity-10 shadow-sm' : 'border-0 bg-body'">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="bi bi-mortarboard-fill text-info fs-6"></i>
-                                    <div>
-                                        <div class="fw-bold text-body small" style="font-size: 0.76rem;">Academic Student / Scholar</div>
-                                        <div class="text-muted font-mono" style="font-size: 0.64rem;">student@enterpriselms.com &bull; student@university.edu</div>
-                                    </div>
+                                <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" 
+                                     style="width: 28px; height: 28px; background: var(--lms-bg-card, rgba(255,255,255,0.06)); border: 1px solid var(--lms-border); color: var(--lms-accent, #723EC3);">
+                                    <i class="bi bi-mortarboard-fill" style="font-size: 0.85rem;"></i>
                                 </div>
-                                <span class="badge bg-info-subtle text-info rounded-pill small" style="font-size: 0.62rem;">Learner View</span>
+                                <div class="text-truncate">
+                                    <div class="fw-bold text-body small text-truncate" style="font-size: 0.74rem;">Academic Student</div>
+                                    <div class="text-muted text-truncate font-mono" style="font-size: 0.62rem;">student@enterpriselms</div>
+                                </div>
+                            </button>
+
+                            <!-- 8. Guest User -->
+                            <button type="button" 
+                                    @click="applyAccount('guest')"
+                                    class="btn btn-sm text-start p-2 rounded-3 border transition-all d-flex align-items-center gap-2"
+                                    :class="selectedRole === 'guest' ? 'border-primary bg-primary bg-opacity-10 shadow-sm' : 'border-0 bg-body'">
+                                <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center flex-shrink-0" 
+                                     style="width: 28px; height: 28px; background: var(--lms-bg-card, rgba(255,255,255,0.06)); border: 1px solid var(--lms-border); color: var(--lms-accent, #723EC3);">
+                                    <i class="bi bi-incognito" style="font-size: 0.85rem;"></i>
+                                </div>
+                                <div class="text-truncate">
+                                    <div class="fw-bold text-body small text-truncate" style="font-size: 0.74rem;">Guest Visitor</div>
+                                    <div class="text-muted text-truncate font-mono" style="font-size: 0.62rem;">guest@enterpriselms</div>
+                                </div>
                             </button>
                         </div>
                     </div>
