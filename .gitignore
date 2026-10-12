@@ -21,6 +21,10 @@
 /storage/*.key
 /storage/pail
 /vendor
+vendor/
+*.zip
+*.tar.gz
+*.rar
 Homestead.json
 Homestead.yaml
 Thumbs.db

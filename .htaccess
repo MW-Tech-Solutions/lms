@@ -1,10 +1,11 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Prevent directory browsing
-    Options -Indexes
+    # Allow direct access to run-setup.php
+    RewriteCond %{REQUEST_URI} ^/run-setup\.php [NC]
+    RewriteRule ^ - [L]
 
-    # Direct requests into the public folder
+    # Redirect all other traffic to the public directory
     RewriteCond %{REQUEST_URI} !^/public/
-    RewriteRule ^(.*)$ public/$1 [L,QSA]
+    RewriteRule ^(.*)$ public/$1 [L]
 </IfModule>
