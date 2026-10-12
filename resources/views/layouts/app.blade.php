@@ -73,6 +73,15 @@
             --tj-color-theme-primary-rgb: {{ $site_settings['brand_accent_rgb'] ?? '114, 62, 195' }};
             --lms-bg-secondary: {{ $site_settings['brand_secondary_color'] ?? '#F8F9FD' }};
         }
+        [data-bs-theme="dark"] {
+            --lms-bg-body: #0A0D16;
+            --lms-bg-secondary: #0F1322 !important;
+            --lms-surface-card: #151928;
+            --lms-border: rgba(255, 255, 255, 0.08);
+            --lms-text-primary: #F8FAFC;
+            --lms-text-secondary: #CBD5E1;
+            --lms-text-muted: #94A3B8;
+        }
     </style>
 
     <!-- Alpine.js -->

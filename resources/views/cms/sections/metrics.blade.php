@@ -9,10 +9,10 @@
 @endphp
 
 <!-- Edunex Client & Accreditation Infinite Marquee -->
-<div class="py-4 border-bottom" style="background: var(--lms-bg-secondary);">
+<div class="py-4 border-bottom trust-marquee-strip">
     <div class="container text-center mb-3">
-        <p class="small text-muted fw-bold text-uppercase mb-0" style="letter-spacing: 1.5px;">
-            Trusted by over <span class="text-primary fw-bolder">2,000+</span> enterprises, regulatory bodies &amp; accredited institutions
+        <p class="trust-marquee-label mb-0">
+            Trusted by over <span class="trust-marquee-highlight">2,000+</span> enterprises, regulatory bodies &amp; accredited institutions
         </p>
     </div>
     <div class="tj-marquee-wrapper">
