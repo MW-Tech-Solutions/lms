@@ -9,22 +9,22 @@
          style="width: 440px; height: 440px; background: radial-gradient(circle, rgba(255, 77, 0, 0.12) 0%, transparent 70%); filter: blur(50px); pointer-events: none; transform: translate(-30%, 20%);"></div>
 
     <div class="container position-relative" style="z-index: 2;">
-        <div class="row align-items-center g-5">
+        <div class="row align-items-center g-4 g-lg-5">
             <!-- Left: Hero Headline & Action Strategy -->
             <div class="col-lg-6 text-center text-lg-start">
                 <!-- Live Pill Badge -->
-                <div class="mb-3 d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill shadow-sm border" 
-                     style="background: var(--lms-surface-card); border-color: rgba(114, 62, 195, 0.2) !important;">
-                    <span class="badge rounded-pill px-2 py-1" style="background: linear-gradient(135deg, var(--lms-accent), #FF4D00); color: #FFF; font-size: 0.72rem; letter-spacing: 0.5px;">
+                <div class="hero-live-pill mb-3 d-inline-flex align-items-center flex-wrap flex-sm-nowrap gap-2 px-3 py-1 rounded-pill shadow-sm border" 
+                     style="background: var(--lms-surface-card); border-color: rgba(114, 62, 195, 0.2) !important; max-width: 100%;">
+                    <span class="badge rounded-pill px-2 py-1 flex-shrink-0" style="background: linear-gradient(135deg, var(--lms-accent), #FF4D00); color: #FFF; font-size: 0.72rem; letter-spacing: 0.5px;">
                         <i class="bi bi-lightning-charge-fill me-1"></i> LIVE LMS ENGINE
                     </span>
-                    <span class="small fw-semibold text-secondary" style="font-size: 0.82rem;">
+                    <span class="small fw-semibold text-secondary text-truncate" style="font-size: 0.82rem;">
                         Trusted by 2,500+ Organizations &amp; Accreditation Boards
                     </span>
                 </div>
 
                 <!-- Main Display Title -->
-                <h1 class="display-4 fw-extrabold mb-3 lh-sm" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary); letter-spacing: -1px;">
+                <h1 class="display-4 fw-extrabold mb-3 lh-sm" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary); letter-spacing: -1px; word-break: break-word;">
                     Empower Your Workforce.<br>
                     <span style="background: linear-gradient(135deg, #723EC3 0%, #2563EB 50%, #FF4D00 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                         Certify With Distinction.
@@ -37,12 +37,12 @@
                 </p>
 
                 <!-- Dual Action CTAs -->
-                <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start gap-3 mb-4">
-                    <a href="{{ $c['primary_cta_url'] ?? route('courses.index') }}" class="tj-btn-primary py-3 px-4 shadow-sm" style="font-size: 0.95rem;">
+                <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start gap-2 gap-sm-3 mb-4">
+                    <a href="{{ $c['primary_cta_url'] ?? route('courses.index') }}" class="tj-btn-primary py-2.5 py-sm-3 px-3 px-sm-4 shadow-sm" style="font-size: 0.95rem;">
                         <span>Explore Curriculum</span>
                         <span class="btn-icon"><i class="bi bi-arrow-right"></i></span>
                     </a>
-                    <a href="{{ $c['secondary_cta_url'] ?? route('corporate.compliance') }}" class="tj-btn-outline py-3 px-4" style="font-size: 0.95rem;">
+                    <a href="{{ $c['secondary_cta_url'] ?? route('corporate.compliance') }}" class="tj-btn-outline py-2.5 py-sm-3 px-3 px-sm-4" style="font-size: 0.95rem;">
                         <i class="bi bi-shield-check text-primary me-2"></i>
                         <span>Corporate Compliance Hub</span>
                     </a>

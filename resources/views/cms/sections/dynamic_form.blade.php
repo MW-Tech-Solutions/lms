@@ -136,20 +136,48 @@
 
                             {{-- Benchmark Metric Bar: Grade A, Performance > 95%, Structure > 93% --}}
                             <div class="perf-metrics-strip">
-                                <div class="perf-grade-a">A</div>
-                                
-                                <div class="perf-divider"></div>
+                                <div class="perf-metrics-main">
+                                    <div class="perf-grade-a">A</div>
+                                    
+                                    <div class="perf-divider"></div>
 
-                                <div>
-                                    <div class="perf-stat-label">PERFORMANCE</div>
-                                    <div class="perf-stat-value">&gt; 95%</div>
+                                    <div>
+                                        <div class="perf-stat-label">PERFORMANCE</div>
+                                        <div class="perf-stat-value">&gt; 95%</div>
+                                    </div>
+
+                                    <div class="perf-divider"></div>
+
+                                    <div>
+                                        <div class="perf-stat-label">STRUCTURE</div>
+                                        <div class="perf-stat-value">&gt; 93%</div>
+                                    </div>
                                 </div>
 
-                                <div class="perf-divider"></div>
-
-                                <div>
-                                    <div class="perf-stat-label">STRUCTURE</div>
-                                    <div class="perf-stat-value">&gt; 93%</div>
+                                {{-- Speedometer Gauge in the black card empty space (mobile) --}}
+                                <div class="perf-speedometer-inline">
+                                    <svg width="105" height="60" viewBox="0 0 160 90" fill="none" class="speedometer-svg" xmlns="http://www.w3.org/2000/svg">
+                                        <defs>
+                                            <linearGradient id="gaugeArcGradientInline" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" stop-color="#FF3B30" />
+                                                <stop offset="25%" stop-color="#FF9500" />
+                                                <stop offset="50%" stop-color="#FFCC00" />
+                                                <stop offset="75%" stop-color="#34C759" />
+                                                <stop offset="100%" stop-color="#00D084" />
+                                            </linearGradient>
+                                        </defs>
+                                        {{-- Background Arc --}}
+                                        <path d="M 18 80 A 62 62 0 0 1 142 80" fill="none" stroke="rgba(255, 255, 255, 0.12)" stroke-width="16" stroke-linecap="round"/>
+                                        {{-- Colorful Gradient Arc --}}
+                                        <path d="M 18 80 A 62 62 0 0 1 142 80" fill="none" stroke="url(#gaugeArcGradientInline)" stroke-width="14" stroke-linecap="round"/>
+                                        {{-- Dial needle pointing right at 95% zone --}}
+                                        <g transform="translate(80, 80)">
+                                            <line x1="0" y1="0" x2="38" y2="-40" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+                                            <polygon points="36,-38 46,-48 40,-34" fill="#FFFFFF"/>
+                                            <circle cx="0" cy="0" r="10" fill="#151928" stroke="#FFFFFF" stroke-width="2.5"/>
+                                            <circle cx="0" cy="0" r="4.5" fill="#00D084"/>
+                                        </g>
+                                    </svg>
                                 </div>
                             </div>
                         </div>
@@ -158,8 +186,8 @@
                         <div class="col-md-7 h-100">
                             <div class="bento-laptop-container">
                                 
-                                {{-- Semi-Circular Speedometer Gauge Meter --}}
-                                <div class="speedometer-wrapper">
+                                {{-- Semi-Circular Speedometer Gauge Meter (Desktop only; moved into strip above on mobile) --}}
+                                <div class="speedometer-wrapper d-none d-md-block">
                                     <svg width="160" height="90" viewBox="0 0 160 90" fill="none" class="speedometer-svg" xmlns="http://www.w3.org/2000/svg">
                                         <defs>
                                             <linearGradient id="gaugeArcGradient" x1="0%" y1="0%" x2="100%" y2="0%">

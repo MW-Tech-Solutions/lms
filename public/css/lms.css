@@ -78,7 +78,7 @@
 /* ==========================================================================
    BASE RESETS & TYPOGRAPHY
    ========================================================================== */
-body {
+html, body {
   font-family: var(--lms-font-sans);
   background-color: var(--lms-bg-body);
   color: var(--lms-text-secondary);
@@ -87,7 +87,9 @@ body {
   min-height: 100vh;
   margin: 0;
   transition: background-color 0.3s ease, color 0.3s ease;
-  overflow-x: hidden;
+  overflow-x: hidden !important;
+  max-width: 100vw;
+  width: 100%;
 }
 
 h1, h2, h3, h4, h5, h6,
@@ -1130,6 +1132,26 @@ h1, h2, h3, h4, h5, h6,
   margin-top: 2.25rem;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+}
+
+.perf-metrics-main {
+  display: flex;
+  align-items: center;
+}
+
+.perf-speedometer-inline {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.perf-speedometer-inline svg {
+  max-width: 105px;
+  height: auto;
+  filter: drop-shadow(0 4px 10px rgba(0, 208, 132, 0.25));
 }
 
 .perf-grade-a {
@@ -1580,7 +1602,7 @@ h1, h2, h3, h4, h5, h6,
     padding-bottom: 4px;
   }
   .countdown-box {
-    min-width: 26px;
+    min-width: 24px;
     padding: 2px 4px;
     font-size: 0.72rem;
   }
@@ -1593,30 +1615,55 @@ h1, h2, h3, h4, h5, h6,
   }
   .bento-perf-card,
   .bento-secure-card {
+    height: auto !important;
     border-radius: 20px;
     padding: 1.5rem 1.15rem;
+  }
+  .bento-perf-card .row,
+  .bento-perf-card .col-md-5,
+  .bento-perf-card .col-md-7 {
+    height: auto !important;
   }
   .bento-perf-title,
   .bento-secure-title {
     font-size: 1.45rem;
   }
+  .perf-speedometer-inline {
+    display: flex;
+  }
+  .perf-speedometer-inline svg {
+    max-width: 88px;
+  }
+  .perf-metrics-strip {
+    padding: 0.85rem 0;
+    margin-top: 1.5rem;
+    gap: 0.5rem;
+  }
   .perf-grade-a {
-    font-size: 2.6rem;
+    font-size: 2.3rem;
   }
   .perf-divider {
-    height: 36px;
-    margin: 0 0.75rem;
+    height: 32px;
+    margin: 0 0.5rem;
+  }
+  .perf-stat-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.2px;
+    margin-bottom: 0.1rem;
   }
   .perf-stat-value {
-    font-size: 1.4rem;
+    font-size: 1.22rem;
   }
   .laptop-base {
     width: 100%;
     margin-left: 0;
   }
   .bento-laptop-container {
+    height: auto !important;
+    min-height: auto !important;
     border-radius: 18px;
-    padding: 1rem 0.75rem 0 0.75rem;
+    padding: 1.25rem 0.75rem 0 0.75rem;
+    margin-top: 1rem;
   }
   .back-to-top-btn {
     bottom: 16px;
@@ -1625,6 +1672,40 @@ h1, h2, h3, h4, h5, h6,
     height: 38px;
     opacity: 0.85;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@media (max-width: 480px) {
+  .perf-metrics-strip {
+    padding: 0.7rem 0;
+    gap: 0.25rem;
+  }
+  .perf-grade-a {
+    font-size: 1.95rem;
+  }
+  .perf-divider {
+    height: 28px;
+    margin: 0 0.3rem;
+  }
+  .perf-stat-label {
+    font-size: 0.5rem;
+    letter-spacing: 0px;
+  }
+  .perf-stat-value {
+    font-size: 1.05rem;
+  }
+  .perf-speedometer-inline svg {
+    max-width: 72px;
+  }
+  .hero-live-pill {
+    padding: 4px 8px !important;
+    font-size: 0.72rem !important;
+  }
+  .hero-live-pill span.badge {
+    font-size: 0.65rem !important;
+  }
+  .display-4 {
+    font-size: 2rem !important;
   }
 }
 
