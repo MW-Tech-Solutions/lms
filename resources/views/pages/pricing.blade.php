@@ -21,7 +21,7 @@
 }" class="pricing-page-wrapper">
 
     {{-- 1. HERO & BILLING TOGGLE (REDESIGNED DUAL-COLUMN HIGH IMPACT) --}}
-    <section class="py-5 position-relative overflow-hidden" style="background: var(--lms-bg-secondary);">
+    <section class="py-5 position-relative overflow-hidden pricing-hero-section">
         <!-- Ambient Background Glows -->
         <div class="position-absolute top-0 end-0 rounded-circle" 
              style="width: 520px; height: 520px; background: radial-gradient(circle, rgba(114, 62, 195, 0.15) 0%, transparent 70%); filter: blur(60px); pointer-events: none; transform: translate(30%, -20%);"></div>

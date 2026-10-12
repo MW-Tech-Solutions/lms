@@ -184,7 +184,7 @@
         <div class="row g-4">
             @forelse($complianceTracks ?? [] as $track)
                 <div class="col-md-6">
-                    <div class="p-4 border rounded-4 lms-card-interactive h-100 d-flex flex-column" style="background: var(--lms-bg-secondary);">
+                    <div class="p-4 border rounded-4 lms-card-interactive h-100 d-flex flex-column" style="background: var(--lms-surface-card); border-color: var(--lms-border) !important;">
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <span class="badge badge-compliance rounded-pill px-3 py-1 small">
                                 <i class="bi bi-building me-1"></i> {{ $track->category?->name ?? 'Corporate Governance' }}
@@ -194,13 +194,13 @@
                             </span>
                         </div>
 
-                        <h5 class="fw-bold mb-2 flex-grow-1" style="font-family: var(--lms-font-heading);">
-                            <a href="{{ route('courses.show', $track->slug) }}" class="text-decoration-none text-reset">
+                        <h5 class="fw-bold mb-2 flex-grow-1" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary);">
+                            <a href="{{ route('courses.show', $track->slug) }}" class="text-decoration-none" style="color: var(--lms-text-primary);">
                                 {{ $track->title }}
                             </a>
                         </h5>
 
-                        <div class="d-flex align-items-center justify-content-between text-muted small my-3 py-2 px-3 rounded-3 bg-white">
+                        <div class="d-flex align-items-center justify-content-between small my-3 py-2 px-3 rounded-3" style="background: var(--lms-bg-body); border: 1px solid var(--lms-border); color: var(--lms-text-secondary);">
                             <span><i class="bi bi-shield-check text-success me-1"></i> Min Pass: {{ $track->passing_grade }}%</span>
                             <span><i class="bi bi-clock text-primary me-1"></i> Self-Paced Modules</span>
                         </div>

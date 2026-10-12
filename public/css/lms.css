@@ -1316,4 +1316,99 @@ h1, h2, h3, h4, h5, h6,
   box-shadow: var(--lms-card-shadow);
 }
 
+/* ==========================================================================
+   DARK THEME PRECISION POLISH & HARMONY SUITE
+   ========================================================================== */
+.catalog-section-wrapper {
+  background: var(--lms-bg-secondary);
+  transition: background-color 0.3s ease;
+}
+
+[data-bs-theme="dark"] .catalog-section-wrapper {
+  background: #090C15 !important;
+}
+
+.catalog-header-banner {
+  background: radial-gradient(circle at 90% 10%, rgba(114, 62, 195, 0.08) 0%, rgba(255, 242, 229, 0.3) 50%, var(--lms-bg-body) 100%);
+  transition: background 0.3s ease;
+}
+
+[data-bs-theme="dark"] .catalog-header-banner {
+  background: radial-gradient(circle at 85% 15%, rgba(114, 62, 195, 0.18) 0%, rgba(15, 23, 42, 0.75) 55%, #0B0E17 100%) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.pricing-hero-section {
+  background: var(--lms-bg-secondary);
+  transition: background-color 0.3s ease;
+}
+
+[data-bs-theme="dark"] .pricing-hero-section {
+  background: #090C15 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.explore-all-btn {
+  color: var(--lms-text-primary) !important;
+  background: var(--lms-surface-card);
+  border: 1.5px solid var(--lms-border);
+  transition: all 0.25s ease;
+}
+
+[data-bs-theme="dark"] .explore-all-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #F8FAFC !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-bs-theme="dark"] .explore-all-btn:hover {
+  background: var(--lms-accent) !important;
+  border-color: var(--lms-accent) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 0 20px rgba(114, 62, 195, 0.4) !important;
+}
+
+/* Bulletproof Global Dark Mode Overrides */
+[data-bs-theme="dark"] body {
+  background-color: #0B0E17 !important;
+  color: #CBD5E1 !important;
+}
+
+[data-bs-theme="dark"] .bg-white {
+  background-color: #151928 !important;
+  color: #F8FAFC !important;
+}
+
+[data-bs-theme="dark"] .bg-light {
+  background-color: #0F1321 !important;
+  color: #CBD5E1 !important;
+}
+
+[data-bs-theme="dark"] .border-bottom {
+  border-bottom-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-bs-theme="dark"] .border-top {
+  border-top-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-bs-theme="dark"] .border {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-bs-theme="dark"] .text-reset {
+  color: #F8FAFC !important;
+}
+
+[data-bs-theme="dark"] .lms-card {
+  background-color: #131726 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-bs-theme="dark"] section[style*="--lms-bg-secondary"],
+[data-bs-theme="dark"] div[style*="--lms-bg-secondary"] {
+  background-color: #090C15 !important;
+}
+
 

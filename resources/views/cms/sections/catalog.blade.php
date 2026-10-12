@@ -2,7 +2,7 @@
     $c = $section->content_json ?? [];
     $courses = \App\Models\Course::with('category')->where('is_published', true)->take(6)->get();
 @endphp
-<section class="py-5" id="featured-catalog" style="background: var(--lms-bg-secondary);" x-data="{ activeFilter: 'all' }">
+<section class="py-5 catalog-section-wrapper" id="featured-catalog" x-data="{ activeFilter: 'all' }">
     <div class="container py-3">
         <!-- Section Heading & Filter Tabs -->
         <div class="d-flex flex-wrap justify-content-between align-items-end mb-4 pb-2 border-bottom">
@@ -147,7 +147,7 @@
 
         <!-- View All Link -->
         <div class="text-center mt-5">
-            <a href="{{ route('courses.index') }}" class="tj-btn-outline py-2 px-4 shadow-sm">
+            <a href="{{ route('courses.index') }}" class="tj-btn-outline explore-all-btn py-2 px-4 shadow-sm">
                 <span>{{ $site_settings['label_view_all_courses'] ?? 'Explore All Available Tracks' }}</span>
                 <i class="bi bi-arrow-right ms-2"></i>
             </a>

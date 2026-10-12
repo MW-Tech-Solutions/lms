@@ -4,7 +4,7 @@
 
 @section('content')
 <!-- Header Banner with Ambient Gradient -->
-<div class="py-5 border-bottom position-relative overflow-hidden" style="background: radial-gradient(circle at 90% 10%, rgba(114, 62, 195, 0.08) 0%, rgba(255, 242, 229, 0.3) 50%, var(--lms-bg-body) 100%);">
+<div class="py-5 border-bottom position-relative overflow-hidden catalog-header-banner">
     <div class="container py-2">
         <div class="row align-items-center g-4">
             <div class="col-lg-7">
