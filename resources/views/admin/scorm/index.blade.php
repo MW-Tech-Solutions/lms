@@ -9,7 +9,7 @@
             <h2 class="fw-bold mb-1">{{ $site_settings['title_scorm_registry'] ?? 'SCORM 1.2 & 2004 Runtime Registry' }}</h2>
             <div class="text-secondary small">{{ $site_settings['subtitle_scorm_registry'] ?? 'Upload interactive e-learning packages, verify imsmanifest metadata, and monitor telemetry tracks.' }}</div>
         </div>
-        <button class="tj-btn-primary py-2 px-3 small shadow-sm" @click="showUploadModal = true">
+        <button class="tj-btn-primary py-2 px-3 small shadow-sm" @click="showUploadModal = true" data-bs-toggle="modal" data-bs-target="#uploadScormModal">
             <i class="bi bi-cloud-arrow-up me-1"></i> Ingest New SCORM Package
         </button>
     </div>
@@ -93,12 +93,12 @@
     </div>
 
     <!-- Upload Package Modal -->
-    <div class="modal fade show" tabindex="-1" role="dialog" x-show="showUploadModal" x-cloak style="background: rgba(0,0,0,0.6);" @click.self="showUploadModal = false" @keydown.escape.window="showUploadModal = false">
+    <div class="modal fade" id="uploadScormModal" tabindex="-1" role="dialog" :class="{ 'show': showUploadModal }" :style="showUploadModal ? 'display: block !important; background: rgba(0,0,0,0.7);' : ''" x-cloak @click.self="showUploadModal = false" @keydown.escape.window="showUploadModal = false">
         <div class="modal-dialog">
             <div class="modal-content lms-card p-2">
                 <div class="modal-header border-0">
                     <h5 class="modal-title fw-bold">Upload SCORM Archive (.zip)</h5>
-                    <button type="button" class="btn-close" @click="showUploadModal = false"></button>
+                    <button type="button" class="btn-close" @click="showUploadModal = false" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="{{ route('admin.scorm.upload') }}" method="POST" enctype="multipart/form-data">
                     @csrf

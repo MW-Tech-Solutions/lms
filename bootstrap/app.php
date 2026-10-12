@@ -1,5 +1,9 @@
 <?php
 
+if (file_exists(__DIR__ . '/compat.php')) {
+    require_once __DIR__ . '/compat.php';
+}
+
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;

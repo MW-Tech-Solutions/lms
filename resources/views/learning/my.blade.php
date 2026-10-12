@@ -111,7 +111,7 @@
                         <div class="my-3">
                             <div class="d-flex justify-content-between small text-muted mb-1 font-mono">
                                 <span>Curriculum Progress</span>
-                                <span class="fw-bold text-dark">{{ $enrollment->status === 'COMPLETED' ? '100%' : '65%' }}</span>
+                                <span class="fw-bold text-body">{{ $enrollment->status === 'COMPLETED' ? '100%' : '65%' }}</span>
                             </div>
                             <div class="progress" style="height: 6px; border-radius: 999px;">
                                 <div class="progress-bar rounded-pill" 

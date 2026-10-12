@@ -29,7 +29,7 @@
                         <div class="rounded-3 p-3 mb-3 d-inline-block text-white" style="background: var(--lms-accent); width: fit-content;">
                             <i class="bi bi-qr-code-scan fs-3"></i>
                         </div>
-                        <h5 class="fw-bold text-dark">Certificate Verification</h5>
+                        <h5 class="fw-bold text-body">Certificate Verification</h5>
                         <p class="small text-secondary flex-grow-1">
                             Verify any credential issued across our academic cohorts or compliance recertification loops using the cryptographic verification hub.
                         </p>
@@ -44,7 +44,7 @@
                         <div class="rounded-3 p-3 mb-3 d-inline-block text-white" style="background: #2563EB; width: fit-content;">
                             <i class="bi bi-shield-check fs-3"></i>
                         </div>
-                        <h5 class="fw-bold text-dark">Auditor Portal Access</h5>
+                        <h5 class="fw-bold text-body">Auditor Portal Access</h5>
                         <p class="small text-secondary flex-grow-1">
                             External compliance auditors with context-level roles can inspect immutably logged manager approvals, SCORM scores, and recertification records.
                         </p>
@@ -59,7 +59,7 @@
                         <div class="rounded-3 p-3 mb-3 d-inline-block text-white" style="background: #059669; width: fit-content;">
                             <i class="bi bi-headset fs-3"></i>
                         </div>
-                        <h5 class="fw-bold text-dark">Architect Escalation</h5>
+                        <h5 class="fw-bold text-body">Architect Escalation</h5>
                         <p class="small text-secondary flex-grow-1">
                             Enterprise clients with 99.99% SLA receive 24/7 direct access to dedicated technical account architects for custom SSO and SCORM imports.
                         </p>

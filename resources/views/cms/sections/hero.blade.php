@@ -128,7 +128,7 @@
                             <i class="bi bi-award-fill"></i>
                         </span>
                         <div class="small">
-                            <span class="fw-bold text-dark">45,000+ Certified</span>
+                            <span class="fw-bold text-body">45,000+ Certified</span>
                             <span class="text-secondary">&bull; 2,500+ Organizations</span>
                         </div>
                     </div>

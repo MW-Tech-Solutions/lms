@@ -213,7 +213,7 @@
                         <template x-if="!loading && results.length === 0 && searchQuery.trim().length > 0">
                             <div class="text-center py-4 text-muted small">
                                 <i class="bi bi-search fs-3 text-muted d-block mb-1"></i>
-                                <div>No courses matching "<span class="fw-bold text-dark" x-text="searchQuery"></span>"</div>
+                                <div>No courses matching "<span class="fw-bold text-body" x-text="searchQuery"></span>"</div>
                                 <div class="text-secondary" style="font-size: 0.72rem;">Try searching "ISO", "Cloud", or "Compliance"</div>
                             </div>
                         </template>

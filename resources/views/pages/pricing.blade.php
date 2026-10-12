@@ -360,7 +360,7 @@
     </section>
 
     {{-- 3. INTERACTIVE ROI & SEAT CALCULATOR --}}
-    <section class="py-5" style="background: var(--lms-bg-secondary);">
+    <section class="py-5 bg-secondary-adaptive">
         <div class="container py-3">
             <div class="lms-card p-4 p-md-5 border-0 shadow-lg" style="background: var(--lms-surface-card); border-radius: 28px;">
                 <div class="row g-4 align-items-center">
@@ -547,7 +547,7 @@
     </section>
 
     {{-- 5. FREQUENTLY ASKED QUESTIONS (ACCORDION) --}}
-    <section class="py-5" style="background: var(--lms-bg-secondary);">
+    <section class="py-5 bg-secondary-adaptive">
         <div class="container py-3" style="max-width: 860px;">
             <div class="text-center mb-5">
                 <span class="badge badge-purple-soft px-3 py-2 rounded-pill mb-2">

@@ -271,7 +271,7 @@ class DatabaseSeeder extends Seeder
             'context_id' => $ctxDept->id,
         ]);
 
-        // 5. Public Student
+        // 5. Public Student (University Domain)
         $userStudent = User::create([
             'name' => 'Alice Scholarly (Public Student)',
             'email' => 'student@university.edu',
@@ -287,6 +287,26 @@ class DatabaseSeeder extends Seeder
         ]);
         RoleAssignment::create([
             'user_id' => $userStudent->id,
+            'role_id' => $roleStudent->id,
+            'context_id' => $ctxSystem->id,
+        ]);
+
+        // 5b. Public Student (Enterprise LMS Domain)
+        $userStudent2 = User::create([
+            'name' => 'Emma Watson (Public Student)',
+            'email' => 'student@enterpriselms.com',
+            'password' => $defaultPassword,
+            'user_type' => 'STUDENT',
+            'is_active' => true,
+        ]);
+        UserProfile::create([
+            'user_id' => $userStudent2->id,
+            'job_title' => 'Undergraduate Learner & Scholar',
+            'timezone' => 'UTC',
+            'locale' => 'en',
+        ]);
+        RoleAssignment::create([
+            'user_id' => $userStudent2->id,
             'role_id' => $roleStudent->id,
             'context_id' => $ctxSystem->id,
         ]);
@@ -708,6 +728,22 @@ class DatabaseSeeder extends Seeder
             'course_id' => $courseCloud->id,
             'status' => Enrollment::STATUS_ACTIVE,
             'enrolled_at' => Carbon::now()->subDays(3),
+            'expires_at' => null,
+        ]);
+
+        Enrollment::create([
+            'user_id' => $userStudent2->id,
+            'course_id' => $courseCloud->id,
+            'status' => Enrollment::STATUS_ACTIVE,
+            'enrolled_at' => Carbon::now()->subDays(3),
+            'expires_at' => null,
+        ]);
+
+        Enrollment::create([
+            'user_id' => $userStudent2->id,
+            'course_id' => $courseIso->id,
+            'status' => Enrollment::STATUS_ACTIVE,
+            'enrolled_at' => Carbon::now()->subDays(1),
             'expires_at' => null,
         ]);
     }

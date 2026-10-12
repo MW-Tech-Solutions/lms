@@ -9,7 +9,7 @@
             <h2 class="fw-bold mb-1">{{ $site_settings['title_attendance_manager'] ?? 'Attendance & Rolling QR Geofencing' }}</h2>
             <div class="text-secondary small">{{ $site_settings['subtitle_attendance_manager'] ?? 'Configure session timeframes, geofencing boundary radiuses, and dynamic rotating QR tokens.' }}</div>
         </div>
-        <button class="tj-btn-primary py-2 px-3 small shadow-sm" @click="showCreateModal = true">
+        <button class="tj-btn-primary py-2 px-3 small shadow-sm" @click="showCreateModal = true" data-bs-toggle="modal" data-bs-target="#createAttendanceModal">
             <i class="bi bi-plus-lg me-1"></i> Create Attendance Session
         </button>
     </div>
@@ -64,12 +64,12 @@
     </div>
 
     <!-- Create Session Modal -->
-    <div class="modal fade show" tabindex="-1" role="dialog" x-show="showCreateModal" x-cloak style="background: rgba(0,0,0,0.6);" @click.self="showCreateModal = false" @keydown.escape.window="showCreateModal = false">
+    <div class="modal fade" id="createAttendanceModal" tabindex="-1" role="dialog" :class="{ 'show': showCreateModal }" :style="showCreateModal ? 'display: block !important; background: rgba(0,0,0,0.7);' : ''" x-cloak @click.self="showCreateModal = false" @keydown.escape.window="showCreateModal = false">
         <div class="modal-dialog">
             <div class="modal-content lms-card p-2">
                 <div class="modal-header border-0">
                     <h5 class="modal-title fw-bold">New Geofenced Attendance Session</h5>
-                    <button type="button" class="btn-close" @click="showCreateModal = false"></button>
+                    <button type="button" class="btn-close" @click="showCreateModal = false" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="{{ route('admin.attendance.store') }}" method="POST">
                     @csrf

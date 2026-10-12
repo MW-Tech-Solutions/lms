@@ -504,6 +504,38 @@ h1, h2, h3, h4, h5, h6,
   font-weight: 700;
 }
 
+.badge-amber {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+  color: #B45309 !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+  font-weight: 700;
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 9999px;
+}
+
+[data-bs-theme="dark"] .badge-amber {
+  background-color: rgba(245, 158, 11, 0.22) !important;
+  color: #FBBF24 !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+.badge-overdue {
+  background-color: rgba(239, 68, 68, 0.14) !important;
+  color: #DC2626 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  font-weight: 700;
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 9999px;
+}
+
+[data-bs-theme="dark"] .badge-overdue {
+  background-color: rgba(239, 68, 68, 0.22) !important;
+  color: #F87171 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
 /* ==========================================================================
    EDUNEX HERO VISUAL COMPONENTS
    ========================================================================== */

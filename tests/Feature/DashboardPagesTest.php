@@ -53,4 +53,35 @@ class DashboardPagesTest extends TestCase
             $response->assertStatus(200);
         }
     }
+
+    public function test_student_and_instructor_authentication_flow(): void
+    {
+        // 1. Instructor login routes to admin dashboard
+        $instructorResponse = $this->post('/login', [
+            'email' => 'instructor@enterpriselms.com',
+            'password' => 'password123',
+        ]);
+        $instructorResponse->assertRedirect(route('admin.dashboard'));
+
+        // Reset auth session for next user test
+        \Illuminate\Support\Facades\Auth::logout();
+        session()->flush();
+
+        // 2. Student login routes to learner dashboard
+        $studentResponse = $this->post('/login', [
+            'email' => 'student@enterpriselms.com',
+            'password' => 'password123',
+        ]);
+        $studentResponse->assertRedirect(route('my-learning'));
+    }
+
+    public function test_course_show_page_renders_with_multibyte_polyfill(): void
+    {
+        $course = \App\Models\Course::first();
+        if ($course) {
+            $response = $this->get('/courses/' . $course->slug);
+            $response->assertStatus(200);
+            $response->assertSee(e(\Illuminate\Support\Str::limit($course->title, 40)));
+        }
+    }
 }

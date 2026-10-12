@@ -38,7 +38,14 @@ class AuthController extends Controller
             $user = Auth::user();
             \App\Services\AuditService::log('USER_LOGIN', $user, null, ['email' => $user->email]);
 
-            if ($user->roleAssignments()->whereHas('role', fn ($q) => $q->whereIn('name', ['SUPER_ADMIN', 'CORP_MANAGER', 'INSTRUCTOR']))->exists()) {
+            $isAdminRole = $user->roleAssignments()->whereHas('role', fn ($q) => $q->whereIn('name', ['SUPER_ADMIN', 'CORP_MANAGER', 'INSTRUCTOR']))->exists();
+
+            $intendedUrl = session()->get('url.intended');
+            if (!$isAdminRole && $intendedUrl && str_contains($intendedUrl, '/admin')) {
+                session()->forget('url.intended');
+            }
+
+            if ($isAdminRole) {
                 return redirect()->intended(route('admin.dashboard'));
             }
 

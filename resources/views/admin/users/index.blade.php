@@ -85,12 +85,12 @@
     </div>
 
     <!-- Role Assignment Modal -->
-    <div class="modal fade show" tabindex="-1" role="dialog" x-show="showAssignModal" x-cloak style="background: rgba(0,0,0,0.6);" @click.self="showAssignModal = false" @keydown.escape.window="showAssignModal = false">
+    <div class="modal fade" id="assignRoleModal" tabindex="-1" role="dialog" :class="{ 'show': showAssignModal }" :style="showAssignModal ? 'display: block !important; background: rgba(0,0,0,0.7);' : ''" x-cloak @click.self="showAssignModal = false" @keydown.escape.window="showAssignModal = false">
         <div class="modal-dialog">
             <div class="modal-content lms-card p-2">
                 <div class="modal-header border-0">
                     <h5 class="modal-title fw-bold">Assign CBAC Role</h5>
-                    <button type="button" class="btn-close" @click="showAssignModal = false"></button>
+                    <button type="button" class="btn-close" @click="showAssignModal = false" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="{{ route('admin.users.assign-role') }}" method="POST">
                     @csrf

@@ -9,7 +9,7 @@
             <h2 class="fw-bold mb-1">{{ $site_settings['title_courses_manager'] ?? 'Courses & Curriculum Architecture' }}</h2>
             <div class="text-secondary small">{{ $site_settings['subtitle_courses_manager'] ?? 'Design modular learning paths, set annual recertification cycles, and configure dual audiences.' }}</div>
         </div>
-        <button class="tj-btn-primary py-2 px-3 small shadow-sm" @click="showCreateModal = true">
+        <button class="tj-btn-primary py-2 px-3 small shadow-sm" @click="showCreateModal = true" data-bs-toggle="modal" data-bs-target="#createCourseModal">
             <i class="bi bi-plus-lg me-1"></i> {{ $site_settings['btn_create_course'] ?? 'Create New Program' }}
         </button>
     </div>
@@ -83,12 +83,12 @@
     </div>
 
     <!-- Create Course Modal -->
-    <div class="modal fade show" tabindex="-1" role="dialog" x-show="showCreateModal" x-cloak style="background: rgba(0,0,0,0.6);" @click.self="showCreateModal = false" @keydown.escape.window="showCreateModal = false">
+    <div class="modal fade" id="createCourseModal" tabindex="-1" role="dialog" :class="{ 'show': showCreateModal }" :style="showCreateModal ? 'display: block !important; background: rgba(0,0,0,0.7);' : ''" x-cloak @click.self="showCreateModal = false" @keydown.escape.window="showCreateModal = false">
         <div class="modal-dialog modal-lg">
             <div class="modal-content lms-card p-2">
                 <div class="modal-header border-0">
                     <h5 class="modal-title fw-bold">Create New Learning Program</h5>
-                    <button type="button" class="btn-close" @click="showCreateModal = false"></button>
+                    <button type="button" class="btn-close" @click="showCreateModal = false" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="{{ route('admin.courses.store') }}" method="POST">
                     @csrf

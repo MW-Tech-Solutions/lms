@@ -118,12 +118,12 @@
     </div>
 
     <!-- Snapshot Modal -->
-    <div class="modal fade show" tabindex="-1" role="dialog" x-show="selectedSnapshot" x-cloak style="background: rgba(0,0,0,0.6);" @click.self="selectedSnapshot = null" @keydown.escape.window="selectedSnapshot = null">
+    <div class="modal fade" id="snapshotModal" tabindex="-1" role="dialog" :class="{ 'show': !!selectedSnapshot }" :style="selectedSnapshot ? 'display: block !important; background: rgba(0,0,0,0.7);' : ''" x-cloak @click.self="selectedSnapshot = null" @keydown.escape.window="selectedSnapshot = null">
         <div class="modal-dialog">
             <div class="modal-content lms-card p-3">
                 <div class="modal-header border-0 pb-0">
                     <h6 class="modal-title fw-bold">Proctoring AI Snapshot Inspection</h6>
-                    <button type="button" class="btn-close" @click="selectedSnapshot = null"></button>
+                    <button type="button" class="btn-close" @click="selectedSnapshot = null" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body text-center">
                     <img :src="selectedSnapshot" alt="Proctoring Snapshot" class="img-fluid rounded border shadow-sm" style="max-height: 380px;">

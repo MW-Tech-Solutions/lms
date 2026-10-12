@@ -106,12 +106,12 @@
     </div>
 
     <!-- Grade Modification Audit Modal -->
-    <div class="modal fade show" tabindex="-1" role="dialog" x-show="showEditModal" x-cloak style="background: rgba(0,0,0,0.6);" @click.self="showEditModal = false" @keydown.escape.window="showEditModal = false">
+    <div class="modal fade" id="adjustGradeModal" tabindex="-1" role="dialog" :class="{ 'show': showEditModal }" :style="showEditModal ? 'display: block !important; background: rgba(0,0,0,0.7);' : ''" x-cloak @click.self="showEditModal = false" @keydown.escape.window="showEditModal = false">
         <div class="modal-dialog">
             <div class="modal-content lms-card p-2">
                 <div class="modal-header border-0">
                     <h5 class="modal-title fw-bold">Manual Grade Override &amp; Audit Trail</h5>
-                    <button type="button" class="btn-close" @click="showEditModal = false"></button>
+                    <button type="button" class="btn-close" @click="showEditModal = false" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="{{ route('admin.gradebook.override') }}" method="POST">
                     @csrf

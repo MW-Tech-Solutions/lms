@@ -18,6 +18,29 @@ if (!function_exists('mb_split')) {
     }
 }
 
+// 2. Polyfill mb_strimwidth for Str::limit()
+if (!function_exists('mb_strimwidth')) {
+    function mb_strimwidth(string $string, int $start, int $width, string $trim_marker = '', ?string $encoding = null): string
+    {
+        $hasMbStrlen = function_exists('mb_strlen');
+        $hasMbSubstr = function_exists('mb_substr');
+
+        $markerLen = $hasMbStrlen ? mb_strlen($trim_marker, $encoding) : strlen($trim_marker);
+        $strLen = $hasMbStrlen ? mb_strlen($string, $encoding) : strlen($string);
+
+        if ($strLen <= $width) {
+            return $hasMbSubstr ? (string) mb_substr($string, $start, null, $encoding) : substr($string, $start);
+        }
+
+        $targetWidth = max(0, $width - $markerLen);
+        $sub = $hasMbSubstr
+            ? (string) mb_substr($string, $start, $targetWidth, $encoding)
+            : substr($string, $start, $targetWidth);
+
+        return $sub . $trim_marker;
+    }
+}
+
 // 2. Polyfill DOMDocument and Termwind AST requirements
 if (!class_exists('DOMDocument')) {
     if (!defined('LIBXML_NOERROR')) define('LIBXML_NOERROR', 0);
