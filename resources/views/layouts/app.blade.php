@@ -400,25 +400,47 @@
     <!-- Offcanvas Backdrop -->
     <div class="modal-backdrop fade show" x-show="mobileMenuOpen" @click="mobileMenuOpen = false" x-cloak style="z-index: 1050;"></div>
 
-    <!-- 4. GLOBAL FLASH ALERTS -->
-    @if(session('success'))
-        <div class="container mt-3">
-            <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 rounded-4 shadow-sm" role="alert">
-                <i class="bi bi-check-circle-fill fs-5 text-success"></i>
-                <div class="fw-medium">{{ session('success') }}</div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <!-- 4. FLOATING FLASH TOAST NOTIFICATION (AUTO-DISMISS WITH TIMER) -->
+    @if(session('success') || session('status') || session('error'))
+    <div class="floating-toast-container" 
+         x-data="{ show: true }" 
+         x-init="setTimeout(() => show = false, 4500)"
+         x-show="show"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-3 scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+         x-transition:leave-end="opacity-0 translate-y-3 scale-95"
+         x-cloak>
+        <div class="floating-toast shadow-lg">
+            <div class="p-3 d-flex align-items-center justify-content-between gap-3">
+                <div class="d-flex align-items-center gap-2.5 min-w-0">
+                    @if(session('error'))
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0" style="width: 32px; height: 32px; background: #EF4444;">
+                            <i class="bi bi-exclamation-triangle-fill" style="font-size: 0.9rem;"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="fw-bold small text-danger" style="font-size: 0.8rem;">Action Alert</div>
+                            <div class="small text-body text-truncate" style="font-size: 0.78rem;">{{ session('error') }}</div>
+                        </div>
+                    @else
+                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0" style="width: 32px; height: 32px; background: #10B981;">
+                            <i class="bi bi-check-lg" style="font-size: 1rem;"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="fw-bold small text-success" style="font-size: 0.8rem;">Notification</div>
+                            <div class="small text-body text-truncate" style="font-size: 0.78rem;">{{ session('success') ?? session('status') }}</div>
+                        </div>
+                    @endif
+                </div>
+                <button type="button" class="btn btn-sm btn-link text-secondary p-0 border-0 flex-shrink-0" @click="show = false" title="Dismiss">
+                    <i class="bi bi-x-lg"></i>
+                </button>
             </div>
+            <div class="floating-toast-progress" style="background: {{ session('error') ? '#EF4444' : '#10B981' }};"></div>
         </div>
-    @endif
-
-    @if(session('error'))
-        <div class="container mt-3">
-            <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2 rounded-4 shadow-sm" role="alert">
-                <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
-                <div class="fw-medium">{{ session('error') }}</div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        </div>
+    </div>
     @endif
 
     <!-- 5. MAIN CONTENT -->

@@ -1244,15 +1244,20 @@ h1, h2, h3, h4, h5, h6,
   background: var(--lms-surface-card);
   border-bottom: 1px solid var(--lms-border);
   backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
   z-index: 1030;
 }
 
 .admin-sidebar {
-  width: 320px;
-  min-width: 320px;
-  max-width: 320px;
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
   flex-shrink: 0;
-  min-height: calc(100vh - 72px);
+  height: calc(100vh - 72px);
+  max-height: calc(100vh - 72px);
+  position: sticky;
+  top: 72px;
   background: var(--lms-surface-card);
   border-right: 1px solid var(--lms-border);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1260,6 +1265,63 @@ h1, h2, h3, h4, h5, h6,
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
+  z-index: 1020;
+}
+
+.admin-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+.admin-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.admin-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 4px;
+}
+.admin-sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--lms-accent);
+}
+
+@media (max-width: 991.98px) {
+  .admin-sidebar {
+    position: fixed;
+    top: 72px;
+    bottom: 0;
+    left: 0;
+    height: calc(100vh - 72px);
+    max-height: calc(100vh - 72px);
+    z-index: 1050;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* Floating Flash Toast Notification */
+.floating-toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  max-width: 440px;
+  width: calc(100vw - 48px);
+  pointer-events: none;
+}
+.floating-toast {
+  pointer-events: auto;
+  background: var(--lms-surface-card, #FFFFFF);
+  border: 1px solid var(--lms-border, rgba(0,0,0,0.08));
+  border-radius: 18px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+  backdrop-filter: blur(16px);
+}
+.floating-toast-progress {
+  height: 3px;
+  width: 100%;
+  animation: toastCountdown 4.5s linear forwards;
+}
+@keyframes toastCountdown {
+  from { width: 100%; }
+  to { width: 0%; }
 }
 
 .admin-sidebar .sidebar-heading {

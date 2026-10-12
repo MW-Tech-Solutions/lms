@@ -123,7 +123,7 @@
                         </div>
 
                         <!-- Persona Buttons Grid (All Moodle Roles: Admin, Manager, Creator, Editing Teacher, Non-editing Teacher, Employee, Student, Guest) -->
-                        <div class="d-grid gap-2" style="grid-template-columns: repeat(2, 1fr);">
+                        <div class="d-grid gap-2" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
                             <!-- 1. Super Admin -->
                             <button type="button" 
                                     @click="applyAccount('admin')"

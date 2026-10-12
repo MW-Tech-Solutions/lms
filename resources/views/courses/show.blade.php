@@ -39,7 +39,7 @@
                 </p>
 
                 <!-- Instructor & Meta Row -->
-                <div class="d-flex flex-wrap align-items-center gap-4 pt-2">
+                <div class="d-flex flex-wrap align-items-center gap-3 gap-md-4 pt-2">
                     <div class="d-flex align-items-center gap-2">
                         <div class="rounded-circle d-flex align-items-center justify-content-center text-white small fw-bold" 
                              style="width: 36px; height: 36px; background: var(--lms-accent);">
@@ -51,17 +51,17 @@
                         </div>
                     </div>
 
-                    <div class="d-flex align-items-center gap-1 text-warning small fw-bold border-start ps-4">
+                    <div class="d-flex align-items-center gap-1 text-warning small fw-bold border-sm-start ps-sm-3 ps-md-4">
                         <i class="bi bi-star-fill"></i>
                         <span class="text-dark">4.9</span>
                         <span class="text-muted fw-normal">(1.4k Reviews)</span>
                     </div>
 
-                    <div class="border-start ps-4 small text-secondary">
+                    <div class="border-sm-start ps-sm-3 ps-md-4 small text-secondary">
                         <i class="bi bi-clock text-primary me-1"></i> {{ ucfirst(strtolower($course->format)) }}
                     </div>
 
-                    <div class="border-start ps-4 small text-secondary">
+                    <div class="border-sm-start ps-sm-3 ps-md-4 small text-secondary">
                         <i class="bi bi-patch-check text-success me-1"></i> Min Pass: {{ $course->passing_grade }}%
                     </div>
                 </div>
