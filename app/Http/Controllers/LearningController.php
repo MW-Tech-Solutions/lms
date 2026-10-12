@@ -1,0 +1,151 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers;
+
+use App\Models\AssignmentSubmission;
+use App\Models\Certificate;
+use App\Models\Course;
+use App\Models\CourseModule;
+use App\Models\Enrollment;
+use App\Services\CertificateGeneratorService;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
+
+class LearningController extends Controller
+{
+    /**
+     * Learner personal learning and compliance dashboard.
+     */
+    public function myLearning(): View
+    {
+        $user = Auth::user();
+
+        $enrollments = Enrollment::with('course.category')
+            ->where('user_id', $user->id)
+            ->latest('enrolled_at')
+            ->get();
+
+        $certificates = Certificate::with('course')
+            ->where('user_id', $user->id)
+            ->latest('issued_at')
+            ->get();
+
+        return view('learning.my', compact('enrollments', 'certificates'));
+    }
+
+    /**
+     * Interactive course learning player with two-column responsive curriculum layout.
+     */
+    public function player(string $courseSlug, Request $request): View
+    {
+        $user = Auth::user();
+
+        $course = Course::with(['sections.modules'])
+            ->where('slug', $courseSlug)
+            ->firstOrFail();
+
+        // Ensure active enrollment exists
+        $enrollment = Enrollment::firstOrCreate(
+            ['user_id' => $user->id, 'course_id' => $course->id],
+            ['status' => Enrollment::STATUS_ACTIVE, 'enrolled_at' => Carbon::now()]
+        );
+
+        $allModules = $course->sections->flatMap->modules;
+        $totalModulesCount = $allModules->count();
+
+        $requestedModuleId = $request->query('module_id');
+        $activeModule = null;
+
+        if ($requestedModuleId) {
+            $activeModule = $allModules->firstWhere('id', (int) $requestedModuleId);
+        }
+
+        if (!$activeModule) {
+            $activeModule = $allModules->first();
+        }
+
+        // Session-based completed module cache or simple state tracking
+        $completedModuleIds = session()->get("course_{$course->id}_completed_modules", []);
+
+        return view('learning.player', compact('course', 'activeModule', 'totalModulesCount', 'completedModuleIds'));
+    }
+
+    /**
+     * AJAX endpoint to mark module complete and trigger certificate generation upon final completion.
+     */
+    public function markModuleComplete(Request $request, CertificateGeneratorService $certService): JsonResponse
+    {
+        $validated = $request->validate([
+            'module_id' => ['required', 'integer', 'exists:course_modules,id'],
+        ]);
+
+        $user = Auth::user();
+        $module = CourseModule::with('section.course')->findOrFail($validated['module_id']);
+        $course = $module->section->course;
+
+        $sessionKey = "course_{$course->id}_completed_modules";
+        $completed = session()->get($sessionKey, []);
+
+        if (!in_array($module->id, $completed, true)) {
+            $completed[] = $module->id;
+            session()->put($sessionKey, $completed);
+        }
+
+        $allCourseModuleIds = $course->sections->flatMap->modules->pluck('id')->all();
+        $isAllCompleted = count(array_intersect($allCourseModuleIds, $completed)) === count($allCourseModuleIds);
+
+        if ($isAllCompleted) {
+            $enrollment = Enrollment::where('user_id', $user->id)
+                ->where('course_id', $course->id)
+                ->first();
+
+            if ($enrollment) {
+                $enrollment->update([
+                    'status' => Enrollment::STATUS_COMPLETED,
+                    'completed_at' => Carbon::now(),
+                ]);
+            }
+
+            // Issue official PDF Certificate with QR code
+            $certService->generate($user, $course);
+        }
+
+        return response()->json([
+            'success' => true,
+            'completed_count' => count($completed),
+            'all_completed' => $isAllCompleted,
+        ]);
+    }
+
+    /**
+     * Handle practical assignment upload and grading submission.
+     */
+    public function submitAssignment(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'assignment_id' => ['required', 'exists:assignments,id'],
+            'submission_file' => ['required', 'file', 'max:20480'], // max 20MB
+            'submission_text' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $user = Auth::user();
+        $file = $request->file('submission_file');
+        $filePath = $file->store('assignments/submissions', 'public');
+
+        AssignmentSubmission::create([
+            'assignment_id' => (int) $request->input('assignment_id'),
+            'user_id' => $user->id,
+            'submission_text' => $request->input('submission_text'),
+            'file_paths_json' => [$filePath],
+            'status' => AssignmentSubmission::STATUS_SUBMITTED,
+        ]);
+
+        return back()->with('success', 'Assignment document successfully submitted for review!');
+    }
+}

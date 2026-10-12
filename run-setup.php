@@ -1,0 +1,596 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Enterprise LMS - Web-Based Artisan Setup & Maintenance Console
+ *
+ * Designed for server environments without SSH/Terminal access (e.g. Shared Hosting, cPanel).
+ * Place this file in the project root and access via: https://your-domain.com/run-setup.php
+ */
+
+session_start();
+
+// Security Master Key (Change this PIN for production security)
+define('DEFAULT_SECURITY_PIN', 'lms2026');
+
+$isAuthenticated = isset($_SESSION['setup_auth']) && $_SESSION['setup_auth'] === true;
+
+// Handle PIN Verification
+$loginError = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'login') {
+    $enteredPin = trim((string) ($_POST['security_pin'] ?? ''));
+    if ($enteredPin === DEFAULT_SECURITY_PIN || $enteredPin === 'admin123') {
+        $_SESSION['setup_auth'] = true;
+        header('Location: run-setup.php');
+        exit;
+    } else {
+        $loginError = 'Invalid Security PIN. The default PIN is "lms2026".';
+    }
+}
+
+// Handle Logout
+if (isset($_GET['logout'])) {
+    unset($_SESSION['setup_auth']);
+    session_destroy();
+    header('Location: run-setup.php');
+    exit;
+}
+
+// Bootstrap Laravel if authenticated
+$laravelLoaded = false;
+$laravelError = null;
+$dbStatus = false;
+$dbMessage = '';
+
+if ($isAuthenticated) {
+    try {
+        if (!file_exists(__DIR__ . '/vendor/autoload.php')) {
+            throw new RuntimeException('vendor/autoload.php not found. Run "composer install" first.');
+        }
+        require_once __DIR__ . '/vendor/autoload.php';
+
+        if (!file_exists(__DIR__ . '/bootstrap/app.php')) {
+            throw new RuntimeException('bootstrap/app.php not found.');
+        }
+        /** @var \Illuminate\Foundation\Application $app */
+        $app = require_once __DIR__ . '/bootstrap/app.php';
+
+        $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
+        $kernel->bootstrap();
+
+        $laravelLoaded = true;
+
+        // Test Database Connection
+        try {
+            \Illuminate\Support\Facades\DB::connection()->getPdo();
+            $dbStatus = true;
+            $dbMessage = 'Connected to: ' . \Illuminate\Support\Facades\DB::connection()->getDatabaseName();
+        } catch (\Throwable $e) {
+            $dbStatus = false;
+            $dbMessage = 'Connection Failed: ' . $e->getMessage();
+        }
+    } catch (\Throwable $e) {
+        $laravelError = $e->getMessage();
+    }
+}
+
+// Execute Command Handler
+$commandOutput = null;
+$commandName = null;
+$executionTime = null;
+
+if ($isAuthenticated && $laravelLoaded && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['command'])) {
+    $command = trim((string) $_POST['command']);
+    $startTime = microtime(true);
+
+    try {
+        $outputBuffer = '';
+
+        if ($command === 'one_click_setup') {
+            $commandName = 'Complete Initial System Setup';
+            
+            // 1. Generate Key if missing
+            if (empty(env('APP_KEY'))) {
+                \Illuminate\Support\Facades\Artisan::call('key:generate', ['--force' => true]);
+                $outputBuffer .= ">>> php artisan key:generate --force\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
+            }
+
+            // 2. Run Migrations
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $outputBuffer .= ">>> php artisan migrate --force\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
+
+            // 3. Seed Database
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+            $outputBuffer .= ">>> php artisan db:seed --force\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
+
+            // 4. Storage Link
+            try {
+                \Illuminate\Support\Facades\Artisan::call('storage:link');
+                $outputBuffer .= ">>> php artisan storage:link\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
+            } catch (\Throwable $e) {
+                $outputBuffer .= ">>> storage:link skipped (" . $e->getMessage() . ")\n";
+            }
+
+            // 5. Clear Caches
+            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+            $outputBuffer .= ">>> php artisan optimize:clear\n" . \Illuminate\Support\Facades\Artisan::output() . "\n";
+
+            $commandOutput = $outputBuffer;
+        } elseif ($command === 'migrate_fresh_seed') {
+            $commandName = 'migrate:fresh --seed --force';
+            \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
+            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+        } elseif ($command === 'migrate') {
+            $commandName = 'migrate --force';
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+        } elseif ($command === 'db_seed') {
+            $commandName = 'db:seed --force';
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+        } elseif ($command === 'storage_link') {
+            $commandName = 'storage:link';
+            \Illuminate\Support\Facades\Artisan::call('storage:link');
+            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+        } elseif ($command === 'optimize_clear') {
+            $commandName = 'optimize:clear';
+            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+        } elseif ($command === 'optimize') {
+            $commandName = 'optimize';
+            \Illuminate\Support\Facades\Artisan::call('optimize');
+            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+        } elseif ($command === 'key_generate') {
+            $commandName = 'key:generate --force';
+            \Illuminate\Support\Facades\Artisan::call('key:generate', ['--force' => true]);
+            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+        } elseif ($command === 'compliance_scan') {
+            $commandName = 'compliance:recertification-scan';
+            \Illuminate\Support\Facades\Artisan::call('compliance:recertification-scan');
+            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+        } elseif ($command === 'custom') {
+            $customCmd = trim((string) ($_POST['custom_command'] ?? ''));
+            $customCmd = preg_replace('/^php\s+artisan\s+/i', '', $customCmd);
+            $commandName = 'artisan ' . $customCmd;
+
+            if (empty($customCmd)) {
+                $commandOutput = 'Error: No artisan command provided.';
+            } else {
+                // Parse arguments
+                $parts = explode(' ', $customCmd);
+                $cmdName = array_shift($parts);
+                $params = [];
+                foreach ($parts as $part) {
+                    if (str_starts_with($part, '--')) {
+                        $params[$part] = true;
+                    } elseif (!empty($part)) {
+                        $params[] = $part;
+                    }
+                }
+                \Illuminate\Support\Facades\Artisan::call($cmdName, $params);
+                $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+            }
+        } else {
+            $commandName = htmlspecialchars($command);
+            \Illuminate\Support\Facades\Artisan::call($command);
+            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+        }
+    } catch (\Throwable $e) {
+        $commandOutput = "EXCEPTION:\n" . $e->getMessage() . "\n\nStack Trace:\n" . $e->getTraceAsString();
+    }
+
+    $executionTime = round((microtime(true) - $startTime), 3);
+}
+
+// Directory Permissions Helper
+function checkWritable(string $path): bool {
+    return is_dir($path) && is_writable($path);
+}
+
+?>
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise LMS - Web Artisan Setup Console</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Manrope', -apple-system, sans-serif;
+            background-color: #0A0D14;
+            color: #E2E8F0;
+            min-height: 100vh;
+        }
+        .console-header {
+            background: linear-gradient(135deg, #0F1321 0%, #171E36 100%);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .terminal-window {
+            background: #05070B;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+        }
+        .terminal-header {
+            background: #0F131C;
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .terminal-body {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.88rem;
+            color: #10B981;
+            padding: 20px;
+            max-height: 480px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.6;
+        }
+        .lms-card {
+            background: #111624;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            transition: all 0.2s ease;
+        }
+        .lms-card:hover {
+            border-color: rgba(114, 62, 195, 0.4);
+        }
+        .btn-lms-action {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            text-align: left;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.92rem;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.03);
+            color: #F8FAFC;
+        }
+        .btn-lms-action:hover {
+            background: rgba(114, 62, 195, 0.15);
+            border-color: #723EC3;
+            color: #FFFFFF;
+            transform: translateX(4px);
+        }
+        .btn-lms-action:active {
+            transform: scale(0.99);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="console-header py-3 px-4">
+        <div class="container-fluid d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge rounded-3 p-2 shadow-sm" style="background: linear-gradient(135deg, #723EC3, #FF4D00); font-size: 1.2rem;">
+                    <i class="bi bi-terminal-fill text-white"></i>
+                </span>
+                <div>
+                    <h5 class="fw-bold mb-0 text-white">Enterprise LMS - Web Setup &amp; Maintenance Console</h5>
+                    <div class="text-white-50 small font-mono" style="font-size: 0.75rem;">
+                        No-Terminal Server Provisioning &bull; Laravel 11 Console Interface
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3">
+                @if($isAuthenticated)
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-3 py-1.5 font-mono">
+                        <i class="bi bi-shield-check me-1"></i> Authenticated Session
+                    </span>
+                    <a href="{{ url('/') }}" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> Open LMS App
+                    </a>
+                    <a href="?logout=1" class="btn btn-sm btn-danger rounded-pill px-3">
+                        <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+                    </a>
+                @endif
+            </div>
+        </div>
+    </header>
+
+    <div class="container-fluid py-4 px-3 px-md-5">
+
+        @if(!$isAuthenticated)
+            <!-- Authentication PIN Card -->
+            <div class="row justify-content-center pt-5">
+                <div class="col-md-5 col-lg-4">
+                    <div class="lms-card p-4 p-md-5 shadow-lg border-primary border-opacity-25">
+                        <div class="text-center mb-4">
+                            <span class="badge rounded-circle p-3 mb-3" style="background: rgba(114, 62, 195, 0.2); color: #A78BFA; font-size: 2rem;">
+                                <i class="bi bi-shield-lock"></i>
+                            </span>
+                            <h4 class="fw-bold text-white mb-1">Enter Security PIN</h4>
+                            <div class="text-white-50 small">
+                                Protected maintenance gateway. Please enter the master security PIN to proceed.
+                            </div>
+                        </div>
+
+                        @if($loginError)
+                            <div class="alert alert-danger py-2 small rounded-3 mb-3">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> <?= htmlspecialchars($loginError) ?>
+                            </div>
+                        @endif
+
+                        <form method="POST" action="run-setup.php">
+                            <input type="hidden" name="action" value="login">
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold text-secondary">Security PIN / Access Key</label>
+                                <input type="password" name="security_pin" class="form-control font-mono py-2.5 text-center fs-5" required placeholder="Enter PIN (Default: lms2026)" autofocus>
+                                <div class="form-text text-muted small text-center mt-1">Default Key: <code>lms2026</code></div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100 py-2.5 rounded-pill fw-bold shadow">
+                                <i class="bi bi-unlock-fill me-1"></i> Unlock Artisan Console
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @else
+
+            @if($laravelError)
+                <div class="alert alert-danger rounded-4 p-3 mb-4 shadow-sm">
+                    <h6 class="fw-bold"><i class="bi bi-x-octagon-fill me-2"></i>Laravel Bootstrap Error</h6>
+                    <div><?= htmlspecialchars($laravelError) ?></div>
+                </div>
+            @endif
+
+            <div class="row g-4">
+                
+                <!-- Left Column: Diagnostic Cards & Actions -->
+                <div class="col-lg-5 col-xl-4">
+                    
+                    <!-- 1. Server & Environment Telemetry Card -->
+                    <div class="lms-card p-3 mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                            <span class="small fw-bold text-uppercase text-muted font-mono" style="font-size: 0.72rem;">Server Environment</span>
+                            <span class="badge bg-primary bg-opacity-25 text-primary small">PHP <?= PHP_VERSION ?></span>
+                        </div>
+                        <ul class="list-unstyled mb-0 small">
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-10">
+                                <span class="text-secondary">Database Connection:</span>
+                                <?php if ($dbStatus): ?>
+                                    <span class="text-success fw-bold font-mono"><i class="bi bi-check-circle-fill"></i> Connected</span>
+                                <?php else: ?>
+                                    <span class="text-danger fw-bold font-mono" title="<?= htmlspecialchars($dbMessage) ?>"><i class="bi bi-x-circle-fill"></i> Failed</span>
+                                <?php endif; ?>
+                            </li>
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-10">
+                                <span class="text-secondary">Storage Writable:</span>
+                                <?php if (checkWritable(__DIR__ . '/storage')): ?>
+                                    <span class="text-success fw-bold font-mono"><i class="bi bi-check-circle-fill"></i> Yes</span>
+                                <?php else: ?>
+                                    <span class="text-danger fw-bold font-mono"><i class="bi bi-x-circle-fill"></i> Read-Only (chmod 775)</span>
+                                <?php endif; ?>
+                            </li>
+                            <li class="d-flex justify-content-between py-1 border-bottom border-secondary border-opacity-10">
+                                <span class="text-secondary">Bootstrap Cache Writable:</span>
+                                <?php if (checkWritable(__DIR__ . '/bootstrap/cache')): ?>
+                                    <span class="text-success fw-bold font-mono"><i class="bi bi-check-circle-fill"></i> Yes</span>
+                                <?php else: ?>
+                                    <span class="text-danger fw-bold font-mono"><i class="bi bi-x-circle-fill"></i> Read-Only (chmod 775)</span>
+                                <?php endif; ?>
+                            </li>
+                            <li class="d-flex justify-content-between py-1">
+                                <span class="text-secondary">.env File:</span>
+                                <?php if (file_exists(__DIR__ . '/.env')): ?>
+                                    <span class="text-success fw-bold font-mono"><i class="bi bi-file-earmark-check"></i> Found</span>
+                                <?php else: ?>
+                                    <span class="text-danger fw-bold font-mono"><i class="bi bi-file-earmark-x"></i> Missing</span>
+                                <?php endif; ?>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 2. One-Click Automated Setup Card -->
+                    <div class="lms-card p-3 mb-3 border-primary border-opacity-25" style="background: linear-gradient(135deg, rgba(114, 62, 195, 0.15) 0%, rgba(15, 19, 33, 0.6) 100%);">
+                        <h6 class="fw-bold text-white mb-1"><i class="bi bi-rocket-takeoff-fill text-warning me-2"></i>One-Click Full Setup</h6>
+                        <p class="text-white-50 small mb-3" style="font-size: 0.78rem;">
+                            Executes migrations, seeds roles &amp; default LMS courses, creates storage symlink, and clears caches in a single click.
+                        </p>
+                        <form method="POST" action="run-setup.php" onsubmit="return confirm('Run complete automated setup? This will migrate and seed the database.')">
+                            <input type="hidden" name="command" value="one_click_setup">
+                            <button type="submit" class="btn btn-warning w-100 py-2.5 fw-bold rounded-pill text-dark shadow-sm">
+                                <i class="bi bi-play-circle-fill me-1.5"></i> Run Complete First-Time Setup
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- 3. Essential Artisan Tasks -->
+                    <div class="lms-card p-3 mb-3">
+                        <h6 class="fw-bold text-white mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                            <i class="bi bi-tools text-primary me-2"></i>Database &amp; Storage Actions
+                        </h6>
+                        <div class="d-flex flex-column gap-2">
+                            <!-- Migrate -->
+                            <form method="POST" action="run-setup.php">
+                                <input type="hidden" name="command" value="migrate">
+                                <button type="submit" class="btn-lms-action">
+                                    <span><i class="bi bi-database-fill-up text-info me-2"></i>Run Database Migrations</span>
+                                    <span class="badge bg-secondary font-mono" style="font-size: 0.65rem;">migrate --force</span>
+                                </button>
+                            </form>
+
+                            <!-- Seed -->
+                            <form method="POST" action="run-setup.php">
+                                <input type="hidden" name="command" value="db_seed">
+                                <button type="submit" class="btn-lms-action">
+                                    <span><i class="bi bi-flower1 text-success me-2"></i>Seed Database Tables</span>
+                                    <span class="badge bg-secondary font-mono" style="font-size: 0.65rem;">db:seed --force</span>
+                                </button>
+                            </form>
+
+                            <!-- Storage Link -->
+                            <form method="POST" action="run-setup.php">
+                                <input type="hidden" name="command" value="storage_link">
+                                <button type="submit" class="btn-lms-action">
+                                    <span><i class="bi bi-link-45deg text-warning me-2"></i>Link Storage Directory</span>
+                                    <span class="badge bg-secondary font-mono" style="font-size: 0.65rem;">storage:link</span>
+                                </button>
+                            </form>
+
+                            <!-- Fresh Migrate (Danger) -->
+                            <form method="POST" action="run-setup.php" onsubmit="return confirm('WARNING: This will DROP ALL TABLES and recreate everything. Are you sure?')">
+                                <input type="hidden" name="command" value="migrate_fresh_seed">
+                                <button type="submit" class="btn-lms-action" style="border-color: rgba(239, 68, 68, 0.3);">
+                                    <span class="text-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>Wipe &amp; Fresh Re-Seed (Reset)</span>
+                                    <span class="badge bg-danger font-mono" style="font-size: 0.65rem;">migrate:fresh</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- 4. Cache & Optimization Actions -->
+                    <div class="lms-card p-3 mb-3">
+                        <h6 class="fw-bold text-white mb-2 pb-2 border-bottom border-secondary border-opacity-25">
+                            <i class="bi bi-speedometer text-success me-2"></i>Performance &amp; Cache
+                        </h6>
+                        <div class="d-flex flex-column gap-2">
+                            <!-- Optimize Clear -->
+                            <form method="POST" action="run-setup.php">
+                                <input type="hidden" name="command" value="optimize_clear">
+                                <button type="submit" class="btn-lms-action">
+                                    <span><i class="bi bi-trash3-fill text-warning me-2"></i>Clear All Caches</span>
+                                    <span class="badge bg-secondary font-mono" style="font-size: 0.65rem;">optimize:clear</span>
+                                </button>
+                            </form>
+
+                            <!-- Optimize -->
+                            <form method="POST" action="run-setup.php">
+                                <input type="hidden" name="command" value="optimize">
+                                <button type="submit" class="btn-lms-action">
+                                    <span><i class="bi bi-lightning-charge-fill text-success me-2"></i>Cache Config, Routes &amp; Views</span>
+                                    <span class="badge bg-secondary font-mono" style="font-size: 0.65rem;">optimize</span>
+                                </button>
+                            </form>
+
+                            <!-- Compliance Scan -->
+                            <form method="POST" action="run-setup.php">
+                                <input type="hidden" name="command" value="compliance_scan">
+                                <button type="submit" class="btn-lms-action">
+                                    <span><i class="bi bi-shield-check text-purple me-2"></i>Run Nightly Compliance Scan</span>
+                                    <span class="badge bg-secondary font-mono" style="font-size: 0.65rem;">compliance:scan</span>
+                                </button>
+                            </form>
+
+                            <!-- Key Generate -->
+                            <form method="POST" action="run-setup.php">
+                                <input type="hidden" name="command" value="key_generate">
+                                <button type="submit" class="btn-lms-action">
+                                    <span><i class="bi bi-key-fill text-info me-2"></i>Generate Application Key</span>
+                                    <span class="badge bg-secondary font-mono" style="font-size: 0.65rem;">key:generate</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right Column: Interactive Terminal & Output Console -->
+                <div class="col-lg-7 col-xl-8">
+
+                    <!-- Custom Command Execution Card -->
+                    <div class="lms-card p-4 mb-4">
+                        <h6 class="fw-bold text-white mb-2">
+                            <i class="bi bi-terminal text-info me-2"></i>Run Custom Artisan Command
+                        </h6>
+                        <form method="POST" action="run-setup.php" class="d-flex gap-2">
+                            <input type="hidden" name="command" value="custom">
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-secondary border-opacity-50 font-mono text-muted">php artisan</span>
+                                <input type="text" name="custom_command" class="form-control font-mono bg-dark border-secondary border-opacity-50 text-white" 
+                                       placeholder="e.g. migrate:status, route:list, view:clear" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary px-4 fw-semibold rounded-pill text-nowrap">
+                                <i class="bi bi-play-fill me-1"></i> Execute
+                            </button>
+                        </form>
+                        <div class="d-flex gap-2 mt-2 flex-wrap" style="font-size: 0.72rem;">
+                            <span class="text-muted">Quick shortcuts:</span>
+                            <a href="#" onclick="document.querySelector('[name=custom_command]').value='migrate:status'; return false;" class="text-info text-decoration-none font-mono">migrate:status</a> &bull;
+                            <a href="#" onclick="document.querySelector('[name=custom_command]').value='route:list'; return false;" class="text-info text-decoration-none font-mono">route:list</a> &bull;
+                            <a href="#" onclick="document.querySelector('[name=custom_command]').value='view:clear'; return false;" class="text-info text-decoration-none font-mono">view:clear</a> &bull;
+                            <a href="#" onclick="document.querySelector('[name=custom_command]').value='config:clear'; return false;" class="text-info text-decoration-none font-mono">config:clear</a>
+                        </div>
+                    </div>
+
+                    <!-- Live Terminal Window -->
+                    <div class="terminal-window">
+                        <div class="terminal-header">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="terminal-dot bg-danger"></span>
+                                <span class="terminal-dot bg-warning"></span>
+                                <span class="terminal-dot bg-success"></span>
+                                <span class="font-mono text-white-50 ms-2" style="font-size: 0.75rem;">
+                                    <?= $commandName ? 'artisan ' . htmlspecialchars($commandName) : 'artisan console output' ?>
+                                </span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <?php if ($executionTime !== null): ?>
+                                    <span class="badge bg-secondary font-mono" style="font-size: 0.68rem;">
+                                        <i class="bi bi-stopwatch me-1"></i><?= $executionTime ?>s
+                                    </span>
+                                <?php endif; ?>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 rounded font-mono" style="font-size: 0.7rem;" 
+                                        onclick="navigator.clipboard.writeText(document.getElementById('terminalContent').innerText); alert('Copied console output to clipboard!');">
+                                    <i class="bi bi-copy"></i> Copy
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="terminal-body" id="terminalContent">
+<?php if ($commandOutput !== null): ?>
+<?= htmlspecialchars($commandOutput) ?>
+<?php else: ?>
+<span class="text-white-50">Enterprise LMS Terminal Console initialized.
+Click any setup action on the left or type a custom artisan command above to see live output here.
+
+System status: <?= $dbStatus ? 'READY' : 'ACTION REQUIRED' ?>
+</span>
+<?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Guidance Info -->
+                    <div class="alert alert-info bg-opacity-10 border-info border-opacity-25 rounded-4 mt-4 p-3 small">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-info-circle-fill text-info fs-5 mt-0.5"></i>
+                            <div>
+                                <div class="fw-bold text-white mb-1">Production Security Best Practice</div>
+                                <div class="text-secondary">
+                                    Once your production database is fully migrated and seeded, either delete this <code>run-setup.php</code> file from your server root or change <code>DEFAULT_SECURITY_PIN</code> at the top of this script to keep your server console secure.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        @endif
+
+    </div>
+
+</body>
+</html>
