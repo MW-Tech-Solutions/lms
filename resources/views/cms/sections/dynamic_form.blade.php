@@ -224,7 +224,7 @@
                                             <div class="d-flex align-items-center justify-content-between px-2 py-1" style="background: #111422; font-size: 8px; border-bottom: 1px solid rgba(255,255,255,0.08);">
                                                 <div class="d-flex align-items-center gap-1">
                                                     <span class="badge rounded-circle p-1" style="background: #723EC3;"><i class="bi bi-mortarboard-fill text-white" style="font-size: 7px;"></i></span>
-                                                    <span class="fw-bold text-white" style="letter-spacing: -0.3px;">Edunex</span>
+                                                    <span class="fw-bold text-white" style="letter-spacing: -0.3px;">LMS</span>
                                                 </div>
                                                 <div class="d-none d-sm-flex align-items-center gap-2 text-muted" style="font-size: 7px;">
                                                     <span class="text-white fw-semibold">Home</span>
