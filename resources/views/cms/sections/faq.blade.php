@@ -84,12 +84,6 @@
                 </div>
             </div>
 
-            <!-- Decorative Center Geometric Star (visible on large displays) -->
-            <div class="d-none d-xl-block position-absolute start-50 top-50 translate-middle" style="width: 60px; pointer-events: none; z-index: 1;">
-                <svg width="54" height="54" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M27 3C28.5 18 36 25.5 51 27C36 28.5 28.5 36 27 51C25.5 36 18 28.5 3 27C18 25.5 25.5 18 27 3Z" fill="var(--lms-accent, #723EC3)" opacity="0.8"/>
-                </svg>
-            </div>
 
             <!-- Right Column: Interactive Accordion List -->
             <div class="col-lg-7 ps-xl-4">
