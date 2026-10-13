@@ -267,4 +267,110 @@ class DashboardPagesTest extends TestCase
         $this->assertEquals('https://images.unsplash.com/photo-1550751827-4bd374c3f58b', $course->thumbnail);
         $this->assertEquals(85, $course->passing_grade);
     }
+
+    public function test_password_reset_flow_complete(): void
+    {
+        $user = User::where('email', 'student@enterpriselms.com')->first();
+        $this->assertNotNull($user);
+
+        // 1. Visit forgot password page
+        $forgotPage = $this->get('/forgot-password');
+        $forgotPage->assertStatus(200);
+        $forgotPage->assertSee('Reset Password');
+        $forgotPage->assertSee('Send Recovery Link');
+
+        // 2. Submit forgot password form
+        $submitEmail = $this->post('/forgot-password', [
+            'email' => $user->email,
+        ]);
+        $submitEmail->assertSessionHas('status');
+        $submitEmail->assertSessionHas('dev_reset_url');
+
+        $tokenRecord = \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', $user->email)
+            ->first();
+        $this->assertNotNull($tokenRecord);
+
+        // 3. Generate raw token and update token record for verification
+        $rawToken = \Illuminate\Support\Str::random(64);
+        \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', $user->email)
+            ->update([
+                'token' => \Illuminate\Support\Facades\Hash::make($rawToken),
+                'created_at' => now(),
+            ]);
+
+        // 4. View reset password page
+        $resetPage = $this->get('/reset-password/' . $rawToken . '?email=' . urlencode($user->email));
+        $resetPage->assertStatus(200);
+        $resetPage->assertSee('Set New Password');
+        $resetPage->assertSee('Update Password');
+
+        // 5. Submit new password
+        $resetResponse = $this->post('/reset-password', [
+            'token' => $rawToken,
+            'email' => $user->email,
+            'password' => 'NewSecretPass999!',
+            'password_confirmation' => 'NewSecretPass999!',
+        ]);
+        $resetResponse->assertRedirect('/login');
+        $resetResponse->assertSessionHas('status');
+
+        // Verify password was updated
+        $user->refresh();
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('NewSecretPass999!', $user->password));
+
+        // Verify token was cleaned up
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
+    }
+
+    public function test_dynamic_homepage_sections_and_cms_admin_flow(): void
+    {
+        $admin = User::where('email', 'admin@enterpriselms.com')->first();
+        $this->assertNotNull($admin);
+
+        // 1. Seed sample sections
+        $seedResponse = $this->actingAs($admin)->post('/admin/cms/seed-samples');
+        $seedResponse->assertRedirect();
+        $seedResponse->assertSessionHas('success');
+
+        // 2. Check homepage renders all 4 screenshot sample sections
+        $homeResponse = $this->get('/');
+        $homeResponse->assertStatus(200);
+        $homeResponse->assertSee('Explore Categories');
+        $homeResponse->assertSee('Web Development');
+        $homeResponse->assertSee('Meet Our Mentors');
+        $homeResponse->assertSee('Darren Treadway');
+        $homeResponse->assertSee('Upcoming Live Events');
+        $homeResponse->assertSee("Web3 Builder's Meetup");
+        $homeResponse->assertSee('Frequently Asked Questions');
+        $homeResponse->assertSee('Still Need Help?');
+
+        // 3. Check Admin CMS manager index page
+        $adminCmsResponse = $this->actingAs($admin)->get('/admin/cms');
+        $adminCmsResponse->assertStatus(200);
+        $adminCmsResponse->assertSee('Homepage Dynamic Section Stack');
+        $adminCmsResponse->assertSee('CATEGORIES');
+        $adminCmsResponse->assertSee('MENTORS');
+        $adminCmsResponse->assertSee('EVENTS');
+        $adminCmsResponse->assertSee('FAQ');
+
+        // 4. Update a section via admin
+        $faqSection = \App\Models\CmsSection::where('section_type', 'FAQ')->first();
+        $this->assertNotNull($faqSection);
+
+        $updateSectionResponse = $this->actingAs($admin)->put('/admin/cms/sections/' . $faqSection->id, [
+            'order_index' => 6,
+            'title' => 'Frequently Asked Questions (Admin Updated)',
+            'subtitle' => 'Custom updated subtitle for enterprise learners.',
+            'support_title' => 'Need 24/7 Enterprise Assistance?',
+            'support_email' => 'support@enterpriselms.com',
+        ]);
+        $updateSectionResponse->assertRedirect();
+        $updateSectionResponse->assertSessionHas('success');
+
+        $faqSection->refresh();
+        $this->assertEquals('Frequently Asked Questions (Admin Updated)', $faqSection->content_json['title']);
+        $this->assertEquals('support@enterpriselms.com', $faqSection->content_json['support_email']);
+    }
 }

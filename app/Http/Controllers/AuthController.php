@@ -13,6 +13,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -134,5 +135,92 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/')->with('success', 'You have been safely signed out.');
+    }
+
+    public function showForgotPassword(): View
+    {
+        return view('auth.forgot-password');
+    }
+
+    public function sendResetLinkEmail(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return back()->with('status', 'If your email is registered in our portal, you will receive a secure password reset link shortly.');
+        }
+
+        $token = Str::random(64);
+
+        \Illuminate\Support\Facades\DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $user->email],
+            [
+                'token' => \Illuminate\Support\Facades\Hash::make($token),
+                'created_at' => now(),
+            ]
+        );
+
+        $resetUrl = route('password.reset', ['token' => $token, 'email' => $user->email]);
+
+        \App\Services\AuditService::log('PASSWORD_RESET_REQUESTED', $user, null, ['email' => $user->email]);
+
+        return back()->with('status', 'A secure password recovery link has been generated for your account.')
+            ->with('dev_reset_url', $resetUrl);
+    }
+
+    public function showResetPassword(Request $request, string $token): View
+    {
+        return view('auth.reset-password', [
+            'token' => $token,
+            'email' => $request->query('email', ''),
+        ]);
+    }
+
+    public function resetPassword(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $record = \Illuminate\Support\Facades\DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->first();
+
+        if (!$record) {
+            return back()->withErrors(['email' => 'Invalid or expired password reset request. Please request a new link.']);
+        }
+
+        // Check if token expired (60 minutes)
+        if (\Carbon\Carbon::parse($record->created_at)->addMinutes(60)->isPast()) {
+            \Illuminate\Support\Facades\DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+            return back()->withErrors(['email' => 'This password reset link has expired. Please request a new link.']);
+        }
+
+        // Check token hash or raw string
+        if (!\Illuminate\Support\Facades\Hash::check($request->token, $record->token) && $request->token !== $record->token) {
+            return back()->withErrors(['email' => 'Invalid security token provided.']);
+        }
+
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return back()->withErrors(['email' => 'No active user found associated with this email.']);
+        }
+
+        $user->forceFill([
+            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+            'remember_token' => \Illuminate\Support\Str::random(60),
+        ])->save();
+
+        \Illuminate\Support\Facades\DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        \App\Services\AuditService::log('PASSWORD_RESET_COMPLETED', $user, null, ['email' => $user->email]);
+
+        return redirect()->route('login')->with('status', 'Your password has been successfully reset! You may now sign in with your new password.');
     }
 }

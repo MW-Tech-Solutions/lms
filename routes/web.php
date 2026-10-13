@@ -56,6 +56,11 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
+
+    Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLinkEmail'])->name('password.email');
+    Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 Route::match(['GET', 'POST'], '/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -124,6 +129,10 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::post('/attendance', [AttendanceAdminController::class, 'store'])->name('attendance.store');
 
     Route::get('/cms', [CmsAdminController::class, 'index'])->name('cms.index');
+    Route::post('/cms/sections', [CmsAdminController::class, 'storeSection'])->name('cms.sections.store');
+    Route::put('/cms/sections/{section}', [CmsAdminController::class, 'updateSection'])->name('cms.sections.update');
+    Route::delete('/cms/sections/{section}', [CmsAdminController::class, 'destroySection'])->name('cms.sections.destroy');
+    Route::post('/cms/seed-samples', [CmsAdminController::class, 'seedSamples'])->name('cms.seed-samples');
 
     Route::get('/settings', [SettingsAdminController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingsAdminController::class, 'update'])->name('settings.update');

@@ -295,6 +295,9 @@
                                 <label class="form-label small fw-semibold text-secondary mb-0" for="loginPassword">
                                     Security Password <span class="text-danger">*</span>
                                 </label>
+                                <a href="{{ route('password.request') }}" class="small text-primary text-decoration-none fw-semibold">
+                                    Forgot password?
+                                </a>
                             </div>
                             <div class="input-group input-group-lg rounded-3 border overflow-hidden" style="background: var(--lms-bg-body);">
                                 <span class="input-group-text bg-transparent border-0 text-muted ps-3">

@@ -19,6 +19,22 @@
                     @include('cms.sections.catalog', ['section' => $section])
                     @break
 
+                @case('CATEGORIES')
+                    @include('cms.sections.categories', ['section' => $section])
+                    @break
+
+                @case('MENTORS')
+                    @include('cms.sections.mentors', ['section' => $section])
+                    @break
+
+                @case('EVENTS')
+                    @include('cms.sections.events', ['section' => $section])
+                    @break
+
+                @case('FAQ')
+                    @include('cms.sections.faq', ['section' => $section])
+                    @break
+
                 @case('PRICING')
                     @include('cms.sections.pricing', ['section' => $section])
                     @break
