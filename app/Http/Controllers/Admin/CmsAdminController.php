@@ -121,6 +121,12 @@ class CmsAdminController extends Controller
 
     public function seedSamples(): RedirectResponse
     {
+        try {
+            if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
+                \Illuminate\Support\Facades\DB::statement("ALTER TABLE `cms_sections` MODIFY COLUMN `section_type` VARCHAR(64) NOT NULL");
+            }
+        } catch (\Throwable $e) {}
+
         $home = CmsPage::firstOrCreate(
             ['slug' => 'home'],
             [

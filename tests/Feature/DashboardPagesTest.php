@@ -322,6 +322,9 @@ class DashboardPagesTest extends TestCase
 
         // Verify token was cleaned up
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
+
+        // Restore password for subsequent tests
+        $user->forceFill(['password' => \Illuminate\Support\Facades\Hash::make('password123')])->save();
     }
 
     public function test_dynamic_homepage_sections_and_cms_admin_flow(): void

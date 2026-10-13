@@ -26,19 +26,35 @@ class CmsController extends Controller
             ->where('is_published', true)
             ->first();
 
-        if (!$page) {
-            // Auto-fallback or 404
-            if ($slug === 'home') {
-                $page = new CmsPage([
-                    'title' => 'Home',
-                    'slug' => 'home',
-                    'meta_title' => 'Enterprise Dual-Audience LMS',
-                    'meta_description' => 'Workforce Compliance and Academic Certification Platform',
-                    'is_published' => true,
-                ]);
-            } else {
-                abort(404, 'CMS Page not found.');
+        if (!$page && $slug === 'home') {
+            $page = CmsPage::firstOrCreate([
+                'slug' => 'home',
+            ], [
+                'title' => 'Home',
+                'meta_title' => 'Enterprise Dual-Audience LMS',
+                'meta_description' => 'Workforce Compliance and Academic Certification Platform',
+                'is_published' => true,
+            ]);
+            $page->load(['sections' => fn ($q) => $q->orderBy('order_index')]);
+        }
+
+        if ($slug === 'home' && $page) {
+            $existingTypes = $page->sections->pluck('section_type')->map(fn ($t) => strtoupper((string) $t))->toArray();
+            $requiredTypes = ['CATEGORIES', 'MENTORS', 'EVENTS', 'FAQ'];
+            $missing = array_diff($requiredTypes, $existingTypes);
+
+            if (!empty($missing)) {
+                try {
+                    app(\App\Http\Controllers\Admin\CmsAdminController::class)->seedSamples();
+                    $page->load(['sections' => fn ($q) => $q->orderBy('order_index')]);
+                } catch (\Throwable $e) {
+                    // Silently failover
+                }
             }
+        }
+
+        if (!$page) {
+            abort(404, 'CMS Page not found.');
         }
 
         return view('cms.page', compact('page'));

@@ -149,6 +149,12 @@ function safeSeed(\Illuminate\Foundation\Application $app): string
             $hasTenant = \Illuminate\Support\Facades\DB::table('tenants')->where('subdomain', 'acme')->exists();
             if ($hasTenant) {
                 $buffer .= "✓ Database is already initialized with demonstration tenant, roles, and courses (Existing data preserved).\n";
+                try {
+                    app(\App\Http\Controllers\Admin\CmsAdminController::class)->seedSamples();
+                    $buffer .= "✓ Homepage CMS modules (Categories, Mentors, Events, FAQs) synced successfully.\n";
+                } catch (\Throwable $eCms) {
+                    $buffer .= "CMS sync notice: " . $eCms->getMessage() . "\n";
+                }
                 return $buffer;
             }
         }
@@ -299,6 +305,16 @@ if ($isAuthenticated && $laravelLoaded && $_SERVER['REQUEST_METHOD'] === 'POST' 
         } elseif ($command === 'db_seed') {
             $commandName = 'db:seed --force';
             $commandOutput = safeSeed($app);
+        } elseif ($command === 'sync_cms_samples') {
+            $commandName = 'Sync Homepage CMS Sections (Categories, Mentors, Events, FAQs)';
+            try {
+                if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
+                    \Illuminate\Support\Facades\DB::statement("ALTER TABLE `cms_sections` MODIFY COLUMN `section_type` VARCHAR(64) NOT NULL");
+                }
+            } catch (\Throwable $e) {}
+            app(\App\Http\Controllers\Admin\CmsAdminController::class)->seedSamples();
+            $commandOutput = "✓ Successfully synced Homepage sections (Categories, Mentors, Events, FAQs, Catalog, Bento, Pricing, Footer)!\n";
+            $commandOutput .= safeOptimizeClear($app);
         } elseif ($command === 'storage_link') {
             $commandName = 'storage:link';
             \Illuminate\Support\Facades\Artisan::call('storage:link');
@@ -639,6 +655,15 @@ function checkWritable(string $path): bool {
                                 <button type="submit" class="btn-lms-action">
                                     <span><i class="bi bi-flower1 text-success me-2"></i>Seed Database Tables</span>
                                     <span class="badge bg-secondary font-mono" style="font-size: 0.65rem;">db:seed --force</span>
+                                </button>
+                            </form>
+
+                            <!-- Sync Homepage CMS Sections -->
+                            <form method="POST" action="run-setup.php">
+                                <input type="hidden" name="command" value="sync_cms_samples">
+                                <button type="submit" class="btn-lms-action" style="border-color: rgba(234, 179, 8, 0.4); background: rgba(234, 179, 8, 0.08);">
+                                    <span class="text-warning"><i class="bi bi-window-stack text-warning me-2"></i>Sync Homepage Sections (FAQ, Mentors, Events, Categories)</span>
+                                    <span class="badge bg-warning text-dark font-mono" style="font-size: 0.65rem;">Sync CMS</span>
                                 </button>
                             </form>
 
