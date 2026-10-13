@@ -608,22 +608,31 @@ class DatabaseSeeder extends Seeder
             ],
         ]);
 
-        // Section 2: METRICS
+        // Section 2: CATEGORIES
         CmsSection::create([
             'page_id' => $cmsHome->id,
-            'section_type' => CmsSection::TYPE_METRICS,
+            'section_type' => CmsSection::TYPE_CATEGORIES,
             'order_index' => 2,
             'content_json' => [
-                'metrics' => [
-                    ['value' => '99.9%', 'label' => 'Audit SLA Compliance', 'icon' => 'bi-shield-check', 'color' => 'text-success'],
-                    ['value' => '45,000+', 'label' => 'Certified Professionals', 'icon' => 'bi-people', 'color' => 'text-primary'],
-                    ['value' => '100%', 'label' => 'SCORM 1.2 / 2004 Support', 'icon' => 'bi-box-seam', 'color' => 'text-info'],
-                    ['value' => '0.00ms', 'label' => 'Sub-millisecond Anti-Cheat Sync', 'icon' => 'bi-lightning-charge', 'color' => 'text-warning'],
+                'title' => 'Explore Categories',
+                'subtitle' => 'Browse top categories and find the perfect course to grow your skills.',
+                'view_all_text' => 'View All Categories',
+                'view_all_url' => route('courses.index'),
+                'categories' => [
+                    ['name' => 'Web Development', 'lessons' => '48+ lessons', 'icon' => 'code-window', 'url' => route('courses.index')],
+                    ['name' => 'Data Science', 'lessons' => '52+ lessons', 'icon' => 'data-network', 'url' => route('courses.index')],
+                    ['name' => 'IT & Software', 'lessons' => '50+ lessons', 'icon' => 'it-software', 'url' => route('courses.index')],
+                    ['name' => 'UI/UX Design', 'lessons' => '38+ lessons', 'icon' => 'ui-ux', 'url' => route('courses.index')],
+                    ['name' => 'Marketing', 'lessons' => '36+ lessons', 'icon' => 'marketing', 'url' => route('courses.index')],
+                    ['name' => 'Cybersecurity', 'lessons' => '47+ lessons', 'icon' => 'cybersecurity', 'url' => route('courses.index')],
+                    ['name' => 'Finance & Accounting', 'lessons' => '25+ lessons', 'icon' => 'finance', 'url' => route('courses.index')],
+                    ['name' => 'Health & Fitness', 'lessons' => '20+ lessons', 'icon' => 'health', 'url' => route('courses.index')],
                 ],
-            ],
-            'styles_json' => [
-                'background' => 'bg-body-tertiary',
-                'border' => 'border-top border-bottom',
+                'highlights' => [
+                    ['icon' => 'bi-globe2', 'text' => '500+ Expert-led categories'],
+                    ['icon' => 'bi-star-fill text-warning', 'text' => '94% Career growth rate'],
+                    ['icon' => 'bi-mortarboard-fill text-primary', 'text' => 'New category every month'],
+                ],
             ],
         ]);
 
@@ -641,26 +650,145 @@ class DatabaseSeeder extends Seeder
             ],
         ]);
 
-        // Section 4: PRICING & COHORTS
+        // Section 4: MEET OUR MENTORS
         CmsSection::create([
             'page_id' => $cmsHome->id,
-            'section_type' => CmsSection::TYPE_PRICING,
+            'section_type' => CmsSection::TYPE_MENTORS,
             'order_index' => 4,
             'content_json' => [
-                'badge' => 'Flexible Licensing',
-                'title' => 'Enterprise Compliance or Individual Cohorts',
-                'subtitle' => 'Select the operational model tailored to your organizational scale.',
-            ],
-            'styles_json' => [
-                'background' => 'bg-body-tertiary',
+                'title' => 'Meet Our Mentors',
+                'subtitle' => 'Learn from industry experts who bring real-world experience straight to your screen.',
+                'mentors' => [
+                    [
+                        'name' => 'Darren Treadway',
+                        'role' => 'Data Science Instructor',
+                        'avatar' => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=600&q=80',
+                        'students' => '28k+',
+                        'courses' => '8',
+                        'rating' => '98%',
+                    ],
+                    [
+                        'name' => 'Tammi Allison',
+                        'role' => 'UI/UX Design Mentor',
+                        'avatar' => 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80',
+                        'students' => '19k+',
+                        'courses' => '12',
+                        'rating' => '96%',
+                    ],
+                    [
+                        'name' => 'Micheal Cabot',
+                        'role' => 'Full-Stack Web Instructor',
+                        'avatar' => 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80',
+                        'students' => '24k+',
+                        'courses' => '10',
+                        'rating' => '97%',
+                    ],
+                    [
+                        'name' => 'Sofia Bennett',
+                        'role' => 'Marketing & Growth Coach',
+                        'avatar' => 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=600&q=80',
+                        'students' => '31k+',
+                        'courses' => '9',
+                        'rating' => '95%',
+                    ],
+                ],
             ],
         ]);
 
-        // Section 5: CONTACT FORM
+        // Section 5: UPCOMING LIVE EVENTS
+        CmsSection::create([
+            'page_id' => $cmsHome->id,
+            'section_type' => CmsSection::TYPE_EVENTS,
+            'order_index' => 5,
+            'content_json' => [
+                'title' => 'Upcoming Live Events',
+                'subtitle' => 'Join mentors, industry experts, and global learners in real-time sessions.',
+                'view_all_text' => 'View All Event',
+                'view_all_url' => route('courses.index'),
+                'featured_image_url' => 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80',
+                'events' => [
+                    [
+                        'title' => "Web3 Builder's Meetup",
+                        'date' => 'Jul 02, 2026',
+                        'location' => 'Singapore',
+                        'price' => '$79',
+                        'price_label' => '/ networking',
+                        'reserve_url' => route('courses.index'),
+                    ],
+                    [
+                        'title' => 'Data Science Bootcamp',
+                        'date' => 'Jul 10, 2026',
+                        'location' => 'Online (Zoom + Discord)',
+                        'price' => 'Free',
+                        'price_label' => '/ limited seats',
+                        'reserve_url' => route('courses.index'),
+                    ],
+                    [
+                        'title' => 'UI/UX Design Hackathon',
+                        'date' => 'Jul 20, 2026',
+                        'location' => 'Berlin & Online',
+                        'price' => '$49',
+                        'price_label' => '/ early bird',
+                        'reserve_url' => route('courses.index'),
+                    ],
+                    [
+                        'title' => 'No-Code Hackathon',
+                        'date' => 'Jul 28, 2026',
+                        'location' => 'Virtual + Global',
+                        'price' => '$15',
+                        'price_label' => '/ student discount',
+                        'reserve_url' => route('courses.index'),
+                    ],
+                ],
+            ],
+        ]);
+
+        // Section 6: FREQUENTLY ASKED QUESTIONS (FAQ)
+        CmsSection::create([
+            'page_id' => $cmsHome->id,
+            'section_type' => CmsSection::TYPE_FAQ,
+            'order_index' => 6,
+            'content_json' => [
+                'title' => 'Frequently Asked Questions',
+                'subtitle' => 'Everything you need to know about Lerntix. Find clarity in seconds.',
+                'support_title' => 'Still Need Help?',
+                'support_subtitle' => 'Our support team is available 24/7 to guide you through your learning journey.',
+                'support_email' => 'hello@lerntix.com',
+                'support_image' => 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
+                'faqs' => [
+                    [
+                        'question' => 'What makes Lerntix different from other LMS platforms?',
+                        'answer' => 'Lerntix combines AI-driven learning paths, hands-on labs, and real-time progress analytics. Unlike traditional LMS, we offer adaptive quizzes, industry-verified certificates, and a vibrant mentor community — all in one intuitive dashboard.',
+                    ],
+                    [
+                        'question' => 'Are the certificates recognized by employers?',
+                        'answer' => 'Yes! Every certificate issued contains a unique verification UUID and QR code that can be authenticated instantly by employers and university registries worldwide.',
+                    ],
+                    [
+                        'question' => 'Can I try Lerntix before subscribing?',
+                        'answer' => 'Absolutely. You can explore foundational modules and select workshops completely free before deciding on individual or enterprise corporate subscriptions.',
+                    ],
+                    [
+                        'question' => 'Are the courses self-paced or live?',
+                        'answer' => 'Both. We offer flexible self-paced video modules with interactive coding playgrounds alongside scheduled live masterclasses and instructor office hours.',
+                    ],
+                    [
+                        'question' => 'Is there a mobile app for offline learning?',
+                        'answer' => 'Yes. Our platform is completely responsive and supports offline lesson caching so you can study smoothly on smartphones, tablets, or laptops anywhere.',
+                    ],
+                    [
+                        'question' => 'Can teams or businesses use Lerntix?',
+                        'answer' => 'Yes. Our dedicated Corporate Console features CBAC role assignment, SCORM packages, employee completion matrices, and automated compliance recertification engines.',
+                    ],
+                ],
+            ],
+        ]);
+
+        // Section 7: FASTER PERFORMANCE & INQUIRY FORM
         CmsSection::create([
             'page_id' => $cmsHome->id,
             'section_type' => CmsSection::TYPE_DYNAMIC_FORM,
-            'order_index' => 5,
+            'order_index' => 7,
             'content_json' => [
                 'title' => 'Inquire for Enterprise Deployment',
                 'subtitle' => 'Our enterprise solutions architects will design your custom CBAC permissions hierarchy and compliance track.',
@@ -671,11 +799,26 @@ class DatabaseSeeder extends Seeder
             ],
         ]);
 
-        // Section 6: FOOTER
+        // Section 8: PRICING & COHORTS
+        CmsSection::create([
+            'page_id' => $cmsHome->id,
+            'section_type' => CmsSection::TYPE_PRICING,
+            'order_index' => 8,
+            'content_json' => [
+                'badge' => 'Flexible Licensing',
+                'title' => 'Enterprise Compliance or Individual Cohorts',
+                'subtitle' => 'Select the operational model tailored to your organizational scale.',
+            ],
+            'styles_json' => [
+                'background' => 'bg-body-tertiary',
+            ],
+        ]);
+
+        // Section 9: FOOTER
         CmsSection::create([
             'page_id' => $cmsHome->id,
             'section_type' => CmsSection::TYPE_FOOTER,
-            'order_index' => 6,
+            'order_index' => 9,
             'content_json' => [
                 'about_text' => 'The next-generation enterprise Learning Management System engineering compliance tracks, academic cohorts, and anti-cheat assessment infrastructure.',
             ],
