@@ -17,6 +17,11 @@ class UserProfile extends Model
         'timezone',
         'locale',
         'bio',
+        'about_instructor',
+        'teaching_methodology',
+        'qualifications',
+        'kyc_status',
+        'kyc_submitted_at',
     ];
 
     public function user(): BelongsTo

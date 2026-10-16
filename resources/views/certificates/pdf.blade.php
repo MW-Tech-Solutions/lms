@@ -3,159 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <title>Certificate of Achievement - {{ $certificate->uuid }}</title>
+    @php
+        $settings = $site_settings ?? (app()->bound(\App\Services\SiteConfigService::class) ? app(\App\Services\SiteConfigService::class)->all() : []);
+        $brandName = $settings['brand_name'] ?? 'Enterprise International Academy';
+        $logoBase64 = null;
+        $logoPath = null;
+        if (!empty($settings['brand_logo_url']) && str_starts_with($settings['brand_logo_url'], '/')) {
+            $logoPath = public_path(ltrim($settings['brand_logo_url'], '/'));
+        } elseif (!empty($settings['brand_logo_url']) && str_contains($settings['brand_logo_url'], 'uploads/branding/')) {
+            $parts = explode('uploads/branding/', $settings['brand_logo_url']);
+            $logoPath = public_path('uploads/branding/' . end($parts));
+        } elseif (file_exists(public_path('images/site_logo.png'))) {
+            $logoPath = public_path('images/site_logo.png');
+        }
+        if ($logoPath && file_exists($logoPath)) {
+            $type = pathinfo($logoPath, PATHINFO_EXTENSION);
+            $data = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/' . ($type === 'svg' ? 'svg+xml' : $type) . ';base64,' . base64_encode($data);
+        }
+    @endphp
     <style>
         @page {
             margin: 0;
             size: a4 landscape;
         }
-        body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            background: #ffffff;
-            color: #0F172A;
-            margin: 0;
-            padding: 40px;
+        * {
             box-sizing: border-box;
         }
-        .cert-container {
-            border: 8px double #1E3A8A;
-            padding: 40px 50px;
-            text-align: center;
-            background: radial-gradient(circle at center, #FFFFFF 60%, #F8FAFC 100%);
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: #FDFBF7;
+            color: #0F172A;
+            margin: 0;
+            padding: 24px;
+            width: 100%;
+            height: 100%;
+        }
+        .outer-border {
+            border: 4px solid #1E293B;
+            padding: 8px;
+            background: #FFFFFF;
+            height: 100%;
             position: relative;
-            min-height: 500px;
+        }
+        .inner-border {
+            border: 2px solid #D97706;
+            outline: 1px dashed #B45309;
+            outline-offset: -6px;
+            padding: 32px 48px;
+            text-align: center;
+            background: radial-gradient(circle at center, #FFFFFF 40%, #FAFAF8 100%);
+            position: relative;
+            min-height: 520px;
+        }
+        .corner-ornament {
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            color: #D97706;
+            font-size: 20px;
+            line-height: 28px;
+        }
+        .corner-tl { top: 6px; left: 8px; }
+        .corner-tr { top: 6px; right: 8px; }
+        .corner-bl { bottom: 6px; left: 8px; }
+        .corner-br { bottom: 6px; right: 8px; }
+
+        .logo-wrap {
+            margin-bottom: 8px;
+            text-align: center;
         }
         .header-brand {
-            font-size: 20px;
-            font-weight: 800;
-            letter-spacing: 4px;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 5px;
             text-transform: uppercase;
-            color: #2563EB;
-            margin-bottom: 8px;
+            color: #1E293B;
+            margin-top: 4px;
+            margin-bottom: 4px;
+        }
+        .cert-ribbon {
+            display: inline-block;
+            background: #D97706;
+            color: #FFFFFF;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            padding: 4px 20px;
+            border-radius: 20px;
+            margin-bottom: 12px;
         }
         .cert-title {
-            font-size: 38px;
+            font-size: 36px;
             font-weight: 900;
             color: #0F172A;
             letter-spacing: 2px;
-            margin: 15px 0 20px 0;
+            margin: 4px 0 10px 0;
             text-transform: uppercase;
+            font-family: 'Georgia', 'Times New Roman', serif;
         }
         .cert-subtitle {
-            font-size: 14px;
-            font-weight: 500;
-            letter-spacing: 2px;
+            font-size: 13px;
+            font-style: italic;
+            letter-spacing: 1.5px;
             color: #64748B;
-            text-transform: uppercase;
-            margin-bottom: 25px;
+            margin-bottom: 16px;
         }
         .recipient-name {
             font-size: 32px;
-            font-weight: 800;
-            color: #1E3A8A;
-            border-bottom: 2px solid #CBD5E1;
-            display: inline-block;
-            padding-bottom: 6px;
-            margin-bottom: 20px;
-            min-width: 450px;
-        }
-        .cert-body {
-            font-size: 15px;
-            line-height: 1.6;
-            color: #334155;
-            max-width: 650px;
-            margin: 0 auto 30px auto;
-        }
-        .course-title {
-            font-size: 22px;
             font-weight: 700;
             color: #0F172A;
+            border-bottom: 2px solid #D97706;
+            display: inline-block;
+            padding-bottom: 4px;
+            margin-bottom: 16px;
+            min-width: 460px;
+            letter-spacing: 1px;
+        }
+        .cert-body {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #334155;
+            max-width: 680px;
+            margin: 0 auto 20px auto;
+        }
+        .course-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1E3A8A;
             display: block;
             margin-top: 6px;
+            font-family: 'Georgia', serif;
         }
-        .footer-grid {
-            margin-top: 40px;
+
+        .footer-table {
             width: 100%;
-        }
-        .footer-col {
-            width: 33.33%;
-            display: inline-block;
-            vertical-align: bottom;
-            text-align: center;
-            box-sizing: border-box;
+            margin-top: 24px;
+            border-collapse: collapse;
         }
         .signature-line {
-            width: 160px;
-            border-bottom: 1px solid #94A3B8;
-            margin: 0 auto 8px auto;
+            width: 180px;
+            border-bottom: 1.5px solid #64748B;
+            margin-bottom: 6px;
         }
         .signature-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: #64748B;
-            text-transform: uppercase;
-        }
-        .qr-box {
-            font-family: monospace;
-            font-size: 10px;
-            color: #475569;
-        }
-        .cert-uuid {
-            font-family: monospace;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             font-size: 11px;
-            color: #64748B;
+            font-weight: 700;
+            color: #1E293B;
+            text-transform: uppercase;
             letter-spacing: 1px;
-            margin-top: 4px;
         }
-        .seal-badge {
+        .signature-sub {
+            font-size: 10px;
+            color: #64748B;
+            margin-top: 2px;
+        }
+        .seal-medal {
             display: inline-block;
-            width: 70px;
-            height: 70px;
+            width: 82px;
+            height: 82px;
             border-radius: 50%;
-            background: #2563EB;
-            color: #FFFFFF;
-            font-size: 11px;
-            font-weight: 800;
-            line-height: 70px;
+            border: 3px double #D97706;
+            background: radial-gradient(circle, #FDE68A 0%, #D97706 100%);
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+            text-align: center;
+            vertical-align: middle;
+            color: #78350F;
+            padding-top: 14px;
+        }
+        .seal-star {
+            font-size: 14px;
+            line-height: 14px;
+            margin-bottom: 2px;
+        }
+        .seal-text {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: 1px;
             text-transform: uppercase;
-            box-shadow: 0 4px 10px rgba(37,99,235,0.3);
+            line-height: 11px;
+        }
+        .qr-wrap {
+            text-align: right;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 9px;
+            color: #64748B;
+        }
+        .qr-uuid {
+            font-size: 10px;
+            color: #1E293B;
+            font-weight: bold;
+            margin-top: 4px;
         }
     </style>
 </head>
 <body>
-    <div class="cert-container">
-        <div class="header-brand">ENTERPRISE ACADEMY &amp; COMPLIANCE</div>
-        <div class="cert-title">Certificate of Completion</div>
-        <div class="cert-subtitle">This is officially presented to</div>
-        
-        <div class="recipient-name">{{ $user->name }}</div>
-        
-        <div class="cert-body">
-            For successfully demonstrating competency and fulfilling all operational requirements for
-            <span class="course-title">"{{ $course->title }}"</span>
-        </div>
+    <div class="outer-border">
+        <div class="inner-border">
+            <!-- Corner Ornaments -->
+            <div class="corner-ornament corner-tl">&#10022;</div>
+            <div class="corner-ornament corner-tr">&#10022;</div>
+            <div class="corner-ornament corner-bl">&#10022;</div>
+            <div class="corner-ornament corner-br">&#10022;</div>
 
-        <table style="width: 100%; margin-top: 25px;">
-            <tr>
-                <td style="width: 33%; text-align: left; vertical-align: bottom;">
-                    <div class="signature-line" style="margin: 0 0 8px 0;"></div>
-                    <div class="signature-title">Authorized Signatory</div>
-                    <div style="font-size: 11px; color: #475569; margin-top: 3px;">Date: {{ $issuedDate }}</div>
-                    @if($expiresDate)
-                        <div style="font-size: 11px; color: #D97706; margin-top: 2px;">Recertification Due: {{ $expiresDate }}</div>
-                    @endif
-                </td>
-                <td style="width: 34%; text-align: center; vertical-align: middle;">
-                    <div class="seal-badge">VERIFIED</div>
-                </td>
-                <td style="width: 33%; text-align: right; vertical-align: bottom;">
-                    <div class="qr-box">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=90x90&data={{ urlencode($verificationUrl) }}" alt="QR" width="80" height="80">
-                        <div class="cert-uuid">UUID: {{ substr($certificate->uuid, 0, 8) }}...</div>
-                        <div style="font-size: 9px; color: #64748B;">Scan to verify status</div>
-                    </div>
-                </td>
-            </tr>
-        </table>
+            <!-- Dynamic System Logo & Header Brand -->
+            <div class="logo-wrap">
+                @if(!empty($logoBase64))
+                    <img src="{{ $logoBase64 }}" alt="System Logo" style="max-height: 48px; max-width: 180px;">
+                @elseif(!empty($settings['brand_logo_url']))
+                    <img src="{{ $settings['brand_logo_url'] }}" alt="System Logo" style="max-height: 48px; max-width: 180px;">
+                @else
+                    <span style="font-size: 26px; color: #D97706;">&#9813;</span>
+                @endif
+                <div class="header-brand">{{ $brandName }}</div>
+                <div class="cert-ribbon">Accredited Academic Qualification &bull; Verified Credential</div>
+            </div>
+
+            <!-- Certificate Title -->
+            <div class="cert-title">Certificate of Achievement</div>
+            <div class="cert-subtitle">This official diploma is honorably conferred upon</div>
+
+            <!-- Recipient Name -->
+            <div class="recipient-name">{{ $user->name }}</div>
+
+            <!-- Body Statement -->
+            <div class="cert-body">
+                For successfully fulfilling all rigorous academic standards, practical examinations, and syllabus criteria in
+                <span class="course-title">"{{ $course->title }}"</span>
+            </div>
+
+            <!-- Signatures, Official Seal & Verification QR -->
+            <table class="footer-table">
+                <tr>
+                    <!-- Left: Signatures & Dates -->
+                    <td style="width: 33%; text-align: left; vertical-align: bottom;">
+                        <div class="signature-line"></div>
+                        <div class="signature-title">Board of Academic Examiners</div>
+                        <div class="signature-sub">Conferred: {{ $issuedDate }}</div>
+                        @if(!empty($expiresDate))
+                            <div class="signature-sub" style="color: #D97706;">Valid Until: {{ $expiresDate }}</div>
+                        @endif
+                    </td>
+
+                    <!-- Center: 3D Gold Seal -->
+                    <td style="width: 34%; text-align: center; vertical-align: middle;">
+                        <div class="seal-medal">
+                            <div class="seal-star">&#9733; &#9733; &#9733;</div>
+                            <div class="seal-text">OFFICIAL<br>SEAL<br>VERIFIED</div>
+                        </div>
+                    </td>
+
+                    <!-- Right: Verification QR & UUID -->
+                    <td style="width: 33%; text-align: right; vertical-align: bottom;">
+                        <div class="qr-wrap">
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=85x85&data={{ urlencode($verificationUrl) }}" alt="QR" width="75" height="75">
+                            <div class="qr-uuid">ID: {{ substr($certificate->uuid, 0, 13) }}...</div>
+                            <div style="font-size: 8px; margin-top: 2px;">Scan QR to verify validity</div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+
+        </div>
     </div>
 </body>
 </html>

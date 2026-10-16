@@ -1,19 +1,19 @@
 @php
     $c = $section->content_json ?? [];
-    $courses = \App\Models\Course::with('category')->where('is_published', true)->take(6)->get();
+    $courses = \App\Models\Course::with('category')->where('is_published', true)->orderBy('id', 'desc')->take(6)->get();
 @endphp
 <section class="py-5 catalog-section-wrapper" id="featured-catalog" x-data="{ activeFilter: 'all' }">
     <div class="container py-3">
         <!-- Section Heading & Filter Tabs -->
         <div class="d-flex flex-wrap justify-content-between align-items-end mb-4 pb-2 border-bottom">
             <div>
-                <span class="badge badge-purple-soft px-3 py-2 rounded-pill mb-2">
-                    <i class="bi bi-mortarboard-fill me-1"></i> {{ $c['tagline'] ?? ($site_settings['catalog_tagline'] ?? 'Curated Programs') }}
+                <span class="badge badge-purple-soft px-3 py-2 rounded-pill mb-2" style="background: rgba(2, 132, 199, 0.12); color: #0284C7;">
+                    <i class="bi bi-mortarboard-fill me-1"></i> Cambridge Syllabus Specifications
                 </span>
                 <h2 class="display-6 fw-bold mb-1" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary);">
-                    {{ $c['title'] ?? ($site_settings['catalog_title'] ?? 'Explore Dual-Audience Courses') }}
+                    Featured Past Papers &amp; Worked Solutions
                 </h2>
-                <p class="text-secondary small mb-0">Browse accredited academic certifications and mandatory workforce compliance tracks.</p>
+                <p class="text-secondary small mb-0">Official Cambridge past question papers, verified mark schemes, and topic packs.</p>
             </div>
             
             <!-- Category Filter Pills -->
@@ -21,17 +21,17 @@
                 <button type="button" class="btn btn-sm rounded-pill px-3 fw-semibold" 
                         :class="activeFilter === 'all' ? 'btn-primary' : 'btn-outline-secondary'"
                         @click="activeFilter = 'all'">
-                    All Programs
+                    All Cambridge Levels
                 </button>
                 <button type="button" class="btn btn-sm rounded-pill px-3 fw-semibold" 
-                        :class="activeFilter === 'corporate' ? 'btn-primary' : 'btn-outline-secondary'"
-                        @click="activeFilter = 'corporate'">
-                    <i class="bi bi-shield-check me-1"></i> Corporate Compliance
+                        :class="activeFilter === 'a-level' ? 'btn-primary' : 'btn-outline-secondary'"
+                        @click="activeFilter = 'a-level'">
+                    <i class="bi bi-award me-1"></i> A Level &amp; AS
                 </button>
                 <button type="button" class="btn btn-sm rounded-pill px-3 fw-semibold" 
-                        :class="activeFilter === 'public' ? 'btn-primary' : 'btn-outline-secondary'"
-                        @click="activeFilter = 'public'">
-                    <i class="bi bi-mortarboard me-1"></i> Academic Certifications
+                        :class="activeFilter === 'igcse' ? 'btn-primary' : 'btn-outline-secondary'"
+                        @click="activeFilter = 'igcse'">
+                    <i class="bi bi-globe me-1"></i> IGCSE &amp; Checkpoint
                 </button>
             </div>
         </div>
@@ -40,7 +40,7 @@
         <div class="row g-4">
             @forelse($courses as $course)
                 <div class="col-md-6 col-lg-4" 
-                     x-show="activeFilter === 'all' || (activeFilter === 'corporate' && '{{ $course->target_audience }}' === 'CORPORATE') || (activeFilter === 'public' && '{{ $course->target_audience }}' === 'PUBLIC')"
+                     x-show="activeFilter === 'all' || (activeFilter === 'a-level' && ('{{ $course->category?->slug }}' === 'a-level' || '{{ $course->category?->slug }}' === 'as-level')) || (activeFilter === 'igcse' && ('{{ $course->category?->slug }}' === 'igcse' || '{{ $course->category?->slug }}' === 'lower-secondary' || '{{ $course->category?->slug }}' === 'primary-checkpoint'))"
                      x-transition:enter="transition ease-out duration-300"
                      x-transition:enter-start="opacity-0 scale-95"
                      x-transition:enter-end="opacity-100 scale-100">

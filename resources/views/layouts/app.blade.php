@@ -3,9 +3,50 @@
       x-data="{ 
           darkMode: localStorage.getItem('lms_theme') === 'dark',
           isScrolled: false,
-          showTopbar: {{ ($site_settings['topbar_enabled'] ?? '1') === '0' ? 'false' : 'true' }},
+          showTopbar: {{ ($site_settings['topbar_enabled'] ?? '0') === '1' ? 'true' : 'false' }},
           showBackToTop: false,
           mobileMenuOpen: false,
+          searchModalOpen: false,
+          searchQuery: '',
+          searchResults: [],
+          searchLoading: false,
+          openSearchModal() {
+              this.searchModalOpen = true;
+              setTimeout(() => {
+                  const input = document.getElementById('headerModalSearchInput');
+                  if (input) {
+                      input.focus();
+                      input.select();
+                  }
+              }, 70);
+          },
+          closeSearchModal() {
+              this.searchModalOpen = false;
+          },
+          performSearch() {
+              let q = this.searchQuery.trim();
+              if (q.length < 1) {
+                  this.searchResults = [];
+                  this.searchLoading = false;
+                  return;
+              }
+              this.searchLoading = true;
+              fetch('{{ route('courses.search.api') }}?q=' + encodeURIComponent(q))
+                  .then(res => res.json())
+                  .then(data => {
+                      this.searchResults = data.results || [];
+                      this.searchLoading = false;
+                  })
+                  .catch(() => {
+                      this.searchLoading = false;
+                  });
+          },
+          selectSearchTag(tag) {
+              this.searchQuery = tag;
+              this.performSearch();
+              const input = document.getElementById('headerModalSearchInput');
+              if (input) input.focus();
+          },
           toggleTheme() {
               this.darkMode = !this.darkMode;
               localStorage.setItem('lms_theme', this.darkMode ? 'dark' : 'light');
@@ -41,13 +82,20 @@
               isScrolled = window.scrollY > 50;
               showBackToTop = window.scrollY > 300;
           });
+          window.addEventListener('keydown', (e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                  e.preventDefault();
+                  openSearchModal();
+              }
+          });
       "
+      @keydown.escape.window="if (searchModalOpen) closeSearchModal()"
       :data-bs-theme="darkMode ? 'dark' : 'light'">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', $site_settings['site_title'] ?? 'Enterprise Dual-Audience LMS') - {{ $site_settings['brand_name'] ?? 'Enterprise Academy' }}</title>
+    <title>{{ $site_settings['brand_name'] ?? config('app.name', 'AllThingsCambridge') }} &bull; @yield('title', $site_settings['site_title'] ?? 'Enterprise Study Platform')</title>
     <meta name="description" content="@yield('meta_description', $site_settings['meta_description'] ?? 'Enterprise Learning Management System')">
 
     <!-- Favicon from Dynamic Brand Settings -->
@@ -85,180 +133,208 @@
             --lms-text-secondary: #CBD5E1;
             --lms-text-muted: #94A3B8;
         }
+
+        /* Modern Scroll-Triggered Reveal Animations on Components */
+        .reveal-on-scroll {
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.45s ease-out, transform 0.45s ease-out;
+            will-change: opacity, transform;
+        }
+        .reveal-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
+
+    <!-- Scroll Reveal Controller -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Target component cards and inner elements only — never root sections or hero containers
+            const targets = document.querySelectorAll('.lms-card, .reveal-target, .category-card-modern, .course-card-modern, .mentor-card-modern');
+            targets.forEach(el => el.classList.add('reveal-on-scroll'));
+
+            if ('IntersectionObserver' in window && targets.length > 0) {
+                const observer = new IntersectionObserver((entries, obs) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('is-visible');
+                            obs.unobserve(entry.target);
+                        }
+                    });
+                }, { threshold: 0.1, rootMargin: '0px 0px -20px 0px' });
+
+                targets.forEach(el => observer.observe(el));
+            }
+        });
+    </script>
 
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 
+    <!-- KaTeX Scientific & Mathematical Formula Rendering (Cambridge 9709 & Sciences) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoNdYKUPUwVM9BQhd08q542xprV5956zEN2KST" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaigo2TQ447D7euSAuvZvG4bbWBEQ698WNPZIhl" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZko/WgXcBr8gkgvQbd45IX4P/cv9GDAcx3SUKbr" crossorigin="anonymous"
+        onload="renderMathInElement(document.body);"></script>
+
     @stack('styles')
 </head>
-<body>
-    @if(($site_settings['topbar_enabled'] ?? '1') !== '0')
-    <!-- 1. EDUNEX PROMO & COUNTDOWN TOPBAR (DYNAMIC FROM ADMIN SETTINGS) -->
-    <div class="edunex-topbar" x-show="showTopbar" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" x-cloak style="overflow-x: hidden;">
-        <div class="container d-flex align-items-center justify-content-between gap-1 gap-sm-2 flex-nowrap px-2 px-sm-3">
-            <div class="d-flex align-items-center gap-1 gap-md-3 min-w-0">
-                <div class="countdown-wrap flex-shrink-0">
-                    <span class="countdown-box d-none d-sm-inline-block" x-text="countdown.days + 'd'">{{ str_pad((string)($site_settings['topbar_countdown_days'] ?? '4'), 2, '0', STR_PAD_LEFT) }}d</span>
-                    <span class="text-white-50 d-none d-sm-inline-block">:</span>
-                    <span class="countdown-box" x-text="countdown.hours + 'h'">{{ str_pad((string)($site_settings['topbar_countdown_hours'] ?? '18'), 2, '0', STR_PAD_LEFT) }}h</span>
-                    <span class="text-white-50">:</span>
-                    <span class="countdown-box" x-text="countdown.minutes + 'm'">{{ str_pad((string)($site_settings['topbar_countdown_minutes'] ?? '35'), 2, '0', STR_PAD_LEFT) }}m</span>
-                    <span class="text-white-50">:</span>
-                    <span class="countdown-box" x-text="countdown.seconds + 's'">{{ str_pad((string)($site_settings['topbar_countdown_seconds'] ?? '30'), 2, '0', STR_PAD_LEFT) }}s</span>
-                </div>
-                <div class="d-none d-md-flex align-items-center gap-2 small text-truncate">
-                    <span class="badge bg-warning text-dark fw-bold px-2 flex-shrink-0">
-                        <i class="bi bi-fire me-1"></i> {{ $site_settings['topbar_badge_text'] ?? 'SPECIAL EVENT' }}
-                    </span>
-                    <span class="text-truncate">{{ $site_settings['topbar_promo_text'] ?? 'Get 50% Off Annual Enterprise Compliance & Accredited Certifications' }}</span>
-                </div>
-            </div>
-            <div class="d-flex align-items-center gap-1 gap-md-3 flex-shrink-0 ms-auto">
-                <a href="{{ $site_settings['topbar_btn_url'] ?? route('cms.show', ['slug' => 'pricing']) }}" class="topbar-claim-btn text-nowrap">
-                    <span>{{ $site_settings['topbar_btn_text'] ?? 'Claim Offer' }}</span>
-                    <i class="bi bi-arrow-right"></i>
-                </a>
-                <button type="button" class="topbar-close-btn flex-shrink-0" @click="showTopbar = false" title="Dismiss">
-                    <i class="bi bi-x-lg"></i>
-                </button>
+<body class="{{ Auth::check() ? 'session-active' : '' }}">
+    @if(request()->is('/'))
+    <!-- HOMEPAGE PRELOADER WITH PERFECT SEMI-CIRCLE AROUND SYSTEM LOGO -->
+    <div id="homepage-preloader" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: radial-gradient(circle at center, #FFFFFF 0%, #F8FAFC 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+        transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.5s;
+    ">
+        <div style="position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center;">
+            <!-- Outer soft track -->
+            <div style="
+                position: absolute;
+                inset: 0;
+                border-radius: 50%;
+                border: 3px solid rgba(2, 132, 199, 0.12);
+            "></div>
+            <!-- Perfect Rotating Semi-Circle -->
+            <div class="preloader-semi-circle" style="
+                position: absolute;
+                inset: 0;
+                border-radius: 50%;
+                border: 3.5px solid transparent;
+                border-top-color: var(--lms-accent, #723EC3);
+                border-right-color: #0284C7;
+                animation: lmsSemiSpin 1s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
+                filter: drop-shadow(0 0 8px rgba(114, 62, 195, 0.35));
+            "></div>
+            <!-- Dynamic Centered System Logo -->
+            <div style="position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; padding: 12px; background: #FFFFFF; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.06); width: 80px; height: 80px;">
+                @if(!empty($site_settings['brand_logo_url']) && !str_contains($site_settings['brand_logo_url'], 'example.com'))
+                    <img src="{{ $site_settings['brand_logo_url'] }}" alt="Logo" style="max-height: 48px; max-width: 48px; object-fit: contain;" onerror="this.onerror=null; this.src='{{ asset('images/site_logo.png') }}';">
+                @elseif(file_exists(public_path('images/site_logo.png')))
+                    <img src="{{ asset('images/site_logo.png') }}" alt="Logo" style="max-height: 48px; max-width: 48px; object-fit: contain;">
+                @else
+                    <i class="bi bi-mortarboard-fill fs-2" style="color: var(--lms-accent, #723EC3);"></i>
+                @endif
             </div>
         </div>
+        <div style="margin-top: 16px; font-family: var(--lms-font-heading); font-size: 0.85rem; font-weight: 700; color: #334155; letter-spacing: 1px; text-transform: uppercase;">
+            {{ $site_settings['brand_name'] ?? 'AllThingsCambridge' }}
+        </div>
     </div>
+    <style>
+        @keyframes lmsSemiSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        [data-bs-theme="dark"] #homepage-preloader {
+            background: radial-gradient(circle at center, #0F1322 0%, #080A10 100%) !important;
+        }
+        [data-bs-theme="dark"] #homepage-preloader .preloader-semi-circle {
+            border-top-color: #A855F7 !important;
+            border-right-color: #38BDF8 !important;
+        }
+        [data-bs-theme="dark"] #homepage-preloader div[style*="background: #FFFFFF"] {
+            background: #151928 !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+        }
+    </style>
+    <script>
+        (function() {
+            function dismissPreloader() {
+                var loader = document.getElementById('homepage-preloader');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    loader.style.pointerEvents = 'none';
+                    setTimeout(function() {
+                        if (loader && loader.parentNode) loader.parentNode.removeChild(loader);
+                    }, 500);
+                }
+            }
+            if (document.readyState === 'complete') {
+                setTimeout(dismissPreloader, 350);
+            } else {
+                window.addEventListener('load', function() {
+                    setTimeout(dismissPreloader, 350);
+                });
+                setTimeout(dismissPreloader, 2500);
+            }
+        })();
+    </script>
     @endif
 
-    <!-- 2. EDUNEX MAIN NAVBAR (STRICT 1-LINE FIT TO SCREEN) -->
-    <nav class="navbar navbar-expand-lg lms-navbar sticky-top px-3" :class="{ 'header-sticky': isScrolled }">
-        <div class="container-fluid px-3 px-xl-4 d-flex align-items-center justify-content-between flex-nowrap">
-            <!-- Left: Brand Logo & Optional Search -->
-            <div class="d-flex align-items-center gap-3 flex-nowrap flex-shrink-0">
-                <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-nowrap m-0 p-0" href="{{ url('/') }}">
-                    @if(!empty($site_settings['brand_logo_url']))
-                        <img src="{{ $site_settings['brand_logo_url'] }}" alt="{{ $site_settings['brand_name'] ?? 'Logo' }}" height="34">
+    <!-- SITE HEADER WRAPPER (STICKY UNIFIED CONTAINER) -->
+    <header class="site-header-wrapper" id="siteHeader">
+        @if(($site_settings['topbar_enabled'] ?? '0') === '1')
+        <!-- 1. EDUNEX PROMO & COUNTDOWN TOPBAR (DYNAMIC FROM ADMIN SETTINGS) -->
+        <div class="edunex-topbar" x-show="showTopbar" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" x-cloak style="overflow-x: hidden;">
+            <div class="container d-flex align-items-center justify-content-between gap-1 gap-sm-2 flex-nowrap px-2 px-sm-3">
+                <div class="d-flex align-items-center gap-1 gap-md-3 min-w-0">
+                    <div class="countdown-wrap flex-shrink-0">
+                        <span class="countdown-box d-none d-sm-inline-block" x-text="countdown.days + 'd'">{{ str_pad((string)($site_settings['topbar_countdown_days'] ?? '2'), 2, '0', STR_PAD_LEFT) }}d</span>
+                        <span class="text-white-50 d-none d-sm-inline-block">:</span>
+                        <span class="countdown-box" x-text="countdown.hours + 'h'">{{ str_pad((string)($site_settings['topbar_countdown_hours'] ?? '12'), 2, '0', STR_PAD_LEFT) }}h</span>
+                        <span class="text-white-50">:</span>
+                        <span class="countdown-box" x-text="countdown.minutes + 'm'">{{ str_pad((string)($site_settings['topbar_countdown_minutes'] ?? '44'), 2, '0', STR_PAD_LEFT) }}m</span>
+                        <span class="text-white-50">:</span>
+                        <span class="countdown-box" x-text="countdown.seconds + 's'">{{ str_pad((string)($site_settings['topbar_countdown_seconds'] ?? '57'), 2, '0', STR_PAD_LEFT) }}s</span>
+                    </div>
+                    <div class="d-none d-md-flex align-items-center gap-2 small text-truncate">
+                        <span class="badge bg-warning text-dark fw-bold px-2 flex-shrink-0">
+                            <i class="bi bi-fire me-1"></i> {{ $site_settings['topbar_badge_text'] ?? 'CAMBRIDGE EXAM COUNTDOWN' }}
+                        </span>
+                        <span class="text-truncate">{{ $site_settings['topbar_promo_text'] ?? 'May/June 2026 Cambridge Series Countdown: Revise with Topical Past Papers & Worked Solutions' }}</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-1 gap-md-3 flex-shrink-0 ms-auto">
+                    <a href="{{ $site_settings['topbar_btn_url'] ?? route('courses.index') }}" class="topbar-claim-btn text-nowrap">
+                        <span>{{ $site_settings['topbar_btn_text'] ?? 'Get Certified' }}</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                    <button type="button" class="topbar-close-btn flex-shrink-0" @click="showTopbar = false" title="Dismiss">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        <!-- 2. EDUNEX MAIN NAVBAR (STRICT 1-LINE FIT TO SCREEN) -->
+        <nav class="navbar navbar-expand-lg lms-navbar" :class="{ 'header-sticky': isScrolled }">
+        <div class="container-fluid px-2 px-sm-3 px-xl-4 d-flex align-items-center justify-content-between flex-nowrap">
+            <!-- Left: Brand Logo & Title (Compact & Fitted) -->
+            <div class="d-flex align-items-center flex-nowrap flex-shrink-0">
+                <a class="navbar-brand d-flex align-items-center fw-bold text-nowrap m-0 p-0" href="{{ url('/') }}" style="gap: 8px;">
+                    @if(!empty($site_settings['brand_logo_url']) && !str_contains($site_settings['brand_logo_url'], 'example.com'))
+                        <img src="{{ $site_settings['brand_logo_url'] }}" alt="{{ $site_settings['brand_name'] ?? 'AllThingsCambridge' }}" height="34" class="rounded-2 shadow-xs me-1.5" onerror="this.onerror=null; this.src='{{ asset('images/site_logo.png') }}';">
+                    @elseif(file_exists(public_path('images/site_logo.png')))
+                        <img src="{{ asset('images/site_logo.png') }}" alt="{{ $site_settings['brand_name'] ?? 'AllThingsCambridge' }}" height="34" class="rounded-2 shadow-xs me-1.5">
                     @else
-                        <span class="badge rounded-3 p-2 shadow-sm" style="background: linear-gradient(135deg, var(--lms-accent), #FF4D00); font-size: 1rem; color: #FFF;">
+                        <span class="badge rounded-3 p-2 shadow-sm me-1.5" style="background: linear-gradient(135deg, var(--lms-accent), #FF4D00); font-size: 0.95rem; color: #FFF;">
                             <i class="bi bi-mortarboard-fill"></i>
                         </span>
                     @endif
                     <div class="d-flex flex-column text-nowrap">
-                        <span style="font-family: var(--lms-font-heading); font-size: 1.25rem; font-weight: 800; color: var(--lms-text-primary); letter-spacing: -0.5px; line-height: 1;">
-                            {{ $site_settings['brand_name'] ?? 'Enterprise Academy' }}
+                        <span style="font-family: var(--lms-font-heading); font-size: 1.15rem; font-weight: 800; color: var(--lms-text-primary); letter-spacing: -0.4px; line-height: 1.1;">
+                            {{ $site_settings['brand_name'] ?? 'AllThingsCambridge' }}
                         </span>
-                        <span class="text-muted" style="font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">Enterprise LMS</span>
+                        <span class="text-primary" style="font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; margin-top: 1px;">Cambridge International Platform</span>
                     </div>
                 </a>
-
-                <div class="d-none d-lg-block ms-2 position-relative" 
-                     x-data="{
-                         searchQuery: '',
-                         results: [],
-                         loading: false,
-                         openDropdown: false,
-                         fetchResults() {
-                             let q = this.searchQuery.trim();
-                             if (q.length < 1) {
-                                 this.results = [];
-                                 this.openDropdown = false;
-                                 return;
-                             }
-                             this.openDropdown = true;
-                             this.loading = true;
-                             fetch('{{ route('courses.search.api') }}?q=' + encodeURIComponent(q))
-                                 .then(res => res.json())
-                                 .then(data => {
-                                     this.results = data.results || [];
-                                     this.loading = false;
-                                 })
-                                 .catch(() => {
-                                     this.loading = false;
-                                 });
-                         }
-                     }"
-                     @click.outside="openDropdown = false"
-                     @keydown.escape.window="openDropdown = false">
-                    
-                    <form action="{{ route('courses.index') }}" method="GET" class="header-search-form m-0 position-relative" @submit="openDropdown = false">
-                        <i class="bi bi-search search-icon"></i>
-                        <input type="text" 
-                               name="search" 
-                               class="form-control" 
-                               placeholder="Search courses, tracks..." 
-                               autocomplete="off"
-                               x-model="searchQuery"
-                               @input.debounce.150ms="fetchResults()"
-                               @focus="if (searchQuery.trim().length > 0) openDropdown = true">
-                        
-                        <template x-if="loading">
-                            <span class="position-absolute end-0 top-50 translate-middle-y me-3 spinner-border spinner-border-sm text-primary" style="width: 14px; height: 14px;"></span>
-                        </template>
-                    </form>
-
-                    <!-- Floating Live Search Results Dropdown -->
-                    <div x-show="openDropdown" 
-                         x-transition:enter="transition ease-out duration-200"
-                         x-transition:enter-start="opacity-0 translate-y-2 scale-95"
-                         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                         x-transition:leave="transition ease-in duration-150"
-                         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-                         x-transition:leave-end="opacity-0 translate-y-2 scale-95"
-                         x-cloak
-                         class="position-absolute start-0 mt-2 shadow-lg rounded-4 p-2"
-                         style="top: 100%; width: 400px; background: var(--lms-surface-card); border: 1px solid var(--lms-border); z-index: 1080;">
-                        
-                        <div class="px-2 py-1.5 border-bottom d-flex justify-content-between align-items-center mb-1">
-                            <span class="small fw-bold text-muted text-uppercase" style="font-size: 0.68rem; letter-spacing: 0.5px;">Live Matches</span>
-                            <span class="badge badge-purple-soft rounded-pill" style="font-size: 0.62rem;" x-text="results.length + ' found'"></span>
-                        </div>
-
-                        <template x-if="loading && results.length === 0">
-                            <div class="text-center py-4 text-muted small">
-                                <div class="spinner-border spinner-border-sm text-primary mb-2"></div>
-                                <div>Searching courses...</div>
-                            </div>
-                        </template>
-
-                        <template x-if="!loading && results.length === 0 && searchQuery.trim().length > 0">
-                            <div class="text-center py-4 text-muted small">
-                                <i class="bi bi-search fs-3 text-muted d-block mb-1"></i>
-                                <div>No courses matching "<span class="fw-bold text-body" x-text="searchQuery"></span>"</div>
-                                <div class="text-secondary" style="font-size: 0.72rem;">Try searching "ISO", "Cloud", or "Compliance"</div>
-                            </div>
-                        </template>
-
-                        <div class="overflow-y-auto" style="max-height: 320px;">
-                            <template x-for="item in results" :key="item.id">
-                                <a :href="item.url" class="d-flex align-items-center gap-2.5 p-2 rounded-3 text-decoration-none text-reset mb-1 search-item-hover transition-all">
-                                    <div class="rounded-3 d-flex align-items-center justify-content-center text-white flex-shrink-0" 
-                                         :style="item.audience === 'CORPORATE' ? 'background: linear-gradient(135deg, #0F172A, #1E293B); width: 38px; height: 38px;' : 'background: linear-gradient(135deg, #723EC3, #2563EB); width: 38px; height: 38px;'">
-                                        <i :class="item.audience === 'CORPORATE' ? 'bi bi-shield-check text-warning' : 'bi bi-mortarboard-fill text-light'" style="font-size: 1rem;"></i>
-                                    </div>
-                                    <div class="flex-grow-1 min-w-0">
-                                        <div class="fw-bold small text-truncate text-dark" x-text="item.title" style="line-height: 1.25;"></div>
-                                        <div class="d-flex align-items-center gap-1.5 mt-0.5">
-                                            <span class="badge rounded-pill" 
-                                                  :class="item.audience === 'CORPORATE' ? 'bg-warning-subtle text-dark' : 'bg-primary-subtle text-primary'" 
-                                                  style="font-size: 0.6rem;" 
-                                                  x-text="item.category"></span>
-                                            <span class="text-muted font-mono" style="font-size: 0.65rem;" x-text="item.price"></span>
-                                        </div>
-                                    </div>
-                                    <i class="bi bi-chevron-right text-muted small pe-1"></i>
-                                </a>
-                            </template>
-                        </div>
-
-                        <div class="pt-2 mt-1 border-top text-center" x-show="results.length > 0">
-                            <a :href="'{{ route('courses.index') }}?search=' + encodeURIComponent(searchQuery)" class="text-primary small fw-semibold text-decoration-none">
-                                View all results in catalog &rarr;
-                            </a>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Center: Desktop Nav Menu (Single Line, Never Wraps) -->
-            <div class="d-none d-lg-flex align-items-center justify-content-center flex-nowrap mx-auto px-2">
-                <ul class="navbar-nav d-flex flex-row align-items-center gap-1 mb-0 flex-nowrap">
+            <div class="d-none d-lg-flex align-items-center justify-content-center flex-nowrap mx-auto px-1 px-xl-2">
+                <ul class="navbar-nav d-flex flex-row align-items-center gap-0.5 gap-xl-1 mb-0 flex-nowrap">
                     <li class="nav-item">
                         <a class="nav-link text-nowrap {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ url('/') }}">
                             Home
@@ -266,25 +342,50 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-nowrap {{ request()->routeIs('courses.*') ? 'active' : '' }}" href="{{ route('courses.index') }}">
-                            Courses
+                            Past Papers &amp; Syllabus
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-nowrap {{ request()->routeIs('corporate.compliance') ? 'active' : '' }}" href="{{ route('corporate.compliance') }}">
-                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-1 py-0 me-1" style="font-size: 0.65rem;">Track</span>
-                            Compliance
+                        <a class="nav-link text-nowrap {{ request()->routeIs('my-learning') ? 'active' : '' }}" href="{{ Auth::check() ? route('my-learning') . '#esther-tracker' : route('login') }}">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-1 py-0 me-1" style="font-size: 0.62rem;">Matrix</span>
+                            Esther Math Tracker
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-nowrap {{ request()->routeIs('mentors.*') ? 'active' : '' }}" href="{{ route('mentors.index') }}">
+                            Mentors &amp; Faculty
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-nowrap {{ request()->is('p/pricing') ? 'active' : '' }}" href="{{ route('cms.show', ['slug' => 'pricing']) }}">
-                            Pricing
+                            Subscriptions (£)
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-nowrap {{ request()->routeIs('about') ? 'active' : '' }}" href="{{ route('about') }}">
+                            About Us
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-nowrap {{ request()->routeIs('contact') ? 'active' : '' }}" href="{{ route('contact') }}">
+                            Contact
                         </a>
                     </li>
                 </ul>
             </div>
 
-            <!-- Right: Action Icons & User Dropdown (Single Line) -->
-            <div class="d-flex align-items-center gap-2 flex-nowrap flex-shrink-0">
+            <!-- Right: Action Icons (Search, Dark/Light Toggle, Cart) & User Dropdown / Auth Buttons -->
+            <div class="d-flex align-items-center gap-1.5 gap-md-2 flex-nowrap flex-shrink-0">
+                <!-- Search Icon Button (Triggers Search Popup Modal) -->
+                <button class="btn btn-sm rounded-circle border p-0 header-search-trigger" 
+                        style="width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; background: var(--lms-bg-secondary);"
+                        @click="openSearchModal()" 
+                        title="Search Past Papers & Courses (Ctrl + K)"
+                        type="button"
+                        aria-label="Search">
+                    <i class="bi bi-search text-primary" style="font-size: 0.9rem;"></i>
+                </button>
+
                 <!-- Light / Dark Mode Toggle with Alpine.js -->
                 <button class="btn btn-sm rounded-circle border p-0" 
                         style="width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; background: var(--lms-bg-secondary);"
@@ -305,29 +406,37 @@
                 </a>
 
                 @auth
-                    <!-- Management Hub Button -->
-                    <a href="{{ route('admin.dashboard') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold text-nowrap d-none d-md-inline-flex align-items-center gap-1" style="font-size: 0.85rem; height: 36px;">
-                        <i class="bi bi-grid-fill"></i>
-                        <span>Management Hub</span>
-                    </a>
+                    @php
+                        $authUser = Auth::user();
+                        $userPrimaryRole = $authUser ? $authUser->primaryRole() : 'GUEST';
+                        $hasAdminAccess = in_array($userPrimaryRole, ['SUPER_ADMIN', 'MANAGER', 'CORP_MANAGER', 'COURSE_CREATOR', 'TEACHER', 'TEACHER_NON_EDITING', 'INSTRUCTOR', 'TRAINER'], true);
+                        $isParentUser = ($authUser->user_type ?? '') === 'PARENT' || (method_exists($authUser, 'children') && $authUser->children()->exists());
+                    @endphp
 
                     <!-- User Account Dropdown with Truncated Name -->
                     <div class="dropdown">
-                        <button class="btn btn-light btn-sm dropdown-toggle d-inline-flex align-items-center gap-1 border rounded-pill px-2 py-1 text-nowrap" 
-                                type="button" data-bs-toggle="dropdown" style="height: 36px; font-size: 0.85rem;">
+                        <button class="btn btn-light btn-sm dropdown-toggle d-inline-flex align-items-center gap-1.5 border rounded-pill px-2.5 py-1 text-nowrap shadow-xs" 
+                                type="button" data-bs-toggle="dropdown" style="height: 34px; font-size: 0.82rem;">
                             <i class="bi bi-person-circle fs-5" style="color: var(--lms-accent);"></i>
-                            <span class="lms-navbar-username">{{ Auth::user()->name }}</span>
+                            <span class="lms-navbar-username">{{ $authUser->name }}</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2 rounded-4">
                             <li>
                                 <div class="px-3 py-2 border-bottom mb-2">
-                                    <div class="fw-bold">{{ Auth::user()->name }}</div>
-                                    <div class="small text-muted">{{ Auth::user()->email }}</div>
-                                    <span class="badge bg-primary-subtle text-primary mt-1">{{ Auth::user()->user_type }}</span>
+                                    <div class="fw-bold">{{ $authUser->name }}</div>
+                                    <div class="small text-muted">{{ $authUser->email }}</div>
+                                    <span class="badge bg-primary-subtle text-primary mt-1">{{ $authUser->user_type }}</span>
                                 </div>
                             </li>
-                            <li><a class="dropdown-item rounded-3 py-2" href="{{ route('my-learning') }}"><i class="bi bi-collection-play me-2 text-primary"></i>My Learning</a></li>
-                            <li><a class="dropdown-item rounded-3 py-2" href="{{ route('admin.dashboard') }}"><i class="bi bi-speedometer2 me-2 text-primary"></i>Admin Portal</a></li>
+                            @if($isParentUser)
+                                <li><a class="dropdown-item rounded-3 py-2 fw-semibold text-primary" href="{{ route('parent.dashboard') }}"><i class="bi bi-person-heart me-2 text-info"></i>Guardian Portal</a></li>
+                            @else
+                                <li><a class="dropdown-item rounded-3 py-2" href="{{ route('my-learning') }}"><i class="bi bi-collection-play me-2 text-primary"></i>My Learning</a></li>
+                            @endif
+                            @if($hasAdminAccess)
+                                <li><a class="dropdown-item rounded-3 py-2" href="{{ route('admin.dashboard') }}"><i class="bi bi-speedometer2 me-2 text-primary"></i>Admin Portal</a></li>
+                            @endif
+                            <li><a class="dropdown-item rounded-3 py-2" href="{{ route('profile.security') }}"><i class="bi bi-shield-lock me-2 text-warning"></i>2FA &amp; Security</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <form method="POST" action="{{ route('logout') }}">
@@ -340,10 +449,10 @@
                         </ul>
                     </div>
                 @else
-                    <a href="{{ route('login') }}" class="tj-btn-outline py-1 px-3 text-nowrap d-none d-lg-inline-flex" style="font-size: 0.85rem; height: 36px;">
+                    <a href="{{ route('login') }}" class="tj-btn-outline py-1 px-2 text-nowrap d-inline-flex align-items-center justify-content-center" style="font-size: 0.78rem; height: 32px;">
                         <span>Log In</span>
                     </a>
-                    <a href="{{ route('register') }}" class="tj-btn-primary py-1 px-3 text-nowrap d-none d-lg-inline-flex" style="font-size: 0.85rem; height: 36px;">
+                    <a href="{{ route('register') }}" class="tj-btn-primary py-1 px-2.5 text-nowrap d-inline-flex align-items-center justify-content-center" style="font-size: 0.78rem; height: 32px;">
                         <span>Enroll Now</span>
                         <span class="btn-icon"><i class="bi bi-arrow-right"></i></span>
                     </a>
@@ -356,6 +465,165 @@
             </div>
         </div>
     </nav>
+    </header>
+
+    <!-- GLOBAL SPOTLIGHT SEARCH POPUP MODAL -->
+    <div x-show="searchModalOpen" 
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="lms-search-modal-backdrop"
+         @click.self="closeSearchModal()"
+         x-cloak>
+        <div class="lms-search-modal-card" 
+             x-show="searchModalOpen"
+             x-transition:enter="transition ease-out duration-250"
+             x-transition:enter-start="opacity-0 scale-95 -translate-y-4"
+             x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+             x-transition:leave-end="opacity-0 scale-95 -translate-y-4">
+            
+            <!-- Modal Header / Search Form -->
+            <form action="{{ route('courses.index') }}" method="GET" class="m-0" @submit="closeSearchModal()">
+                <div class="d-flex align-items-center px-3.5 py-3 border-bottom gap-2.5">
+                    <i class="bi bi-search text-primary fs-5 flex-shrink-0"></i>
+                    <input type="text" 
+                           id="headerModalSearchInput"
+                           name="search" 
+                           class="form-control border-0 shadow-none p-0 bg-transparent fs-6" 
+                           style="color: var(--lms-text-primary);"
+                           placeholder="Search Cambridge past papers, syllabus, notes, subjects..." 
+                           autocomplete="off"
+                           x-model="searchQuery"
+                           @input.debounce.150ms="performSearch()">
+                    
+                    <template x-if="searchLoading">
+                        <span class="spinner-border spinner-border-sm text-primary flex-shrink-0" style="width: 16px; height: 16px;"></span>
+                    </template>
+                    
+                    <template x-if="searchQuery.length > 0">
+                        <button type="button" class="btn btn-sm btn-link text-muted p-0 border-0 flex-shrink-0" @click="searchQuery = ''; searchResults = []; $nextTick(() => document.getElementById('headerModalSearchInput').focus())" title="Clear">
+                            <i class="bi bi-x-circle-fill"></i>
+                        </button>
+                    </template>
+                    
+                    <span class="badge border text-muted px-1.5 py-0.5 rounded-2 d-none d-sm-inline-block" style="font-size: 0.68rem; font-family: monospace; background: var(--lms-bg-secondary);">ESC</span>
+                    
+                    <button type="button" class="btn-close ms-1" @click="closeSearchModal()" aria-label="Close"></button>
+                </div>
+            </form>
+
+            <!-- Modal Body Content -->
+            <div class="p-3">
+                <!-- Suggested Quick Queries when search is empty -->
+                <div x-show="searchQuery.trim().length === 0">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="small fw-bold text-muted text-uppercase" style="font-size: 0.68rem; letter-spacing: 0.5px;">Popular Searches</span>
+                        <span class="text-muted" style="font-size: 0.7rem;"><i class="bi bi-lightning-charge-fill text-warning me-0.5"></i>Quick Filter</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1.5 mb-3">
+                        <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 text-decoration-none border search-chip-btn" 
+                                style="font-size: 0.75rem; background: var(--lms-bg-secondary); color: var(--lms-text-primary);"
+                                @click="selectSearchTag('Mathematics 9709')">
+                            📐 Mathematics 9709
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 text-decoration-none border search-chip-btn" 
+                                style="font-size: 0.75rem; background: var(--lms-bg-secondary); color: var(--lms-text-primary);"
+                                @click="selectSearchTag('Physics 9702')">
+                            ⚡ Physics 9702
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 text-decoration-none border search-chip-btn" 
+                                style="font-size: 0.75rem; background: var(--lms-bg-secondary); color: var(--lms-text-primary);"
+                                @click="selectSearchTag('Chemistry 9701')">
+                            🧪 Chemistry 9701
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 text-decoration-none border search-chip-btn" 
+                                style="font-size: 0.75rem; background: var(--lms-bg-secondary); color: var(--lms-text-primary);"
+                                @click="selectSearchTag('Biology')">
+                            🧬 Biology 9700
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 text-decoration-none border search-chip-btn" 
+                                style="font-size: 0.75rem; background: var(--lms-bg-secondary); color: var(--lms-text-primary);"
+                                @click="selectSearchTag('Past Papers')">
+                            📄 Past Papers
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 text-decoration-none border search-chip-btn" 
+                                style="font-size: 0.75rem; background: var(--lms-bg-secondary); color: var(--lms-text-primary);"
+                                @click="selectSearchTag('Esther Math Tracker')">
+                            📊 Esther Tracker
+                        </button>
+                    </div>
+                    <div class="p-2.5 rounded-3 d-flex align-items-center gap-2" style="background: rgba(114, 62, 195, 0.06); border: 1px dashed rgba(114, 62, 195, 0.25);">
+                        <i class="bi bi-info-circle text-primary"></i>
+                        <span class="small text-muted" style="font-size: 0.75rem;">Type any subject code (e.g. 9709, 0580), topic name, or syllabus keyword to find worked answers instantly.</span>
+                    </div>
+                </div>
+
+                <!-- Live Results State -->
+                <div x-show="searchQuery.trim().length > 0">
+                    <div class="px-1 py-1 d-flex justify-content-between align-items-center mb-2">
+                        <span class="small fw-bold text-muted text-uppercase" style="font-size: 0.68rem; letter-spacing: 0.5px;">Matches Found</span>
+                        <span class="badge bg-primary-subtle text-primary rounded-pill" style="font-size: 0.65rem;" x-text="searchResults.length + ' result(s)'"></span>
+                    </div>
+
+                    <!-- Loading State -->
+                    <template x-if="searchLoading && searchResults.length === 0">
+                        <div class="text-center py-4 text-muted small">
+                            <div class="spinner-border spinner-border-sm text-primary mb-2"></div>
+                            <div>Searching Cambridge catalog...</div>
+                        </div>
+                    </template>
+
+                    <!-- Empty State -->
+                    <template x-if="!searchLoading && searchResults.length === 0">
+                        <div class="text-center py-4 text-muted small">
+                            <i class="bi bi-search fs-2 text-muted d-block mb-2"></i>
+                            <div>No materials or past papers found for "<span class="fw-bold text-body" x-text="searchQuery"></span>"</div>
+                            <div class="text-secondary mt-1" style="font-size: 0.75rem;">Try searching by subject name like "Math", "Physics", or syllabus code "9709"</div>
+                        </div>
+                    </template>
+
+                    <!-- Results List -->
+                    <div class="overflow-y-auto" style="max-height: 380px;">
+                        <template x-for="item in searchResults" :key="item.id">
+                            <a :href="item.url" class="d-flex align-items-center gap-3 p-2.5 rounded-3 text-decoration-none text-reset mb-1.5 search-modal-item transition-all" @click="closeSearchModal()">
+                                <div class="rounded-3 d-flex align-items-center justify-content-center text-white flex-shrink-0" 
+                                     :style="item.audience === 'CORPORATE' ? 'background: linear-gradient(135deg, #0F172A, #1E293B); width: 42px; height: 42px;' : 'background: linear-gradient(135deg, var(--lms-accent), #2563EB); width: 42px; height: 42px;'">
+                                    <i :class="item.audience === 'CORPORATE' ? 'bi bi-shield-check text-warning' : 'bi bi-mortarboard-fill text-light'" style="font-size: 1.15rem;"></i>
+                                </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="fw-bold small text-truncate" style="color: var(--lms-text-primary); font-size: 0.85rem;" x-text="item.title"></div>
+                                    <div class="d-flex align-items-center gap-2 mt-1">
+                                        <span class="badge rounded-pill" 
+                                              :class="item.audience === 'CORPORATE' ? 'bg-warning-subtle text-dark' : 'bg-primary-subtle text-primary'" 
+                                              style="font-size: 0.62rem;" 
+                                              x-text="item.category"></span>
+                                        <span class="text-muted font-mono" style="font-size: 0.7rem;" x-text="item.price"></span>
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center gap-1 text-muted small pe-1 flex-shrink-0">
+                                    <span style="font-size: 0.72rem;">Open</span>
+                                    <i class="bi bi-arrow-right-short fs-5"></i>
+                                </div>
+                            </a>
+                        </template>
+                    </div>
+
+                    <!-- Bottom Link to Full Catalog -->
+                    <div class="pt-2.5 mt-2 border-top text-center" x-show="searchResults.length > 0">
+                        <a :href="'{{ route('courses.index') }}?search=' + encodeURIComponent(searchQuery)" class="text-primary small fw-semibold text-decoration-none d-inline-flex align-items-center gap-1">
+                            <span>Browse all matching papers & courses in catalog</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- 3. MOBILE NAVIGATION DRAWER (ALPINE.JS NATIVE - STRICTLY MOBILE ONLY) -->
     <div class="lms-mobile-drawer d-lg-none" 
@@ -373,19 +641,21 @@
          x-cloak
          style="display: none; position: fixed; top: 0; bottom: 0; left: 0; width: 310px; max-width: 86vw; height: 100vh; z-index: 1065;">
         <div class="p-3 border-bottom d-flex align-items-center justify-content-between" style="background: var(--lms-surface-card);">
-            <a class="d-flex align-items-center gap-2 text-decoration-none" href="{{ url('/') }}">
-                @if(!empty($site_settings['brand_logo_url']))
-                    <img src="{{ $site_settings['brand_logo_url'] }}" alt="Logo" height="28">
+            <a class="d-flex align-items-center text-decoration-none" href="{{ url('/') }}" style="gap: 10px;">
+                @if(!empty($site_settings['brand_logo_url']) && !str_contains($site_settings['brand_logo_url'], 'example.com'))
+                    <img src="{{ $site_settings['brand_logo_url'] }}" alt="{{ $site_settings['brand_name'] ?? 'AllThingsCambridge' }}" height="32" class="rounded-2 me-2" onerror="this.onerror=null; this.src='{{ asset('images/site_logo.png') }}';">
+                @elseif(file_exists(public_path('images/site_logo.png')))
+                    <img src="{{ asset('images/site_logo.png') }}" alt="{{ $site_settings['brand_name'] ?? 'AllThingsCambridge' }}" height="32" class="rounded-2 me-2">
                 @else
-                    <span class="badge rounded-3 p-1.5 shadow-sm" style="background: linear-gradient(135deg, var(--lms-accent), #FF4D00); font-size: 0.85rem; color: #FFF;">
+                    <span class="badge rounded-3 p-1.5 shadow-sm me-2" style="background: linear-gradient(135deg, var(--lms-accent), #FF4D00); font-size: 0.85rem; color: #FFF;">
                         <i class="bi bi-mortarboard-fill"></i>
                     </span>
                 @endif
                 <div class="d-flex flex-column">
                     <span class="fw-bold" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary); font-size: 1.05rem; line-height: 1.1;">
-                        {{ $site_settings['brand_name'] ?? 'Enterprise Academy' }}
+                        {{ $site_settings['brand_name'] ?? 'AllThingsCambridge' }}
                     </span>
-                    <span class="text-muted" style="font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Enterprise LMS</span>
+                    <span class="text-muted" style="font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Cambridge International Platform</span>
                 </div>
             </a>
             <button type="button" class="btn-close" @click="mobileMenuOpen = false" aria-label="Close"></button>
@@ -414,6 +684,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link rounded-3 px-3 py-2 fw-semibold d-flex align-items-center gap-2 {{ request()->routeIs('mentors.*') ? 'bg-primary-subtle text-primary' : 'text-body' }}" href="{{ route('mentors.index') }}">
+                            <i class="bi bi-people"></i> Mentors &amp; Faculty
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link rounded-3 px-3 py-2 fw-semibold d-flex align-items-center gap-2 {{ request()->routeIs('corporate.compliance') ? 'bg-primary-subtle text-primary' : 'text-body' }}" href="{{ route('corporate.compliance') }}">
                             <i class="bi bi-shield-check text-primary"></i> Corporate Compliance
                         </a>
@@ -438,9 +713,15 @@
                         </div>
                     </div>
                     <div class="d-grid gap-2">
-                        <a href="{{ route('my-learning') }}" class="btn btn-outline-primary rounded-pill py-2 small fw-semibold text-center">
-                            <i class="bi bi-collection-play me-1"></i> My Learning
-                        </a>
+                        @if((Auth::user()->user_type ?? '') === 'PARENT' || (method_exists(Auth::user(), 'children') && Auth::user()->children()->exists()))
+                            <a href="{{ route('parent.dashboard') }}" class="btn btn-outline-info rounded-pill py-2 small fw-semibold text-center">
+                                <i class="bi bi-person-heart me-1"></i> Guardian Portal
+                            </a>
+                        @else
+                            <a href="{{ route('my-learning') }}" class="btn btn-outline-primary rounded-pill py-2 small fw-semibold text-center">
+                                <i class="bi bi-collection-play me-1"></i> My Learning
+                            </a>
+                        @endif
                         <a href="{{ route('admin.dashboard') }}" class="tj-btn-primary text-center py-2 small">
                             <i class="bi bi-speedometer2 me-1"></i> Management Dashboard
                         </a>
@@ -540,6 +821,94 @@
 
     <!-- Bootstrap 5.3 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <!-- SweetAlert2 System-Wide Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            @if(session('success') || session('status'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: {!! json_encode(session('success') ?? session('status')) !!},
+                    confirmButtonColor: '#723EC3',
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+            @endif
+
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Notice',
+                    text: {!! json_encode(session('error')) !!},
+                    confirmButtonColor: '#723EC3'
+                });
+            @endif
+
+            @if(session('warning'))
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Warning',
+                    text: {!! json_encode(session('warning')) !!},
+                    confirmButtonColor: '#723EC3'
+                });
+            @endif
+
+            @if(session('info'))
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Information',
+                    text: {!! json_encode(session('info')) !!},
+                    confirmButtonColor: '#723EC3'
+                });
+            @endif
+
+            @if($errors->any())
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Submission Error',
+                    html: `<ul class="text-start mb-0 small text-danger">@foreach($errors->all() as $err)<li>{{ $err }}</li>@endforeach</ul>`,
+                    confirmButtonColor: '#723EC3'
+                });
+            @endif
+
+            // Polyfill native window.alert to always use SweetAlert2
+            window.alert = function (message) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Notification',
+                    text: message,
+                    confirmButtonColor: '#723EC3'
+                });
+            };
+        });
+
+        // Global SweetAlert2 Confirm Action Helper
+        window.confirmAction = function(event, message, title = 'Are you sure?') {
+            event.preventDefault();
+            const form = event.target.closest('form') || event.target;
+            Swal.fire({
+                title: title,
+                text: message,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#723EC3',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Yes, proceed',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (form.tagName === 'FORM') {
+                        form.submit();
+                    } else if (event.target.href) {
+                        window.location.href = event.target.href;
+                    }
+                }
+            });
+            return false;
+        };
+    </script>
     @stack('scripts')
 </body>
 </html>

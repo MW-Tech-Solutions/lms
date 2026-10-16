@@ -16,14 +16,85 @@ use Illuminate\View\View;
 
 class UserAdminController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $users = User::with(['department', 'roleAssignments.role', 'roleAssignments.context'])->latest()->paginate(20);
+        $search = trim((string) $request->query('search', ''));
+        $roleFilter = strtoupper(trim((string) $request->query('role', 'ALL')));
+        $levelFilter = (int) $request->query('level', 0);
+        $statusFilter = strtoupper(trim((string) $request->query('status', 'ALL'))); // ALL, ACTIVE, ARCHIVED
+
+        $query = User::with(['department', 'roleAssignments.role', 'roleAssignments.context', 'teachingLevels'])->latest();
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('employee_id', 'like', "%{$search}%");
+            });
+        }
+
+        // Archive / Status filter
+        if ($statusFilter === 'ARCHIVED') {
+            $query->where('is_archived', true);
+        } elseif ($statusFilter === 'ACTIVE') {
+            $query->where('is_archived', false)->where('is_active', true);
+        }
+
+        // Role filter
+        if ($roleFilter === 'TEACHER') {
+            $query->whereHas('roleAssignments.role', function ($rq) {
+                $rq->whereIn('name', ['TEACHER', 'TEACHER_NON_EDITING', 'INSTRUCTOR']);
+            });
+        } elseif ($roleFilter === 'PARENT') {
+            $query->where(function ($q) {
+                $q->where('user_type', 'PARENT')
+                  ->orWhereExists(function ($sub) {
+                      $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                          ->from('parent_students')
+                          ->whereColumn('parent_students.parent_id', 'users.id');
+                  });
+            });
+        } elseif ($roleFilter === 'STUDENT') {
+            $query->where(function ($q) {
+                $q->where('user_type', 'STUDENT')
+                  ->orWhereHas('roleAssignments.role', function ($rq) {
+                      $rq->whereIn('name', ['STUDENT', 'LEARNER_STUDENT']);
+                  });
+            });
+        } elseif ($roleFilter === 'ADMIN') {
+            $query->whereHas('roleAssignments.role', function ($rq) {
+                $rq->whereIn('name', ['SUPER_ADMIN', 'MANAGER', 'CORP_MANAGER', 'COURSE_CREATOR']);
+            });
+        }
+
+        // Level filter (specifically filters teachers authorized to tutor that level)
+        if ($levelFilter > 0) {
+            $query->whereHas('teachingLevels', function ($lq) use ($levelFilter) {
+                $lq->where('course_categories.id', $levelFilter);
+            });
+        }
+
+        $users = $query->paginate(15)->withQueryString();
+
+        // Persona category counts
+        $counts = [
+            'all' => User::count(),
+            'teachers' => User::whereHas('roleAssignments.role', fn($q) => $q->whereIn('name', ['TEACHER', 'TEACHER_NON_EDITING', 'INSTRUCTOR']))->count(),
+            'parents' => User::where('user_type', 'PARENT')->orWhereExists(fn($sub) => $sub->select(\Illuminate\Support\Facades\DB::raw(1))->from('parent_students')->whereColumn('parent_students.parent_id', 'users.id'))->count(),
+            'students' => User::where('user_type', 'STUDENT')->orWhereHas('roleAssignments.role', fn($q) => $q->whereIn('name', ['STUDENT', 'LEARNER_STUDENT']))->count(),
+            'admins' => User::whereHas('roleAssignments.role', fn($q) => $q->whereIn('name', ['SUPER_ADMIN', 'MANAGER', 'CORP_MANAGER', 'COURSE_CREATOR']))->count(),
+            'archived' => User::where('is_archived', true)->count(),
+        ];
+
         $roles = Role::withCount('roleAssignments')->get();
         $contexts = Context::all();
         $departments = \App\Models\Department::all();
+        $cambridgeLevels = \App\Models\CourseCategory::orderBy('id', 'asc')->get();
 
-        return view('admin.users.index', compact('users', 'roles', 'contexts', 'departments'));
+        return view('admin.users.index', compact(
+            'users', 'roles', 'contexts', 'departments', 'cambridgeLevels',
+            'search', 'roleFilter', 'levelFilter', 'statusFilter', 'counts'
+        ));
     }
 
     public function store(Request $request, PermissionService $permService): RedirectResponse
@@ -166,5 +237,82 @@ class UserAdminController extends Controller
         );
 
         return back()->with('success', sprintf('Role %s registered in CBAC registry.', $role->name));
+    }
+
+    /**
+     * Archive or Unarchive a user account.
+     */
+    public function toggleArchive(User $user): RedirectResponse
+    {
+        $admin = auth()->user();
+
+        // Prevent self-archiving or archiving root super admin
+        if ($user->id === $admin->id) {
+            return back()->with('error', 'You cannot archive your own active administrator account.');
+        }
+
+        if ($user->isSuperAdmin() && $user->id === 1) {
+            return back()->with('error', 'The primary Root Super Administrator cannot be archived.');
+        }
+
+        $user->is_archived = !$user->is_archived;
+        // If archived, deactivate login capability
+        if ($user->is_archived) {
+            $user->is_active = false;
+        }
+        $user->save();
+
+        $action = $user->is_archived ? 'USER_ARCHIVED' : 'USER_UNARCHIVED';
+        \App\Services\AuditService::log($action, $user, null, [
+            'is_archived' => $user->is_archived,
+            'archived_by' => $admin->name,
+        ]);
+
+        $statusMsg = $user->is_archived ? 'archived and restricted from accessing the platform' : 'restored from archives to active identity registry';
+
+        return back()->with('success', sprintf('User %s has been successfully %s.', $user->name, $statusMsg));
+    }
+
+    /**
+     * Permanently delete a user account and clean up dependencies.
+     */
+    public function destroy(User $user, PermissionService $permService): RedirectResponse
+    {
+        $admin = auth()->user();
+
+        // Prevent self-deletion
+        if ($user->id === $admin->id) {
+            return back()->with('error', 'You cannot delete your own logged-in account.');
+        }
+
+        // Prevent deleting root super administrator (ID 1)
+        if ($user->isSuperAdmin() && $user->id === 1) {
+            return back()->with('error', 'Action prohibited: Root Super Administrator identity cannot be deleted.');
+        }
+
+        $userName = $user->name;
+        $userEmail = $user->email;
+
+        // Clean up role assignments
+        $user->roleAssignments()->delete();
+
+        // Clean up teacher level assignments & requests
+        \App\Models\TeacherLevelAssignment::where('user_id', $user->id)->delete();
+        \App\Models\TeacherLevelRequest::where('user_id', $user->id)->delete();
+
+        // Flush permissions cache
+        $permService->flushUserCache($user);
+
+        // Delete profile and user
+        $user->profile()->delete();
+        $user->delete();
+
+        \App\Services\AuditService::log('USER_DELETED', null, null, [
+            'deleted_user_name' => $userName,
+            'deleted_user_email' => $userEmail,
+            'deleted_by' => $admin->name,
+        ]);
+
+        return back()->with('success', sprintf('User %s (%s) has been permanently deleted from identity records.', $userName, $userEmail));
     }
 }

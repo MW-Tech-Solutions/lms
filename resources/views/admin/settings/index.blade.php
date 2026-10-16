@@ -120,6 +120,61 @@
                         <div class="form-text small">Broadcast to header logos, automated emails, certificate seals, and page titles.</div>
                     </div>
 
+                    <!-- System Global Currency (USD / EUR / GBP) -->
+                    <div class="mb-3 p-3 rounded-3 border" style="background: var(--lms-surface-card); border-color: rgba(2, 132, 199, 0.25) !important;">
+                        <label class="form-label small fw-bold d-flex justify-content-between align-items-center mb-1">
+                            <span><i class="bi bi-cash-coin text-primary me-1.5"></i>Global Platform Currency</span>
+                            <span class="badge bg-primary-subtle text-primary font-mono small">
+                                Current: {{ $site_settings['system_currency'] ?? 'USD' }}
+                            </span>
+                        </label>
+                        <div class="text-secondary small mb-2" style="font-size: 0.78rem;">
+                            Set the primary currency used for Cambridge level passes, course checkout, and invoice totals (select USD or EUR).
+                        </div>
+                        <select name="settings[system_currency]" class="form-select fw-semibold" style="border-radius: 10px;">
+                            <option value="USD" {{ ($site_settings['system_currency'] ?? 'USD') === 'USD' ? 'selected' : '' }}>
+                                USD ($) — United States Dollar (Recommended)
+                            </option>
+                            <option value="EUR" {{ ($site_settings['system_currency'] ?? '') === 'EUR' ? 'selected' : '' }}>
+                                EUR (€) — Euro (European Union)
+                            </option>
+                            <option value="GBP" {{ ($site_settings['system_currency'] ?? '') === 'GBP' ? 'selected' : '' }}>
+                                GBP (£) — British Pound Sterling (Cambridge UK)
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- System Administration Communication & Contacts -->
+                    <div class="mb-3 p-3 rounded-3 border" style="background: var(--lms-surface-card); border-color: rgba(16, 185, 129, 0.25) !important;">
+                        <label class="form-label small fw-bold d-flex justify-content-between align-items-center mb-1">
+                            <span><i class="bi bi-headset text-success me-1.5"></i>Administrator Contact &amp; Support Info</span>
+                            <span class="badge bg-success-subtle text-success small font-mono">Footer Broadcast</span>
+                        </label>
+                        <div class="text-secondary small mb-3" style="font-size: 0.78rem;">
+                            Dynamic contact information displayed across public footers, system notifications, and inquiries.
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary">Admin Support Email</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" name="settings[admin_contact_email]" class="form-control" 
+                                           value="{{ $site_settings['admin_contact_email'] ?? 'admin@enterpriselms.com' }}" 
+                                           placeholder="admin@enterpriselms.com" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold text-secondary">Admin Phone / WhatsApp</label>
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                    <input type="text" name="settings[admin_contact_phone]" class="form-control" 
+                                           value="{{ $site_settings['admin_contact_phone'] ?? '+44 (0) 20 8123 4567' }}" 
+                                           placeholder="+44 20 8123 4567" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- System Logo (File Upload & URL) -->
                     <div class="mb-3 p-3 rounded-3" style="background: var(--lms-bg-secondary); border: 1px dashed var(--lms-border);">
                         <label class="form-label small fw-bold d-flex justify-content-between">
@@ -386,31 +441,319 @@
                 </div>
             </div>
 
-            <!-- SECTION 5: HOMEPAGE HERO SECTION DIRECTIVES -->
+            <!-- SECTION 5: DYNAMIC 3-SLIDE HERO MANAGEMENT SYSTEM -->
+            <div class="col-12" x-data="{ activeSlideTab: 1 }">
+                <div class="lms-card p-4 shadow-sm border rounded-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-3 mb-4 gap-2">
+                        <div>
+                            <h5 class="fw-bold mb-1" style="color: var(--lms-text-primary);">
+                                <i class="bi bi-images text-primary me-2"></i>Homepage Hero Slider (3 Master Dynamic Slides)
+                            </h5>
+                            <span class="text-secondary small">
+                                Configure copy, image assets, overlays, and CTAs for all 3 brand-consistent hero slides.
+                            </span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm rounded-pill px-3 fw-semibold transition-all"
+                                    :class="activeSlideTab === 1 ? 'btn-primary shadow-xs' : 'btn-outline-secondary'"
+                                    @click="activeSlideTab = 1">
+                                <i class="bi bi-1-circle me-1"></i> Slide 1: Primary Value
+                            </button>
+                            <button type="button" class="btn btn-sm rounded-pill px-3 fw-semibold transition-all"
+                                    :class="activeSlideTab === 2 ? 'btn-primary shadow-xs' : 'btn-outline-secondary'"
+                                    @click="activeSlideTab = 2">
+                                <i class="bi bi-2-circle me-1"></i> Slide 2: STEM Lab
+                            </button>
+                            <button type="button" class="btn btn-sm rounded-pill px-3 fw-semibold transition-all"
+                                    :class="activeSlideTab === 3 ? 'btn-primary shadow-xs' : 'btn-outline-secondary'"
+                                    @click="activeSlideTab = 3">
+                                <i class="bi bi-3-circle me-1"></i> Slide 3: Mentorship
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- SLIDE 1 --}}
+                    <div x-show="activeSlideTab === 1" x-transition class="p-3 rounded-4 border bg-light-subtle">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge bg-primary px-3 py-1.5 rounded-pill fw-bold">SLIDE 1: PRIMARY VALUE PROPOSITION</span>
+                            <div class="form-check form-switch mb-0">
+                                <input type="hidden" name="settings[hero_slide_1_enabled]" value="0">
+                                <input class="form-check-input" type="checkbox" name="settings[hero_slide_1_enabled]" value="1" 
+                                       id="slide1Enabled" {{ ($site_settings['hero_slide_1_enabled'] ?? '1') === '1' ? 'checked' : '' }}>
+                                <label class="form-check-label small fw-semibold" for="slide1Enabled">Enable Slide 1</label>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Image Preview & Upload -->
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold">Desktop Hero Image Asset</label>
+                                <div class="rounded-3 overflow-hidden border mb-2 position-relative shadow-xs" style="height: 180px; background: #0F1321;">
+                                    <img src="{{ !empty($site_settings['hero_slide_1_image']) ? $site_settings['hero_slide_1_image'] : asset('images/hero/hero-slide-1.webp') }}" 
+                                         alt="Slide 1 Preview" class="w-100 h-100 object-fit-cover">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted">Upload New Image (WebP, JPG, PNG)</label>
+                                    <input type="file" name="hero_slide_1_file" class="form-control form-control-sm" accept="image/*">
+                                </div>
+                                <div>
+                                    <label class="form-label small text-muted">Or Image Absolute / CDN URL</label>
+                                    <input type="text" name="settings[hero_slide_1_image]" class="form-control form-control-sm font-mono" 
+                                           value="{{ $site_settings['hero_slide_1_image'] ?? asset('images/hero/hero-slide-1.webp') }}">
+                                </div>
+                            </div>
+
+                            <!-- Content Inputs -->
+                            <div class="col-md-7">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Eyebrow / Badge Text</label>
+                                        <input type="text" name="settings[hero_slide_1_badge]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['hero_slide_1_badge'] ?? 'CAMBRIDGE INTERNATIONAL PLATFORM' }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Overlay Opacity (0.2 - 0.9)</label>
+                                        <input type="number" step="0.05" min="0" max="1" name="settings[hero_slide_1_overlay]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['hero_slide_1_overlay'] ?? '0.55' }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-semibold">Main Heading</label>
+                                        <input type="text" name="settings[hero_slide_1_heading]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['hero_slide_1_heading'] ?? 'Master Cambridge Curriculum with Verified Solutions.' }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-semibold">Highlighted Heading Phrase (Gradient)</label>
+                                        <input type="text" name="settings[hero_slide_1_highlight]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['hero_slide_1_highlight'] ?? 'Diagnostic Past Papers & Automated Trackers.' }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-semibold">Supporting Description</label>
+                                        <textarea name="settings[hero_slide_1_desc]" class="form-control form-control-sm" rows="2">{{ $site_settings['hero_slide_1_desc'] ?? 'The premier academic hub featuring 5 isolated Cambridge levels, LaTeX formula rendering, official mark scheme breakdowns, and real-time student mastery analytics.' }}</textarea>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Primary CTA Text &amp; Destination</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" name="settings[hero_slide_1_cta1_text]" class="form-control" placeholder="Button Text" 
+                                                   value="{{ $site_settings['hero_slide_1_cta1_text'] ?? 'Explore Past Papers' }}">
+                                            <input type="text" name="settings[hero_slide_1_cta1_url]" class="form-control font-mono" placeholder="/courses" 
+                                                   value="{{ $site_settings['hero_slide_1_cta1_url'] ?? route('courses.index') }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Secondary CTA Text &amp; Destination</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" name="settings[hero_slide_1_cta2_text]" class="form-control" placeholder="Button Text" 
+                                                   value="{{ $site_settings['hero_slide_1_cta2_text'] ?? 'Try Esther Math Tracker' }}">
+                                            <input type="text" name="settings[hero_slide_1_cta2_url]" class="form-control font-mono" placeholder="#esther-tracker" 
+                                                   value="{{ $site_settings['hero_slide_1_cta2_url'] ?? '#esther-tracker' }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- SLIDE 2 --}}
+                    <div x-show="activeSlideTab === 2" x-transition class="p-3 rounded-4 border bg-light-subtle">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge bg-success px-3 py-1.5 rounded-pill fw-bold">SLIDE 2: STEM &amp; ADVANCED MATHEMATICS</span>
+                            <div class="form-check form-switch mb-0">
+                                <input type="hidden" name="settings[hero_slide_2_enabled]" value="0">
+                                <input class="form-check-input" type="checkbox" name="settings[hero_slide_2_enabled]" value="1" 
+                                       id="slide2Enabled" {{ ($site_settings['hero_slide_2_enabled'] ?? '1') === '1' ? 'checked' : '' }}>
+                                <label class="form-check-label small fw-semibold" for="slide2Enabled">Enable Slide 2</label>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Image Preview & Upload -->
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold">Desktop Hero Image Asset</label>
+                                <div class="rounded-3 overflow-hidden border mb-2 position-relative shadow-xs" style="height: 180px; background: #0F1321;">
+                                    <img src="{{ !empty($site_settings['hero_slide_2_image']) ? $site_settings['hero_slide_2_image'] : asset('images/hero/hero-slide-2.webp') }}" 
+                                         alt="Slide 2 Preview" class="w-100 h-100 object-fit-cover">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted">Upload New Image (WebP, JPG, PNG)</label>
+                                    <input type="file" name="hero_slide_2_file" class="form-control form-control-sm" accept="image/*">
+                                </div>
+                                <div>
+                                    <label class="form-label small text-muted">Or Image Absolute / CDN URL</label>
+                                    <input type="text" name="settings[hero_slide_2_image]" class="form-control form-control-sm font-mono" 
+                                           value="{{ $site_settings['hero_slide_2_image'] ?? asset('images/hero/hero-slide-2.webp') }}">
+                                </div>
+                            </div>
+
+                            <!-- Content Inputs -->
+                            <div class="col-md-7">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Eyebrow / Badge Text</label>
+                                        <input type="text" name="settings[hero_slide_2_badge]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['hero_slide_2_badge'] ?? 'STEM & SCIENTIFIC RIGOR' }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Overlay Opacity (0.2 - 0.9)</label>
+                                        <input type="number" step="0.05" min="0" max="1" name="settings[hero_slide_2_overlay]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['hero_slide_2_overlay'] ?? '0.50' }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-semibold">Main Heading</label>
+                                        <input type="text" name="settings[hero_slide_2_heading]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['hero_slide_2_heading'] ?? 'Accelerate Calculus, Physics & Chemistry Mastery.' }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-semibold">Highlighted Heading Phrase (Gradient)</label>
+                                        <input type="text" name="settings[hero_slide_2_highlight]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['hero_slide_2_highlight'] ?? 'Step-by-Step Derivations & LaTeX Formulas.' }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-semibold">Supporting Description</label>
+                                        <textarea name="settings[hero_slide_2_desc]" class="form-control form-control-sm" rows="2">{{ $site_settings['hero_slide_2_desc'] ?? 'Dissect complex exam permutations with clear KaTeX formula derivations, topical question packs, and interactive Cambridge examiner guidance.' }}</textarea>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Primary CTA Text &amp; Destination</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" name="settings[hero_slide_2_cta1_text]" class="form-control" placeholder="Button Text" 
+                                                   value="{{ $site_settings['hero_slide_2_cta1_text'] ?? 'Open Esther Tracker' }}">
+                                            <input type="text" name="settings[hero_slide_2_cta1_url]" class="form-control font-mono" placeholder="#esther-tracker" 
+                                                   value="{{ $site_settings['hero_slide_2_cta1_url'] ?? '#esther-tracker' }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Secondary CTA Text &amp; Destination</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" name="settings[hero_slide_2_cta2_text]" class="form-control" placeholder="Button Text" 
+                                                   value="{{ $site_settings['hero_slide_2_cta2_text'] ?? 'Print Diagnostic Report' }}">
+                                            <input type="text" name="settings[hero_slide_2_cta2_url]" class="form-control font-mono" placeholder="/scores/report" 
+                                                   value="{{ $site_settings['hero_slide_2_cta2_url'] ?? route('scores.report') }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- SLIDE 3 --}}
+                    <div x-show="activeSlideTab === 3" x-transition class="p-3 rounded-4 border bg-light-subtle">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge bg-info text-dark px-3 py-1.5 rounded-pill fw-bold">SLIDE 3: ACCREDITED EXAMINERS &amp; FACULTY</span>
+                            <div class="form-check form-switch mb-0">
+                                <input type="hidden" name="settings[hero_slide_3_enabled]" value="0">
+                                <input class="form-check-input" type="checkbox" name="settings[hero_slide_3_enabled]" value="1" 
+                                       id="slide3Enabled" {{ ($site_settings['hero_slide_3_enabled'] ?? '1') === '1' ? 'checked' : '' }}>
+                                <label class="form-check-label small fw-semibold" for="slide3Enabled">Enable Slide 3</label>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Image Preview & Upload -->
+                            <div class="col-md-5">
+                                <label class="form-label small fw-bold">Desktop Hero Image Asset</label>
+                                <div class="rounded-3 overflow-hidden border mb-2 position-relative shadow-xs" style="height: 180px; background: #0F1321;">
+                                    <img src="{{ !empty($site_settings['hero_slide_3_image']) ? $site_settings['hero_slide_3_image'] : asset('images/hero/hero-slide-3.webp') }}" 
+                                         alt="Slide 3 Preview" class="w-100 h-100 object-fit-cover">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted">Upload New Image (WebP, JPG, PNG)</label>
+                                    <input type="file" name="hero_slide_3_file" class="form-control form-control-sm" accept="image/*">
+                                </div>
+                                <div>
+                                    <label class="form-label small text-muted">Or Image Absolute / CDN URL</label>
+                                    <input type="text" name="settings[hero_slide_3_image]" class="form-control form-control-sm font-mono" 
+                                           value="{{ $site_settings['hero_slide_3_image'] ?? asset('images/hero/hero-slide-3.webp') }}">
+                                </div>
+                            </div>
+
+                            <!-- Content Inputs -->
+                            <div class="col-md-7">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Eyebrow / Badge Text</label>
+                                        <input type="text" name="settings[hero_slide_3_badge]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['hero_slide_3_badge'] ?? 'VERIFIED EXAMINER NETWORK' }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Overlay Opacity (0.2 - 0.9)</label>
+                                        <input type="number" step="0.05" min="0" max="1" name="settings[hero_slide_3_overlay]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['hero_slide_3_overlay'] ?? '0.50' }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-semibold">Main Heading</label>
+                                        <input type="text" name="settings[hero_slide_3_heading]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['hero_slide_3_heading'] ?? 'Learn Directly from Accredited Cambridge Mentors.' }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-semibold">Highlighted Heading Phrase (Gradient)</label>
+                                        <input type="text" name="settings[hero_slide_3_highlight]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['hero_slide_3_highlight'] ?? '1-on-1 Feedback, Diagnostic Clinic & Global Trust.' }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-semibold">Supporting Description</label>
+                                        <textarea name="settings[hero_slide_3_desc]" class="form-control form-control-sm" rows="2">{{ $site_settings['hero_slide_3_desc'] ?? 'Connect with experienced syllabus moderators, review individualized assessment profiles, and prepare with confidence for upcoming May/June exam series.' }}</textarea>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Primary CTA Text &amp; Destination</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" name="settings[hero_slide_3_cta1_text]" class="form-control" placeholder="Button Text" 
+                                                   value="{{ $site_settings['hero_slide_3_cta1_text'] ?? 'Meet Cambridge Mentors' }}">
+                                            <input type="text" name="settings[hero_slide_3_cta1_url]" class="form-control font-mono" placeholder="/mentors" 
+                                                   value="{{ $site_settings['hero_slide_3_cta1_url'] ?? route('mentors.index') }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Secondary CTA Text &amp; Destination</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="text" name="settings[hero_slide_3_cta2_text]" class="form-control" placeholder="Button Text" 
+                                                   value="{{ $site_settings['hero_slide_3_cta2_text'] ?? 'View Subscription Plans' }}">
+                                            <input type="text" name="settings[hero_slide_3_cta2_url]" class="form-control font-mono" placeholder="/p/pricing" 
+                                                   value="{{ $site_settings['hero_slide_3_cta2_url'] ?? route('cms.show', ['slug' => 'pricing']) }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- SECTION 6: SOCIAL MEDIA CHANNELS -->
             <div class="col-12">
-                <div class="lms-card p-4 shadow-sm">
+                <div class="lms-card p-4 shadow-sm border">
                     <h5 class="fw-bold mb-3 border-bottom pb-2">
-                        <i class="bi bi-layout-text-window-reverse text-primary me-2"></i>Homepage Hero Section Directives
+                        <i class="bi bi-share-fill text-primary me-2"></i>Official Social Media Handles &amp; Profiles
                     </h5>
+                    <div class="text-secondary small mb-3">
+                        Configure official social channel links displayed across the footer and contact sections of all public pages.
+                    </div>
 
                     <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label small fw-semibold">Hero Badge Label</label>
-                            <input type="text" name="settings[hero_badge]" class="form-control" value="{{ $site_settings['hero_badge'] ?? 'Dual-Audience Enterprise LMS' }}">
+                        <div class="col-md-6 col-lg-4">
+                            <label class="form-label small fw-semibold"><i class="bi bi-linkedin text-primary me-1"></i> LinkedIn Profile URL</label>
+                            <input type="url" name="settings[social_linkedin]" class="form-control" value="{{ $site_settings['social_linkedin'] ?? 'https://linkedin.com/company/allthingscambridge' }}" placeholder="https://linkedin.com/company/...">
                         </div>
-                        <div class="col-md-8">
-                            <label class="form-label small fw-semibold">Hero Headline</label>
-                            <input type="text" name="settings[hero_headline]" class="form-control" value="{{ $site_settings['hero_headline'] ?? 'Next-Gen Workforce Compliance & Academic Excellence' }}">
+                        <div class="col-md-6 col-lg-4">
+                            <label class="form-label small fw-semibold"><i class="bi bi-twitter-x text-dark me-1"></i> Twitter / X Profile URL</label>
+                            <input type="url" name="settings[social_twitter]" class="form-control" value="{{ $site_settings['social_twitter'] ?? 'https://x.com/allthingscambridge' }}" placeholder="https://x.com/...">
                         </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-semibold">Hero Subheadline Lead Text</label>
-                            <textarea name="settings[hero_subheadline]" class="form-control" rows="2">{{ $site_settings['hero_subheadline'] ?? 'Unified platform for corporate recertification audits and public accredited student cohorts. Zero friction, fully compliant.' }}</textarea>
+                        <div class="col-md-6 col-lg-4">
+                            <label class="form-label small fw-semibold"><i class="bi bi-facebook text-primary me-1"></i> Facebook Page URL</label>
+                            <input type="url" name="settings[social_facebook]" class="form-control" value="{{ $site_settings['social_facebook'] ?? 'https://facebook.com/allthingscambridge' }}" placeholder="https://facebook.com/...">
+                        </div>
+                        <div class="col-md-6 col-lg-6">
+                            <label class="form-label small fw-semibold"><i class="bi bi-youtube text-danger me-1"></i> YouTube Channel URL</label>
+                            <input type="url" name="settings[social_youtube]" class="form-control" value="{{ $site_settings['social_youtube'] ?? 'https://youtube.com/@allthingscambridge' }}" placeholder="https://youtube.com/@...">
+                        </div>
+                        <div class="col-md-6 col-lg-6">
+                            <label class="form-label small fw-semibold"><i class="bi bi-instagram text-danger me-1"></i> Instagram Profile URL</label>
+                            <input type="url" name="settings[social_instagram]" class="form-control" value="{{ $site_settings['social_instagram'] ?? 'https://instagram.com/allthingscambridge' }}" placeholder="https://instagram.com/...">
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- SECTION 6: FOOTER & COMPLIANCE STATEMENTS -->
+            <!-- SECTION 7: FOOTER & COMPLIANCE STATEMENTS -->
             <div class="col-12">
                 <div class="lms-card p-4 shadow-sm">
                     <h5 class="fw-bold mb-3 border-bottom pb-2">

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Examination Environment') - {{ $site_settings['brand_name'] ?? 'Enterprise Academy' }}</title>
+    <title>{{ $site_settings['brand_name'] ?? config('app.name', 'AllThingsCambridge') }} &bull; @yield('title', 'Examination Environment')</title>
 
     <!-- Favicon from Dynamic Brand Settings -->
     <link rel="icon" type="image/x-icon" href="{{ !empty($site_settings['brand_favicon_url']) ? $site_settings['brand_favicon_url'] : asset('favicon.ico') }}">

@@ -36,7 +36,17 @@ class LearningController extends Controller
             ->latest('issued_at')
             ->get();
 
-        return view('learning.my', compact('enrollments', 'certificates'));
+        $linkedParents = \App\Models\ParentStudent::with('parent')
+            ->where('student_id', $user->id)
+            ->get();
+
+        $activeInvite = \App\Models\ParentInvite::where('student_id', $user->id)
+            ->where('is_used', false)
+            ->where('expires_at', '>', now())
+            ->latest()
+            ->first();
+
+        return view('learning.my', compact('enrollments', 'certificates', 'linkedParents', 'activeInvite'));
     }
 
     /**

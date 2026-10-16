@@ -49,9 +49,9 @@ class AttendanceController extends Controller
         $session = AttendanceSession::findOrFail($validated['session_id']);
 
         // Verify rolling token timestamp within +/- 30 seconds (2 slots of 15s)
-        $tokenParts = explode('_', $validated['token']);
-        $submittedSecret = $tokenParts[0] ?? '';
-        $submittedTimestamp = (int) ($tokenParts[1] ?? 0);
+        $lastUnderscorePos = strrpos($validated['token'], '_');
+        $submittedSecret = $lastUnderscorePos !== false ? substr($validated['token'], 0, $lastUnderscorePos) : $validated['token'];
+        $submittedTimestamp = (int) ($lastUnderscorePos !== false ? substr($validated['token'], $lastUnderscorePos + 1) : 0);
 
         $currentTimestampSlot = (int) floor(time() / 15);
         $timeDelta = abs($currentTimestampSlot - $submittedTimestamp);

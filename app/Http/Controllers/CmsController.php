@@ -16,7 +16,12 @@ class CmsController extends Controller
      */
     public function show(string $slug = 'home'): View
     {
-        // 1. If a dedicated custom view exists in resources/views/pages/{slug}.blade.php
+        // 1. If pricing page, forward to SubscriptionController
+        if ($slug === 'pricing') {
+            return app(\App\Http\Controllers\SubscriptionController::class)->index();
+        }
+
+        // 2. If a dedicated custom view exists in resources/views/pages/{slug}.blade.php
         if (view()->exists('pages.' . $slug)) {
             return view('pages.' . $slug);
         }

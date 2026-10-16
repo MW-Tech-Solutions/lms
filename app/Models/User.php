@@ -24,7 +24,13 @@ class User extends Authenticatable
         'user_type',
         'employee_id',
         'two_factor_secret',
+        'two_factor_type',
+        'two_factor_email_code',
+        'two_factor_expires_at',
         'is_active',
+        'is_archived',
+        'approval_status',
+        'rejection_reason',
     ];
 
     protected $hidden = [
@@ -92,6 +98,49 @@ class User extends Authenticatable
         return $this->hasMany(Order::class);
     }
 
+    public function courses(): HasMany
+    {
+        return $this->hasMany(Course::class, 'instructor_id');
+    }
+
+    public function teachingLevels(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(CourseCategory::class, 'teacher_level_assignments', 'user_id', 'category_id')->withTimestamps();
+    }
+
+    public function levelRequests(): HasMany
+    {
+        return $this->hasMany(TeacherLevelRequest::class);
+    }
+
+    public function isApprovedTeacher(): bool
+    {
+        return $this->isTeacher() && $this->approval_status === 'APPROVED';
+    }
+
+    /**
+     * Get all category IDs the teacher is authorized to teach/upload materials for.
+     * Includes explicitly assigned teaching levels, plus the department category if applicable.
+     *
+     * @return array<int>
+     */
+    public function getAuthorizedCategoryIds(): array
+    {
+        $ids = $this->teachingLevels()->pluck('course_categories.id')->all();
+
+        // Also resolve matching category from teacher's registered department
+        if ($this->department_id && $this->department) {
+            $matchingCat = CourseCategory::where('name', 'like', '%' . $this->department->name . '%')
+                ->orWhere('name', $this->department->name)
+                ->first();
+            if ($matchingCat && !in_array($matchingCat->id, $ids, true)) {
+                $ids[] = $matchingCat->id;
+            }
+        }
+
+        return $ids;
+    }
+
     public function isEmployee(): bool
     {
         return in_array($this->user_type, ['EMPLOYEE', 'HYBRID'], true);
@@ -100,6 +149,16 @@ class User extends Authenticatable
     public function isStudent(): bool
     {
         return in_array($this->user_type, ['STUDENT', 'HYBRID'], true);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole(Role::SUPER_ADMIN);
+    }
+
+    public function isTeacher(): bool
+    {
+        return $this->hasRole([Role::TEACHER, Role::INSTRUCTOR, Role::COURSE_CREATOR, Role::TEACHER_NON_EDITING]);
     }
 
     public function hasRole(string|array $roleNames): bool

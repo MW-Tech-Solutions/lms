@@ -82,7 +82,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // =========================================================================
-        // 2. ORGANIZATIONAL DEPARTMENTS
+        // 2. ORGANIZATIONAL & CAMBRIDGE ACADEMIC DEPARTMENTS
         // =========================================================================
         $deptSec = Department::create([
             'tenant_id' => $tenant->id,
@@ -95,6 +95,28 @@ class DatabaseSeeder extends Seeder
         $deptCloud = Department::create([
             'tenant_id' => $tenant->id,
             'name' => 'Cloud Infrastructure & DevOps',
+        ]);
+
+        // 5 Canonical Cambridge Academic Syllabus Levels
+        $deptPrimary = Department::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Cambridge Primary Checkpoint (Years 1–6)',
+        ]);
+        $deptLowerSec = Department::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Cambridge Lower Secondary (Years 7–9)',
+        ]);
+        $deptIgcse = Department::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Cambridge IGCSE (Years 10–11)',
+        ]);
+        $deptAsLevel = Department::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Cambridge AS Level (Year 12)',
+        ]);
+        $deptALevel = Department::create([
+            'tenant_id' => $tenant->id,
+            'name' => 'Cambridge A Level (Year 13)',
         ]);
 
         // =========================================================================
@@ -520,11 +542,35 @@ class DatabaseSeeder extends Seeder
             'job_title' => 'Authenticated Enterprise Learner',
             'timezone' => 'UTC',
             'locale' => 'en',
-        ]);
         RoleAssignment::create([
             'user_id' => $userAuth->id,
             'role_id' => $roleAuthUser->id,
             'context_id' => $ctxSystem->id,
+        ]);
+
+        // 11. Parent Guardian Account
+        $userParent = User::create([
+            'name' => 'Sarah Connor (Parent Guardian)',
+            'email' => 'parent@enterpriselms.com',
+            'password' => $defaultPassword,
+            'user_type' => 'STUDENT',
+            'is_active' => true,
+        ]);
+        UserProfile::create([
+            'user_id' => $userParent->id,
+            'job_title' => 'Registered Parent & Academic Sponsor',
+            'timezone' => 'UTC',
+            'locale' => 'en',
+        ]);
+        RoleAssignment::create([
+            'user_id' => $userParent->id,
+            'role_id' => $roleAuthUser->id,
+            'context_id' => $ctxSystem->id,
+        ]);
+        \App\Models\ParentStudent::create([
+            'parent_id' => $userParent->id,
+            'student_id' => $userStudent2->id,
+            'relationship' => 'Mother / Academic Guardian',
         ]);
 
         // =========================================================================

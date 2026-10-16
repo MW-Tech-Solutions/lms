@@ -186,6 +186,21 @@ class SettingsAdminController extends Controller
             $settings['brand_favicon_url'] = asset('uploads/branding/' . $favFilename);
         }
 
+        // 3b. Handle Hero Slides 1, 2, and 3 File Uploads
+        $heroUploadDir = public_path('uploads/hero');
+        if (!is_dir($heroUploadDir)) {
+            mkdir($heroUploadDir, 0755, true);
+        }
+        foreach ([1, 2, 3] as $slideNum) {
+            $fileInputKey = "hero_slide_{$slideNum}_file";
+            if ($request->hasFile($fileInputKey)) {
+                $slideFile = $request->file($fileInputKey);
+                $slideFileName = "hero_slide_{$slideNum}_" . time() . '.' . $slideFile->getClientOriginalExtension();
+                $slideFile->move($heroUploadDir, $slideFileName);
+                $settings["hero_slide_{$slideNum}_image"] = asset('uploads/hero/' . $slideFileName);
+            }
+        }
+
         // 4. Update standard setting values
         foreach ($settings as $key => $value) {
             if ($value !== null) {

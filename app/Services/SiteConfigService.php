@@ -98,4 +98,103 @@ class SiteConfigService
     {
         Cache::forget(self::CACHE_PREFIX . ($tenantId ?? 'system_global'));
     }
+
+    /**
+     * Compute the uppercase acronym/abbreviation of the platform system brand name.
+     */
+    public function getSystemAbbreviation(?string $tenantId = null): string
+    {
+        $brand = $this->get('brand_name', config('app.name', 'AllThingsCambridge'), $tenantId);
+        $words = preg_split('/[\s_-]+/', trim($brand));
+        if (count($words) > 1) {
+            $abbr = '';
+            foreach ($words as $w) {
+                if (!empty($w)) {
+                    $abbr .= strtoupper(substr($w, 0, 1));
+                }
+            }
+        } else {
+            preg_match_all('/[A-Z]/', $brand, $matches);
+            if (!empty($matches[0]) && count($matches[0]) >= 2) {
+                $abbr = implode('', $matches[0]);
+            } else {
+                $clean = preg_replace('/[^a-zA-Z0-9]/', '', $brand);
+                $abbr = strtoupper(substr($clean, 0, 3));
+            }
+        }
+
+        return !empty($abbr) ? $abbr : 'ATC';
+    }
+
+    /**
+     * Generate an accredited Faculty Staff ID prefixed with the system name abbreviation.
+     */
+    public function generateFacultyStaffId(?string $tenantId = null): string
+    {
+        $abbr = $this->getSystemAbbreviation($tenantId);
+        return $abbr . '-FAC-' . str_pad((string) mt_rand(1001, 9999), 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Generate an accredited Student / Scholar ID prefixed with the system name abbreviation.
+     */
+    public function generateStudentId(?string $tenantId = null): string
+    {
+        $abbr = $this->getSystemAbbreviation($tenantId);
+        return $abbr . '-STU-' . date('Y') . '-' . str_pad((string) mt_rand(101, 999), 3, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Generate an accredited Corporate Employee ID prefixed with the system name abbreviation.
+     */
+    public function generateCorporateId(?string $tenantId = null): string
+    {
+        $abbr = $this->getSystemAbbreviation($tenantId);
+        return $abbr . '-EMP-' . str_pad((string) mt_rand(10001, 99999), 5, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Generate the appropriate ID based on user persona type.
+     */
+    public function generateIdForType(string $userType, ?string $tenantId = null): string
+    {
+        return match ($userType) {
+            'HYBRID' => $this->generateFacultyStaffId($tenantId),
+            'EMPLOYEE' => $this->generateCorporateId($tenantId),
+            default => $this->generateStudentId($tenantId),
+        };
+    }
+
+    /**
+     * Retrieve the system brand logo as a Data URI (base64) or clean absolute URL for emails.
+     */
+    public function getLogoDataUri(?string $tenantId = null): ?string
+    {
+        $logoUrl = $this->get('brand_logo_url', null, $tenantId);
+
+        // Candidate paths to check locally on filesystem (prioritizing optimized lightweight email logo)
+        $candidates = [
+            public_path('images/site_logo_email.png'),
+        ];
+        if (!empty($logoUrl)) {
+            $parsedPath = parse_url($logoUrl, PHP_URL_PATH);
+            if ($parsedPath) {
+                $candidates[] = public_path(ltrim($parsedPath, '/\\'));
+            }
+        }
+        $candidates[] = public_path('uploads/branding/logo_1792147720.png');
+        $candidates[] = public_path('images/site_logo.png');
+
+        foreach ($candidates as $filePath) {
+            if ($filePath && file_exists($filePath) && is_readable($filePath)) {
+                $mime = mime_content_type($filePath) ?: 'image/png';
+                $content = @file_get_contents($filePath);
+                if ($content !== false && strlen($content) > 0) {
+                    return 'data:' . $mime . ';base64,' . base64_encode($content);
+                }
+            }
+        }
+
+        return !empty($logoUrl) ? $logoUrl : null;
+    }
 }

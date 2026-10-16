@@ -56,6 +56,142 @@
             </div>
         </div>
 
+        <!-- 1B. FAMILY & PARENT CONNECTION MODULE -->
+        <div class="lms-card p-4 p-md-4 rounded-4 mb-5 border shadow-sm" 
+             style="background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%); border-radius: 24px; border-color: rgba(2, 132, 199, 0.2) !important;"
+             x-data="{
+                 currentCode: '{{ $activeInvite->invite_code ?? '' }}',
+                 codeCopied: false,
+                 isGenerating: false,
+                 async generateCode() {
+                     this.isGenerating = true;
+                     try {
+                         const csrf = document.querySelector('meta[name=\'csrf-token\']')?.getAttribute('content') || '';
+                         const res = await fetch('{{ route('parent.invite.generate') }}', {
+                             method: 'POST',
+                             headers: {
+                                 'Content-Type': 'application/json',
+                                 'Accept': 'application/json',
+                                 'X-CSRF-TOKEN': csrf,
+                             },
+                             body: JSON.stringify({})
+                         });
+                         const data = await res.json();
+                         if (data.success) {
+                             this.currentCode = data.invite_code;
+                             Swal.fire({
+                                 icon: 'success',
+                                 title: 'Family Code Generated!',
+                                 text: 'Share code ' + data.invite_code + ' with your parent or guardian. It is active for 48 hours.',
+                                 confirmButtonColor: '#723EC3'
+                             });
+                         }
+                     } catch (e) {
+                         Swal.fire({ icon: 'error', title: 'Error', text: 'Could not generate code right now.' });
+                     } finally {
+                         this.isGenerating = false;
+                     }
+                 },
+                 copyCode() {
+                     if (!this.currentCode) return;
+                     navigator.clipboard.writeText(this.currentCode);
+                     this.codeCopied = true;
+                     setTimeout(() => this.codeCopied = false, 2500);
+                 }
+             }">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 pb-3 border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white shadow-sm" 
+                         style="width: 48px; height: 48px; background: linear-gradient(135deg, #0284C7, #0369A1);">
+                        <i class="bi bi-people-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark" style="font-family: var(--lms-font-heading);">
+                            Family &amp; Guardian Connection
+                        </h4>
+                        <div class="text-secondary small">
+                            Connect your student account with your parent or guardian to celebrate your exam milestones.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5 fw-semibold" 
+                            @click="generateCode()" :disabled="isGenerating">
+                        <i class="bi bi-arrow-repeat me-1" :class="isGenerating ? 'spin' : ''"></i>
+                        <span x-text="currentCode ? 'Generate Fresh Code' : 'Generate Parent Invite Code'"></span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="row g-4 align-items-center">
+                <!-- Left: Connected Parents Status -->
+                <div class="col-lg-6">
+                    <div class="p-3 rounded-3 border bg-white h-100">
+                        <div class="small fw-bold text-dark text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                            Connected Parents / Guardians
+                        </div>
+                        @if($linkedParents->isNotEmpty())
+                            <div class="d-flex flex-column gap-2">
+                                @foreach($linkedParents as $link)
+                                    <div class="d-flex align-items-center justify-content-between p-2 rounded-2 bg-light border">
+                                        <div class="d-flex align-items-center gap-2.5">
+                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold small" style="width: 32px; height: 32px;">
+                                                {{ strtoupper(substr($link->parent->name ?? 'P', 0, 1)) }}
+                                            </div>
+                                            <div>
+                                                <strong class="d-block text-dark small">{{ $link->parent->name ?? 'Parent' }}</strong>
+                                                <span class="text-muted" style="font-size: 0.72rem;">{{ $link->relationship ?? 'Parent/Guardian' }} &bull; Connected</span>
+                                            </div>
+                                        </div>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 small">
+                                            <i class="bi bi-check-circle-fill me-1"></i> Active Link
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="text-center py-2 text-muted small">
+                                <i class="bi bi-person-x fs-4 d-block text-secondary mb-1"></i>
+                                <span>No parent linked yet. Share your invite code with mom or dad to connect!</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Right: Active Invite Code Display -->
+                <div class="col-lg-6">
+                    <div class="p-3 rounded-3 border bg-white h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-bold text-dark"><i class="bi bi-key-fill text-primary me-1"></i> Your 6-Digit Parent Link Code:</span>
+                                <span class="badge bg-light text-muted border font-mono small">Valid for 48 Hours</span>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between gap-2 mt-2">
+                                <span class="fs-4 fw-bold font-mono text-primary px-3 py-1 rounded-3 bg-light border flex-grow-1 text-center" 
+                                      style="letter-spacing: 2px;" x-text="currentCode ? currentCode : 'NO CODE ACTIVE'">
+                                    {{ $activeInvite->invite_code ?? 'NO CODE ACTIVE' }}
+                                </span>
+                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5 fw-semibold flex-shrink-0" 
+                                        @click="copyCode()" :disabled="!currentCode">
+                                    <i class="bi" :class="codeCopied ? 'bi-check2' : 'bi-clipboard'"></i>
+                                    <span x-text="codeCopied ? 'Copied!' : 'Copy Code'"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="small text-muted mt-2" style="font-size: 0.75rem; line-height: 1.4;">
+                            <i class="bi bi-info-circle me-1 text-primary"></i> Parents can view your completed past papers and study streaks, but cannot change your answers or exam timers.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1C. STUDENT SCORE ENTRY & ESTHER MATH MATRIX TRACKER -->
+        <div class="mb-5">
+            @include('cms.sections.dynamic_form')
+        </div>
+
         <!-- 2. SECTION HEADER & ACTIONS -->
         <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
             <div>

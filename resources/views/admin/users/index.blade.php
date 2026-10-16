@@ -9,6 +9,7 @@
          showEditUserModal: false,
          showAssignModal: false,
          showRolesModal: false,
+         liveSearch: '{{ addslashes($search) }}',
          
          // Edit User Data
          editUser: {
@@ -81,6 +82,82 @@
         </div>
     </div>
 
+    <!-- Users Filter Bar -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4" style="background: var(--lms-surface-card);">
+        <div class="card-body p-3">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                
+                <!-- Persona Filter Pills -->
+                <ul class="nav nav-pills gap-1.5 flex-nowrap overflow-x-auto pb-1 pb-md-0" style="scrollbar-width: thin;">
+                    <li class="nav-item">
+                        <a class="nav-link py-1.5 px-3 rounded-pill fw-semibold {{ $roleFilter === 'ALL' && ($statusFilter ?? 'ALL') !== 'ARCHIVED' ? 'active' : '' }}" 
+                           href="{{ route('admin.users.index', ['role' => 'ALL', 'search' => $search, 'level' => $levelFilter]) }}">
+                            All Users <span class="badge bg-light text-dark ms-1">{{ $counts['all'] ?? 0 }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-1.5 px-3 rounded-pill fw-semibold {{ $roleFilter === 'TEACHER' ? 'active' : '' }}" 
+                           href="{{ route('admin.users.index', ['role' => 'TEACHER', 'search' => $search, 'level' => $levelFilter]) }}">
+                            <i class="bi bi-person-video3 me-1"></i> Teachers <span class="badge bg-primary-subtle text-primary ms-1">{{ $counts['teachers'] ?? 0 }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-1.5 px-3 rounded-pill fw-semibold {{ $roleFilter === 'PARENT' ? 'active' : '' }}" 
+                           href="{{ route('admin.users.index', ['role' => 'PARENT', 'search' => $search, 'level' => $levelFilter]) }}">
+                            <i class="bi bi-person-heart me-1"></i> Parents <span class="badge bg-info-subtle text-info ms-1">{{ $counts['parents'] ?? 0 }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-1.5 px-3 rounded-pill fw-semibold {{ $roleFilter === 'STUDENT' ? 'active' : '' }}" 
+                           href="{{ route('admin.users.index', ['role' => 'STUDENT', 'search' => $search, 'level' => $levelFilter]) }}">
+                            <i class="bi bi-mortarboard me-1"></i> Students <span class="badge bg-success-subtle text-success ms-1">{{ $counts['students'] ?? 0 }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-1.5 px-3 rounded-pill fw-semibold {{ $roleFilter === 'ADMIN' ? 'active' : '' }}" 
+                           href="{{ route('admin.users.index', ['role' => 'ADMIN', 'search' => $search, 'level' => $levelFilter]) }}">
+                            <i class="bi bi-shield-lock me-1"></i> Admins <span class="badge bg-warning-subtle text-dark ms-1">{{ $counts['admins'] ?? 0 }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link py-1.5 px-3 rounded-pill fw-semibold {{ ($statusFilter ?? '') === 'ARCHIVED' ? 'active bg-secondary text-white' : 'text-secondary' }}" 
+                           href="{{ route('admin.users.index', ['status' => 'ARCHIVED', 'search' => $search]) }}">
+                            <i class="bi bi-archive-fill me-1"></i> Archived <span class="badge bg-light text-dark ms-1">{{ $counts['archived'] ?? 0 }}</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Filter Controls (Level Filter + Search Form) -->
+                <form method="GET" action="{{ route('admin.users.index') }}" class="d-flex flex-wrap align-items-center gap-2">
+                    <input type="hidden" name="role" value="{{ $roleFilter }}">
+                    <input type="hidden" name="status" value="{{ $statusFilter ?? 'ALL' }}">
+                    
+                    <!-- Level Filter Dropdown -->
+                    <div style="min-width: 190px;">
+                        <select name="level" class="form-select form-select-sm" onchange="this.form.submit()">
+                            <option value="0">All Tutoring Levels</option>
+                            @foreach($cambridgeLevels ?? [] as $lvl)
+                                <option value="{{ $lvl->id }}" {{ ($levelFilter ?? 0) == $lvl->id ? 'selected' : '' }}>
+                                    Level: {{ $lvl->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="input-group input-group-sm" style="width: 220px;">
+                        <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" name="search" value="{{ $search }}" x-model="liveSearch" class="form-control border-start-0" placeholder="Search name, email, ID...">
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Filter</button>
+                    @if($search !== '' || $roleFilter !== 'ALL' || ($levelFilter ?? 0) > 0 || ($statusFilter ?? 'ALL') !== 'ALL')
+                        <a href="{{ route('admin.users.index') }}" class="btn btn-sm btn-link text-muted p-0 ms-1 text-decoration-none">Clear</a>
+                    @endif
+                </form>
+
+            </div>
+        </div>
+    </div>
+
     <!-- Users Table Card -->
     <div class="lms-card p-4 shadow-sm mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
@@ -88,7 +165,7 @@
                 <h5 class="fw-bold mb-0" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary);">
                     <i class="bi bi-people-fill text-primary me-2"></i>User Personas &amp; CBAC Permissions
                 </h5>
-                <span class="text-muted small">Total Registered Identities: {{ $users->total() }}</span>
+                <span class="text-muted small">Total Matching Identities: {{ $users->total() }}</span>
             </div>
         </div>
 
@@ -99,7 +176,7 @@
                         <th class="py-3">User</th>
                         <th class="py-3">User Type</th>
                         <th class="py-3">Employee ID</th>
-                        <th class="py-3">Department</th>
+                        <th class="py-3">Department / Teaching Level</th>
                         <th class="py-3">Active Roles &amp; Contexts</th>
                         <th class="py-3 text-center">Status</th>
                         <th class="py-3 text-end pe-3">Actions</th>
@@ -107,15 +184,21 @@
                 </thead>
                 <tbody>
                     @forelse($users as $user)
-                        <tr>
+                        <tr class="{{ $user->is_archived ? 'table-light opacity-75' : '' }}"
+                            x-show="!liveSearch || '{{ strtolower(addslashes($user->name . ' ' . $user->email . ' ' . ($user->employee_id ?? '') . ' ' . $user->user_type)) }}'.includes(liveSearch.toLowerCase().trim())">
                             <td class="py-3">
                                 <div class="d-flex align-items-center gap-2.5">
                                     <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0" 
-                                         style="width: 38px; height: 38px; background: linear-gradient(135deg, var(--lms-accent), #2563EB); font-size: 0.85rem;">
+                                         style="width: 38px; height: 38px; background: {{ $user->is_archived ? '#64748B' : 'linear-gradient(135deg, var(--lms-accent), #2563EB)' }}; font-size: 0.85rem;">
                                         {{ substr($user->name, 0, 1) }}
                                     </div>
                                     <div>
-                                        <div class="fw-bold text-dark">{{ $user->name }}</div>
+                                        <div class="fw-bold text-dark d-flex align-items-center gap-1.5">
+                                            <span>{{ $user->name }}</span>
+                                            @if($user->is_archived)
+                                                <span class="badge bg-secondary font-mono px-1.5 py-0.5" style="font-size: 0.65rem;">ARCHIVED</span>
+                                            @endif
+                                        </div>
                                         <div class="small text-muted font-mono" style="font-size: 0.78rem;">{{ $user->email }}</div>
                                     </div>
                                 </div>
@@ -131,10 +214,19 @@
                             </td>
                             <td class="font-mono small">{{ $user->employee_id ?? 'N/A' }}</td>
                             <td>
-                                <div class="small">
+                                <div class="small fw-semibold text-dark">
                                     <i class="bi bi-building text-muted me-1"></i>
                                     {{ $user->department?->name ?? 'Corporate Staff' }}
                                 </div>
+                                @if($user->teachingLevels->isNotEmpty())
+                                    <div class="mt-1 d-flex flex-wrap gap-1">
+                                        @foreach($user->teachingLevels as $lvl)
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono" style="font-size: 0.68rem;">
+                                                <i class="bi bi-mortarboard-fill me-0.5"></i> {{ $lvl->name }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </td>
                             <td>
                                 <div class="d-flex flex-wrap gap-1.5 align-items-center">
@@ -155,14 +247,16 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                @if($user->is_active)
+                                @if($user->is_archived)
+                                    <span class="badge bg-secondary text-white rounded-pill px-2.5 py-1">Archived</span>
+                                @elseif($user->is_active)
                                     <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1">Active</span>
                                 @else
                                     <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-1">Suspended</span>
                                 @endif
                             </td>
                             <td class="text-end pe-3">
-                                <div class="d-flex gap-1.5 justify-content-end">
+                                <div class="d-flex gap-1.5 justify-content-end align-items-center">
                                     <!-- Edit User Button -->
                                     <button class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 shadow-sm"
                                             @click="openEditUser({
@@ -176,7 +270,6 @@
                                             })"
                                             title="Edit Profile & Details">
                                         <i class="bi bi-pencil-square"></i>
-                                        <span class="d-none d-md-inline">Edit</span>
                                     </button>
 
                                     <!-- Assign / Manage Role Button -->
@@ -188,23 +281,48 @@
                                             )"
                                             title="Assign or Change Roles">
                                         <i class="bi bi-shield-plus"></i>
-                                        <span>Roles</span>
                                     </button>
+
+                                    <!-- Archive / Unarchive Button -->
+                                    <form action="{{ route('admin.users.toggle-archive', $user->id) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('{{ $user->is_archived ? "Unarchive this user account?" : "Archive this user account? (User will be restricted from accessing platform)" }}');">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm {{ $user->is_archived ? 'btn-outline-success' : 'btn-outline-warning' }} shadow-sm" title="{{ $user->is_archived ? 'Unarchive User' : 'Archive User' }}">
+                                            <i class="bi {{ $user->is_archived ? 'bi-box-arrow-up' : 'bi-archive' }}"></i>
+                                        </button>
+                                    </form>
+
+                                    <!-- Delete User Button -->
+                                    @if($user->id !== auth()->id() && !($user->isSuperAdmin() && $user->id === 1))
+                                        <form action="{{ route('admin.users.destroy', $user->id) }}" method="POST" class="d-inline m-0" onsubmit="return confirm('PERMANENTLY DELETE user {{ addslashes($user->name) }}? All role assignments and records will be deleted.');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger shadow-sm" title="Permanently Delete User">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">No users registered yet.</td>
+                            <td colspan="7" class="text-center py-4 text-muted">No users found matching current filters.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
 
-        <div class="mt-3">
-            {{ $users->links() }}
-        </div>
+        @if($users->hasPages())
+            <div class="card-footer bg-transparent border-top py-3 px-2 d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="small text-secondary">
+                    Showing <span class="fw-bold text-dark">{{ $users->firstItem() }}</span> to <span class="fw-bold text-dark">{{ $users->lastItem() }}</span> of <span class="fw-bold text-dark">{{ $users->total() }}</span> registered identities
+                </div>
+                <div>
+                    {{ $users->links('pagination::bootstrap-5') }}
+                </div>
+            </div>
+        @endif
     </div>
 
     <!-- 1. ADD NEW USER MODAL -->

@@ -185,12 +185,31 @@
                     <div class="viewport-box">
                         @switch($activeModule->module_type)
                             @case('VIDEO')
-                                <div class="ratio ratio-16x9 rounded overflow-hidden shadow-sm mb-4 bg-dark">
-                                    <video controls class="w-100 h-100" poster="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200">
-                                        <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
-                                        Your browser does not support HTML5 video.
-                                    </video>
-                                </div>
+                                @if($course->video_url)
+                                    <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm mb-4 bg-dark">
+                                        @if(Str::startsWith($course->video_url, ['http://', 'https://']) && (Str::contains($course->video_url, 'youtube.com') || Str::contains($course->video_url, 'youtu.be')))
+                                            @php
+                                                $embedUrl = str_replace('watch?v=', 'embed/', $course->video_url);
+                                                $embedUrl = str_replace('youtu.be/', 'www.youtube.com/embed/', $embedUrl);
+                                            @endphp
+                                            <iframe src="{{ $embedUrl }}" title="{{ $course->title }}" allowfullscreen class="w-100 h-100 border-0"></iframe>
+                                        @elseif(Str::startsWith($course->video_url, ['http://', 'https://']) && Str::contains($course->video_url, 'vimeo.com'))
+                                            <iframe src="{{ str_replace('vimeo.com/', 'player.vimeo.com/video/', $course->video_url) }}" allowfullscreen class="w-100 h-100 border-0"></iframe>
+                                        @else
+                                            <video controls class="w-100 h-100" poster="{{ $course->thumbnailUrl() }}">
+                                                <source src="{{ $course->videoUrl() }}" type="video/mp4">
+                                                Your browser does not support HTML5 video.
+                                            </video>
+                                        @endif
+                                    </div>
+                                @else
+                                    <div class="ratio ratio-16x9 rounded overflow-hidden shadow-sm mb-4 bg-dark">
+                                        <video controls class="w-100 h-100" poster="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200">
+                                            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+                                            Your browser does not support HTML5 video.
+                                        </video>
+                                    </div>
+                                @endif
                                 <h4 class="fw-bold mb-2">{{ $course->title }}: Video Lecture</h4>
                                 <p class="text-secondary">Watch this required instructional module to advance to compliance verification.</p>
                                 @break
@@ -574,6 +593,35 @@
                                 </div>
                         @endswitch
                     </div>
+
+                    <!-- Course Attached Materials & Study Notes -->
+                    @if($course->material_notes || $course->material_file)
+                        <div class="lms-card p-4 p-md-5 my-4 rounded-4 shadow-sm border border-primary-subtle" style="background: radial-gradient(circle at 10% 10%, rgba(114, 62, 195, 0.03) 0%, var(--lms-surface-card) 100%);">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 border-bottom pb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="rounded-circle p-2 bg-primary-subtle text-primary">
+                                        <i class="bi bi-file-earmark-text-fill fs-5"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="fw-bold mb-0 text-dark">Course Study Materials &amp; Revision Notes</h5>
+                                        <span class="text-muted small">Curated syllabus content and past papers provided by your Cambridge instructor</span>
+                                    </div>
+                                </div>
+                                @if($course->material_file)
+                                    <a href="{{ $course->materialUrl() }}" target="_blank" class="tj-btn-primary py-2 px-3 small d-inline-flex align-items-center gap-1.5 shadow-sm">
+                                        <i class="bi bi-download"></i>
+                                        <span>Download Attached File</span>
+                                    </a>
+                                @endif
+                            </div>
+
+                            @if($course->material_notes)
+                                <div class="study-material-text text-secondary p-3.5 rounded-3 bg-white border" style="font-size: 1rem; line-height: 1.85; white-space: pre-line;">
+                                    {{ $course->material_notes }}
+                                </div>
+                            @endif
+                        </div>
+                    @endif
                 @else
                     <div class="text-center py-5">
                         <i class="bi bi-check-all display-1 text-success mb-3"></i>

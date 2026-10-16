@@ -40,7 +40,9 @@
                     @break
 
                 @case('DYNAMIC_FORM')
-                    @include('cms.sections.dynamic_form', ['section' => $section])
+                    @if(($page->slug ?? '') !== 'home' && ($page->id ?? null) !== 1)
+                        @include('cms.sections.dynamic_form', ['section' => $section])
+                    @endif
                     @break
 
                 @case('FOOTER')

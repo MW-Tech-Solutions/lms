@@ -14,6 +14,21 @@
             </ol>
         </nav>
 
+        @if(!$course->is_published)
+            <div class="alert alert-warning border-0 shadow-sm rounded-4 mb-4 d-flex align-items-center justify-content-between p-3" style="background: rgba(245, 158, 11, 0.15); border-left: 5px solid #F59E0B !important;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-size: 1.25rem;">
+                        <i class="bi bi-eye-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark">Staff / Faculty Preview Mode</h6>
+                        <span class="small text-secondary">This course/study material is currently pending administrator approval and is not visible to public students.</span>
+                    </div>
+                </div>
+                <span class="badge bg-warning text-dark font-mono px-3 py-2 rounded-pill">UNPUBLISHED PREVIEW</span>
+            </div>
+        @endif
+
         <div class="row align-items-center g-4">
             <div class="col-lg-8">
                 <div class="mb-3">
@@ -29,6 +44,9 @@
                             <i class="bi bi-fire me-1"></i> Public Academic
                         </span>
                     @endif
+                    <span class="badge bg-primary-subtle text-primary border px-2.5 py-1.5 font-mono fw-bold" style="font-size: 0.78rem;">
+                        <i class="bi bi-qr-code me-1"></i>{{ $course->course_code }}
+                    </span>
                 </div>
 
                 <h1 class="display-5 fw-bold mb-3" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary);">
@@ -79,6 +97,104 @@
     <div class="row g-5">
         <!-- Main Course Overview & Syllabus (Left) -->
         <div class="col-lg-8">
+            <!-- Unpaid / Guest Free Preview Section -->
+            @if(!$isEnrolled)
+                <div class="lms-card p-4 mb-4 rounded-4 shadow-sm border border-primary-subtle" style="background: radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.05) 0%, var(--lms-surface-card) 100%);">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary rounded-pill px-3 py-1.5 fw-bold text-white small">
+                                <i class="bi bi-unlock-fill me-1"></i> Free Public Preview
+                            </span>
+                            <span class="text-muted small">No payment required for this overview</span>
+                        </div>
+                        <a href="{{ route('pricing') }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                            <i class="bi bi-stars me-1"></i> Unlock Full Course &amp; Subscriptions
+                        </a>
+                    </div>
+
+                    @if(!empty($course->public_preview_content))
+                        <div class="p-3.5 rounded-3 bg-white border mb-3 text-secondary" style="font-size: 0.95rem; line-height: 1.8; white-space: pre-line;">
+                            {{ $course->public_preview_content }}
+                        </div>
+                    @else
+                        <div class="p-3.5 rounded-3 bg-white border mb-3 text-secondary" style="font-size: 0.92rem; line-height: 1.7;">
+                            <p class="mb-2"><strong>Welcome to {{ $course->title }} Free Overview!</strong></p>
+                            <p class="mb-1 text-muted">This Cambridge preparatory program provides extensive step-by-step video lectures, verified mark scheme walkthroughs, and diagnostic revision trackers.</p>
+                            <p class="mb-0 text-muted">Visitors can preview syllabus topics below. Full video solutions, worked worksheets, and past paper question packs are reserved for active subscribers.</p>
+                        </div>
+                    @endif
+
+                    <!-- Paywall Notice & Upgrade Callout -->
+                    <div class="p-3 rounded-3 d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3" style="background: rgba(245, 158, 11, 0.08); border: 1px dashed rgba(245, 158, 11, 0.4);">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-lock-fill text-warning fs-4"></i>
+                            <div>
+                                <div class="fw-bold small text-dark">Locked Behind Cambridge Membership</div>
+                                <div class="text-muted small" style="font-size: 0.78rem;">Subscribe in British Pounds (£) or enroll individually to gain instant access to all full modules.</div>
+                            </div>
+                        </div>
+                        <a href="{{ route('pricing') }}" class="tj-btn-primary py-2 px-3 small text-nowrap flex-shrink-0">
+                            <i class="bi bi-currency-pound me-1"></i> View Plans from £49
+                        </a>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Course Lecture Video & Teacher Materials Section -->
+            @if($course->video_url || $course->material_file || $course->material_notes)
+                <div class="lms-card p-4 p-md-5 mb-5 rounded-4 shadow-sm border">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 pb-2 border-bottom">
+                        <div>
+                            <h4 class="fw-bold mb-1" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary);">
+                                <i class="bi bi-collection-play-fill text-primary me-2"></i>Course Lecture &amp; Learning Materials
+                            </h4>
+                            <div class="text-muted small">Official curriculum multimedia and downloadable syllabus materials uploaded by the instructor.</div>
+                        </div>
+                        @if($course->material_file)
+                            <a href="{{ $course->materialUrl() }}" target="_blank" class="tj-btn-outline py-2 px-3 small d-inline-flex align-items-center gap-1.5 shadow-sm">
+                                <i class="bi bi-file-earmark-arrow-down-fill text-primary"></i>
+                                <span>Download Material File</span>
+                            </a>
+                        @endif
+                    </div>
+
+                    @if($course->video_url)
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-uppercase text-muted mb-2" style="letter-spacing: 0.5px;">
+                                <i class="bi bi-play-circle-fill text-success me-1"></i> Course Video Lecture
+                            </label>
+                            <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm bg-dark">
+                                @if(Str::startsWith($course->video_url, ['http://', 'https://']) && (Str::contains($course->video_url, 'youtube.com') || Str::contains($course->video_url, 'youtu.be')))
+                                    @php
+                                        $embedUrl = str_replace('watch?v=', 'embed/', $course->video_url);
+                                        $embedUrl = str_replace('youtu.be/', 'www.youtube.com/embed/', $embedUrl);
+                                    @endphp
+                                    <iframe src="{{ $embedUrl }}" title="{{ $course->title }}" allowfullscreen class="w-100 h-100 border-0"></iframe>
+                                @elseif(Str::startsWith($course->video_url, ['http://', 'https://']) && Str::contains($course->video_url, 'vimeo.com'))
+                                    <iframe src="{{ str_replace('vimeo.com/', 'player.vimeo.com/video/', $course->video_url) }}" allowfullscreen class="w-100 h-100 border-0"></iframe>
+                                @else
+                                    <video controls class="w-100 h-100" poster="{{ $course->thumbnailUrl() }}">
+                                        <source src="{{ $course->videoUrl() }}" type="video/mp4">
+                                        Your browser does not support HTML5 video.
+                                    </video>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
+                    @if($course->material_notes)
+                        <div>
+                            <label class="form-label small fw-bold text-uppercase text-muted mb-2" style="letter-spacing: 0.5px;">
+                                <i class="bi bi-card-text text-primary me-1"></i> Syllabus Study Notes &amp; Reading Material
+                            </label>
+                            <div class="p-4 rounded-3 border bg-light text-secondary" style="font-size: 1rem; line-height: 1.8; white-space: pre-line;">
+                                {{ $course->material_notes }}
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
             <!-- Curriculum Sections Accordion -->
             <div class="d-flex align-items-center justify-content-between mb-4">
                 <h4 class="fw-bold mb-0" style="font-family: var(--lms-font-heading);">
@@ -177,9 +293,20 @@
                                                     <div class="text-muted" style="font-size: 0.75rem;">{{ $mod->module_type }} &bull; Self-paced interactive completion</div>
                                                 </div>
                                             </div>
-                                            @if($mod->is_mandatory)
-                                                <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Mandatory</span>
-                                            @endif
+                                            <div class="d-flex align-items-center gap-2">
+                                                @if($mod->is_mandatory)
+                                                    <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">Mandatory</span>
+                                                @endif
+                                                @if(!$isEnrolled)
+                                                    <span class="badge bg-secondary-subtle text-muted rounded-pill px-2.5 py-1 small d-flex align-items-center gap-1">
+                                                        <i class="bi bi-lock-fill"></i> Locked
+                                                    </span>
+                                                @else
+                                                    <a href="{{ route('learning.player', ['course' => $course->slug]) }}" class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1 small text-decoration-none">
+                                                        <i class="bi bi-play-fill"></i> Access
+                                                    </a>
+                                                @endif
+                                            </div>
                                         </li>
                                     @endforeach
                                 </ul>
@@ -196,7 +323,14 @@
         <div class="col-lg-4">
             <div class="lms-card p-4 p-lg-5 shadow-lg sticky-top border-0 rounded-4" style="top: 100px; background: var(--lms-surface-card);">
                 <div class="mb-3">
-                    <span class="badge badge-purple-soft rounded-pill px-3 py-1 small fw-bold">Enrollment Fee</span>
+                    <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                        <span class="badge badge-purple-soft rounded-pill px-3 py-1 small fw-bold">Enrollment Fee</span>
+                        @if($course->special_pricing_tag)
+                            <span class="badge rounded-pill px-2.5 py-1 small fw-bold font-mono text-white shadow-xs" style="background: linear-gradient(135deg, #723EC3, #2563EB);">
+                                <i class="bi bi-tag-fill me-1"></i> {{ $course->special_pricing_tag }}
+                            </span>
+                        @endif
+                    </div>
                     <div class="display-5 fw-bold font-mono mt-2" style="color: var(--lms-accent);">
                         {{ $course->formattedPrice() }}
                     </div>
@@ -240,11 +374,11 @@
                     @endif
                 @else
                     <div class="text-center">
-                        <a href="{{ route('login') }}" class="tj-btn-primary w-100 py-3 mb-2 justify-content-center shadow">
+                        <a href="{{ route('login', ['redirect' => url()->full()]) }}" class="tj-btn-primary w-100 py-3 mb-2 justify-content-center shadow">
                             <span>Sign In to Enroll</span>
                             <span class="btn-icon"><i class="bi bi-arrow-right"></i></span>
                         </a>
-                        <div class="small text-muted">Don't have an account? <a href="{{ route('register') }}" class="text-primary fw-semibold">Register Now</a></div>
+                        <div class="small text-muted">Don't have an account? <a href="{{ route('register', ['redirect' => url()->full()]) }}" class="text-primary fw-semibold">Register Now</a></div>
                     </div>
                 @endauth
 

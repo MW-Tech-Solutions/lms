@@ -30,4 +30,9 @@ class Assignment extends Model
     {
         return $this->hasMany(AssignmentSubmission::class);
     }
+
+    public function module()
+    {
+        return $this->hasOne(CourseModule::class, 'instance_id')->where('module_type', CourseModule::TYPE_ASSIGNMENT);
+    }
 }

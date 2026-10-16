@@ -8,6 +8,8 @@
          selectedSnapshot: null,
          showCreateModal: false,
          showEditModal: false,
+         liveSearch: '',
+         questionMode: 'random',
 
          // Edit Quiz Object
          editQuiz: {
@@ -60,27 +62,56 @@
             </div>
         </div>
 
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <a href="{{ route('admin.quizzes.questions.index') }}" class="btn btn-outline-primary btn-sm shadow-sm">
+                <i class="bi bi-collection-fill me-1"></i> Question Bank &amp; Upload
+            </a>
             <a href="{{ route('admin.courses.index') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
                 <i class="bi bi-arrow-left me-1"></i> Back to Courses
             </a>
 
-            <!-- Create Assessment Modal Trigger -->
-            <button class="tj-btn-primary py-2 px-3 small shadow-sm" type="button" @click="showCreateModal = true">
-                <i class="bi bi-plus-lg me-1"></i>
-                <span>Create Assessment / Exam</span>
-            </button>
+            @if($isTeacher && !auth()->user()->isApprovedTeacher())
+                <button type="button" class="btn btn-secondary py-2 px-3 small shadow-sm rounded-pill opacity-75" disabled title="Administrator Approval Required">
+                    <i class="bi bi-lock-fill me-1"></i> Awaiting Admin Approval
+                </button>
+            @else
+                <!-- Create Assessment Modal Trigger -->
+                <button class="tj-btn-primary py-2 px-3 small shadow-sm" type="button" @click="showCreateModal = true">
+                    <i class="bi bi-plus-lg me-1"></i>
+                    <span>Create Assessment / Exam</span>
+                </button>
+            @endif
         </div>
     </div>
 
+    @if($isTeacher && !auth()->user()->isApprovedTeacher())
+        <!-- Teacher Pending Verification Notification Banner -->
+        <div class="alert alert-warning border-0 shadow-sm rounded-4 mb-4 d-flex align-items-center justify-content-between p-3" style="background: rgba(245, 158, 11, 0.12); border-left: 5px solid #F59E0B !important;">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center" style="width: 40px; height: 40px; font-size: 1.25rem;">
+                    <i class="bi bi-shield-exclamation"></i>
+                </div>
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark">Faculty Account Pending Administrator Approval</h6>
+                    <span class="small text-secondary">Your instructor account is currently undergoing verification. You cannot initiate tests, create quizzes, or publish assessments until an administrator approves your profile.</span>
+                </div>
+            </div>
+            <span class="badge bg-warning text-dark font-mono px-3 py-2 rounded-pill">PENDING APPROVAL</span>
+        </div>
+    @endif
+
     <!-- Active Assessments Table -->
     <div class="lms-card p-4 shadow-sm mb-4">
-        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom flex-wrap gap-2">
             <div>
                 <h5 class="fw-bold mb-0" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary);">
                     <i class="bi bi-patch-question text-primary me-2"></i>Configured Assessments &amp; Examinations
                 </h5>
                 <span class="text-muted small">Total Configured Quizzes: {{ $quizzes->count() }}</span>
+            </div>
+            <div class="input-group input-group-sm" style="width: 240px;">
+                <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" x-model="liveSearch" class="form-control border-start-0" placeholder="Live search assessments...">
             </div>
         </div>
 
@@ -104,7 +135,7 @@
                             $isActive = $quiz->isActive();
                             $flags = $quiz->anti_cheat_flags ?? [];
                         @endphp
-                        <tr>
+                        <tr x-show="!liveSearch || '{{ strtolower(addslashes($quiz->title . ' ' . ($quiz->course?->title ?? ''))) }}'.includes(liveSearch.toLowerCase().trim())">
                             <td class="py-3">
                                 <div class="fw-bold text-dark">{{ $quiz->title }}</div>
                                 <div class="small text-muted font-mono" style="font-size: 0.75rem;">
@@ -152,7 +183,13 @@
                                 {{ $quiz->attempts()->count() }}
                             </td>
                             <td class="text-end pe-3">
-                                <div class="d-flex gap-1.5 justify-content-end">
+                                    <a href="{{ route('admin.quizzes.questions.index') }}" 
+                                       class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 shadow-sm"
+                                       title="Manage Questions in Bank">
+                                        <i class="bi bi-collection"></i>
+                                        <span class="d-none d-md-inline">Questions</span>
+                                    </a>
+
                                     <!-- Edit Assessment Button -->
                                     <button class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 shadow-sm"
                                             @click="openEditQuiz({{ json_encode($quiz) }})"
@@ -261,107 +298,219 @@
          x-cloak 
          @click.self="showCreateModal = false" 
          @keydown.escape.window="showCreateModal = false">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content lms-card p-3 shadow-lg border-0 rounded-4">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content lms-card p-2 p-md-3 shadow-lg border-0 rounded-4">
                 <div class="modal-header border-bottom pb-3">
                     <div class="d-flex align-items-center gap-2">
-                        <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: rgba(114, 62, 195, 0.12); color: var(--lms-accent);">
-                            <i class="bi bi-patch-question-fill"></i>
+                        <div class="sidebar-icon-box rounded-2 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; background: rgba(114, 62, 195, 0.12); color: var(--lms-accent);">
+                            <i class="bi bi-patch-question-fill fs-5"></i>
                         </div>
-                        <h5 class="modal-title fw-bold" style="font-family: var(--lms-font-heading);">Create Assessment, Quiz or Exam</h5>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" style="font-family: var(--lms-font-heading);">Create Assessment or Quiz</h5>
+                            <span class="text-muted small">Configure exam parameters, link course, and source questions.</span>
+                        </div>
                     </div>
                     <button type="button" class="btn-close" @click="showCreateModal = false"></button>
                 </div>
                 <form action="{{ route('admin.quizzes.store') }}" method="POST">
                     @csrf
-                    <div class="modal-body py-4">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label class="form-label small fw-semibold">Assessment / Examination Title <span class="text-danger">*</span></label>
-                                <input type="text" name="title" class="form-control" required placeholder="e.g. ISO 27001 Annual Recertification Exam">
+                    <div class="modal-body py-3">
+                        <!-- SECTION A: CORE PARAMETERS -->
+                        <div class="p-3 rounded-3 mb-3 border" style="background: var(--lms-bg-body);">
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <span class="badge bg-primary rounded-circle p-1 px-2" style="font-size: 0.72rem;">1</span>
+                                <h6 class="fw-bold mb-0 small text-uppercase font-mono text-dark">Assessment Details</h6>
                             </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label small fw-semibold">Link to Program / Course (Optional)</label>
-                                <select name="course_id" class="form-select">
-                                    <option value="">Independent Exam (Not tied to specific course)</option>
-                                    @foreach($courses as $course)
-                                        <option value="{{ $course->id }}">{{ $course->title }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label small fw-semibold">Time Limit (Minutes) <span class="text-danger">*</span></label>
-                                <input type="number" name="time_limit_minutes" class="form-control font-mono" required value="30" min="1" max="480">
-                                <div class="form-text small">Maximum duration allowed for each attempt.</div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label small fw-semibold">Max Attempts / Trial Times <span class="text-danger">*</span></label>
-                                <input type="number" name="max_attempts" class="form-control font-mono" required value="2" min="1" max="50">
-                                <div class="form-text small">How many times a learner can attempt before locking.</div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label small fw-semibold">Passing Threshold (%) <span class="text-danger">*</span></label>
-                                <input type="number" name="passing_percentage" class="form-control font-mono" required value="80" min="1" max="100">
-                                <div class="form-text small">Minimum grade percentage required to pass.</div>
-                            </div>
-
-                            <div class="col-12 mt-4 pt-2 border-top">
-                                <h6 class="fw-bold small text-uppercase text-secondary font-mono mb-2">Anti-Cheat Directives &amp; Security Protocols</h6>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-check p-2.5 rounded border" style="background: var(--lms-bg-secondary);">
-                                    <input class="form-check-input ms-0 me-2" type="checkbox" name="blur_detection" value="1" id="createBlur" checked>
-                                    <label class="form-check-label fw-semibold small" for="createBlur">
-                                        Tab Blur Detection
-                                    </label>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold">Assessment Title <span class="text-danger">*</span></label>
+                                    <input type="text" name="title" class="form-control" required placeholder="e.g. Cambridge IGCSE Physics Chapter 1 Mastery Check">
                                 </div>
-                            </div>
 
-                            <div class="col-md-4">
-                                <div class="form-check p-2.5 rounded border" style="background: var(--lms-bg-secondary);">
-                                    <input class="form-check-input ms-0 me-2" type="checkbox" name="block_copy_paste" value="1" id="createCopy" checked>
-                                    <label class="form-check-label fw-semibold small" for="createCopy">
-                                        Copy/Paste Intercept
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">
+                                        Assigned Course <span class="text-danger">*</span>
+                                        @if(isset($isTeacher) && $isTeacher)
+                                            <span class="badge bg-purple-subtle text-purple ms-1" style="font-size: 0.65rem;">Your Created Courses Only</span>
+                                        @endif
                                     </label>
+                                    <select name="course_id" class="form-select" id="quizCourseSelect">
+                                        <option value="">Independent Assessment (All Courses)</option>
+                                        @foreach($courses as $course)
+                                            <option value="{{ $course->id }}">
+                                                {{ $course->course_code }} &bull; {{ $course->title }}
+                                            </option>
+                                        @endforeach
+                                    </select>
                                 </div>
-                            </div>
 
-                            <div class="col-md-4">
-                                <div class="form-check p-2.5 rounded border" style="background: var(--lms-bg-secondary);">
-                                    <input class="form-check-input ms-0 me-2" type="checkbox" name="webcam_snapshots" value="1" id="createWebcam" checked>
-                                    <label class="form-check-label fw-semibold small" for="createWebcam">
-                                        Webcam Snapshots
-                                    </label>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Time Limit (Minutes) <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" name="time_limit_minutes" class="form-control font-mono" required value="30" min="1" max="480">
+                                        <span class="input-group-text bg-light text-muted">Minutes</span>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="col-md-6 mt-3">
-                                <div class="form-check form-switch p-2.5 rounded border" style="background: var(--lms-bg-secondary);">
-                                    <input class="form-check-input ms-0 me-3" type="checkbox" name="shuffle_questions" value="1" id="createShuffle">
-                                    <label class="form-check-label fw-semibold small" for="createShuffle">
-                                        Shuffle Questions Order
-                                    </label>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Passing Threshold (%) <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" name="passing_percentage" class="form-control font-mono" required value="80" min="1" max="100">
+                                        <span class="input-group-text bg-light text-muted">%</span>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="col-md-6 mt-3">
-                                <div class="form-check form-switch p-2.5 rounded border" style="background: var(--lms-bg-secondary);">
-                                    <input class="form-check-input ms-0 me-3" type="checkbox" name="is_active" value="1" id="createActive" checked>
-                                    <label class="form-check-label fw-semibold small" for="createActive">
-                                        Activate &amp; Publish Immediately
-                                    </label>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Max Attempts / Trial Times <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" name="max_attempts" class="form-control font-mono" required value="2" min="1" max="50">
+                                        <span class="input-group-text bg-light text-muted">Attempts</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- SECTION B: QUESTION SOURCING STRATEGY -->
+                        <div class="p-3 rounded-3 mb-3 border" style="background: var(--lms-bg-body);">
+                            <div class="d-flex justify-content-between align-items-center mb-2.5">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary rounded-circle p-1 px-2" style="font-size: 0.72rem;">2</span>
+                                    <h6 class="fw-bold mb-0 small text-uppercase font-mono text-dark">Question Provisioning Strategy</h6>
+                                </div>
+                                <a href="{{ route('admin.quizzes.questions.index') }}" target="_blank" class="small text-primary text-decoration-none fw-semibold">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>Open Question Bank
+                                </a>
+                            </div>
+
+                            <!-- 3 Strategy Radio Cards -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <label class="p-2.5 rounded border d-block cursor-pointer transition-all h-100"
+                                           :class="questionMode === 'random' ? 'border-primary bg-primary bg-opacity-10 shadow-xs' : 'bg-white'">
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <input type="radio" name="question_mode" value="random" x-model="questionMode" class="form-check-input mt-0">
+                                            <span class="fw-bold small">Auto-Fetch Random</span>
+                                        </div>
+                                        <span class="text-muted small d-block" style="font-size: 0.72rem; line-height: 1.3;">
+                                            Pull N questions from the selected course or chapter bank.
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="p-2.5 rounded border d-block cursor-pointer transition-all h-100"
+                                           :class="questionMode === 'specific' ? 'border-primary bg-primary bg-opacity-10 shadow-xs' : 'bg-white'">
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <input type="radio" name="question_mode" value="specific" x-model="questionMode" class="form-check-input mt-0">
+                                            <span class="fw-bold small">Pick from Bank</span>
+                                        </div>
+                                        <span class="text-muted small d-block" style="font-size: 0.72rem; line-height: 1.3;">
+                                            Select specific questions individually from your repository.
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="p-2.5 rounded border d-block cursor-pointer transition-all h-100"
+                                           :class="questionMode === 'none' ? 'border-primary bg-primary bg-opacity-10 shadow-xs' : 'bg-white'">
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <input type="radio" name="question_mode" value="none" x-model="questionMode" class="form-check-input mt-0">
+                                            <span class="fw-bold small">Add Later</span>
+                                        </div>
+                                        <span class="text-muted small d-block" style="font-size: 0.72rem; line-height: 1.3;">
+                                            Create the exam container first, populate questions afterwards.
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Mode A: Auto Fetch Inputs -->
+                            <div x-show="questionMode === 'random'" class="bg-white p-3 rounded-2 border">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Number of Questions to Fetch</label>
+                                        <input type="number" name="fetch_count" class="form-control form-control-sm font-mono" value="10" min="1" max="100">
+                                        <div class="form-text small">Randomly pulls questions matching the course.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Chapter / Section Filter (Optional)</label>
+                                        <input type="text" name="fetch_chapter" class="form-control form-control-sm" placeholder="e.g. Chapter 1: Kinematics">
+                                        <div class="form-text small">Leave blank to pool from all chapters of the course.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Mode B: Pick Specific Questions -->
+                            <div x-show="questionMode === 'specific'" class="bg-white p-3 rounded-2 border" style="max-height: 220px; overflow-y: auto;">
+                                @if(isset($availableQuestions) && $availableQuestions->isNotEmpty())
+                                    <div class="vstack gap-2">
+                                        @foreach($availableQuestions as $q)
+                                            <div class="form-check p-2 rounded border-bottom d-flex align-items-start gap-2">
+                                                <input class="form-check-input mt-1" type="checkbox" name="question_ids[]" value="{{ $q->id }}" id="qCheck{{ $q->id }}">
+                                                <label class="form-check-label small flex-grow-1" for="qCheck{{ $q->id }}">
+                                                    <span class="fw-semibold text-dark d-block">{{ Str::limit($q->question_text, 90) }}</span>
+                                                    <span class="text-muted font-mono" style="font-size: 0.7rem;">
+                                                        {{ $q->points }} pt &bull; {{ $q->chapter ?? 'General' }}
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="text-center py-3 text-muted small">
+                                        No questions currently in bank.
+                                        <a href="{{ route('admin.quizzes.questions.index') }}" target="_blank" class="fw-bold text-primary">Upload or Add Questions</a>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- SECTION C: SECURITY PROTOCOLS & STATUS -->
+                        <div class="p-3 rounded-3 border" style="background: var(--lms-bg-body);">
+                            <div class="d-flex align-items-center gap-2 mb-2.5">
+                                <span class="badge bg-primary rounded-circle p-1 px-2" style="font-size: 0.72rem;">3</span>
+                                <h6 class="fw-bold mb-0 small text-uppercase font-mono text-dark">Anti-Cheat Directives &amp; Publication</h6>
+                            </div>
+
+                            <div class="row g-2">
+                                <div class="col-sm-4">
+                                    <div class="form-check p-2 rounded border bg-white">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" name="blur_detection" value="1" id="createBlur" checked>
+                                        <label class="form-check-label fw-semibold small" for="createBlur">Tab Blur Guard</label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-check p-2 rounded border bg-white">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" name="block_copy_paste" value="1" id="createCopy" checked>
+                                        <label class="form-check-label fw-semibold small" for="createCopy">Clipboard Guard</label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-check p-2 rounded border bg-white">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" name="webcam_snapshots" value="1" id="createWebcam" checked>
+                                        <label class="form-check-label fw-semibold small" for="createWebcam">Webcam Snapshots</label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 mt-2">
+                                    <div class="form-check form-switch p-2 rounded border bg-white">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" name="shuffle_questions" value="1" id="createShuffle">
+                                        <label class="form-check-label fw-semibold small" for="createShuffle">Shuffle Question Order</label>
+                                    </div>
+                                </div>
+                                <div class="col-sm-6 mt-2">
+                                    <div class="form-check form-switch p-2 rounded border bg-white">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" name="is_active" value="1" id="createActive" checked>
+                                        <label class="form-check-label fw-semibold small text-success" for="createActive">Publish &amp; Activate Immediately</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                     <div class="modal-footer border-0 pt-0">
-                        <button type="button" class="btn btn-secondary" @click="showCreateModal = false">Cancel</button>
-                        <button type="submit" class="tj-btn-primary px-4 py-2">Create &amp; Activate Assessment</button>
+                        <button type="button" class="btn btn-secondary btn-sm" @click="showCreateModal = false">Cancel</button>
+                        <button type="submit" class="tj-btn-primary px-4 py-2">
+                            <i class="bi bi-check-lg me-1"></i> Create Assessment
+                        </button>
                     </div>
                 </form>
             </div>

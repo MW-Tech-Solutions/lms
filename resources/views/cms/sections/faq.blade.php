@@ -1,41 +1,56 @@
 @php
     $c = $section->content_json ?? [];
-    $title = $c['title'] ?? 'Frequently Asked Questions';
-    $subtitle = $c['subtitle'] ?? 'Everything you need to know about ' . ($site_settings['brand_name'] ?? 'Lerntix') . '. Find clarity in seconds.';
+    $rawTitle = $c['title'] ?? 'Frequently Asked Questions';
+    $title = trim(str_ireplace(['(admin updated)', '(admin updated', 'admin updated)'], '', $rawTitle));
+    $subtitle = $c['subtitle'] ?? 'Everything you need to know about Cambridge preparation, past papers, and account access.';
     
-    $supportTitle = $c['support_title'] ?? 'Still Need Help?';
-    $supportSubtitle = $c['support_subtitle'] ?? 'Our support team is available 24/7 to guide you through your learning journey.';
-    $supportEmail = $c['support_email'] ?? ($site_settings['contact_email'] ?? 'hello@lerntix.com');
-    $supportImage = $c['support_image'] ?? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80';
+    $supportTitle = $c['support_title'] ?? 'Need Cambridge Advisory?';
+    $supportSubtitle = $c['support_subtitle'] ?? 'Our academic support team helps students and teachers excel in Cambridge International examinations.';
+    $supportEmail = $c['support_email'] ?? ($site_settings['contact_email'] ?? 'support@allthingscambridge.co.uk');
+    $supportImage = $c['support_image'] ?? 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80';
 
-    $defaultFaqs = [
-        [
-            'question' => 'What makes ' . ($site_settings['brand_name'] ?? 'Lerntix') . ' different from other LMS platforms?',
-            'answer' => ($site_settings['brand_name'] ?? 'Lerntix') . ' combines AI-driven learning paths, hands-on labs, and real-time progress analytics. Unlike traditional LMS, we offer adaptive quizzes, industry-verified certificates, and a vibrant mentor community — all in one intuitive dashboard.',
-        ],
-        [
-            'question' => 'Are the certificates recognized by employers?',
-            'answer' => 'Yes! Every certificate issued contains a unique verification UUID and QR code that can be authenticated instantly by employers and university registries worldwide.',
-        ],
-        [
-            'question' => 'Can I try ' . ($site_settings['brand_name'] ?? 'Lerntix') . ' before subscribing?',
-            'answer' => 'Absolutely. You can explore foundational modules and select workshops completely free before deciding on individual or enterprise corporate subscriptions.',
-        ],
-        [
-            'question' => 'Are the courses self-paced or live?',
-            'answer' => 'Both. We offer flexible self-paced video modules with interactive coding playgrounds alongside scheduled live masterclasses and instructor office hours.',
-        ],
-        [
-            'question' => 'Is there a mobile app for offline learning?',
-            'answer' => 'Yes. Our platform is completely responsive and supports offline lesson caching so you can study smoothly on smartphones, tablets, or laptops anywhere.',
-        ],
-        [
-            'question' => 'Can teams or businesses use ' . ($site_settings['brand_name'] ?? 'Lerntix') . '?',
-            'answer' => 'Yes. Our dedicated Corporate Console features CBAC role assignment, SCORM packages, employee completion matrices, and automated compliance recertification engines.',
-        ],
-    ];
+    // Query active FAQs directly from database managed by admin, unique by question
+    $dbFaqs = \App\Models\Faq::where('is_published', true)
+        ->orderBy('sort_order')
+        ->get()
+        ->unique(fn($item) => trim(strtolower($item->question)));
 
-    $faqs = !empty($c['faqs']) ? $c['faqs'] : $defaultFaqs;
+    $faqs = [];
+    if ($dbFaqs->isNotEmpty()) {
+        foreach ($dbFaqs as $f) {
+            $faqs[] = [
+                'question' => $f->question,
+                'answer' => $f->answer,
+            ];
+        }
+    } else {
+        $faqs = [
+            [
+                'question' => 'How does the 5-tier Cambridge Assessment Isolation work?',
+                'answer' => 'To prevent curriculum confusion, our platform isolates the 5 distinct Cambridge tiers (Primary Checkpoint, Lower Secondary, IGCSE, AS Level, and A Level). A student subscribed to A-Level Mathematics accesses only relevant A-Level resources and syllabus requirements.',
+            ],
+            [
+                'question' => 'How does the automated Esther Math Past-Paper Tracker work?',
+                'answer' => 'Whenever you complete a past paper series (e.g. May/June 2026 P1), you key in your raw score (e.g. 45/50). The system immediately calculates your percentage and color-codes the cell: Green (>=75% Mastery), Amber (50-74% Developing), or Red (<50% Remedial). Red/Amber cells feature an instant One-Click Retake Paper action.',
+            ],
+            [
+                'question' => 'How do Parent and Student accounts link securely?',
+                'answer' => 'Inside the student dashboard, clicking "Generate Parent Invite" produces a unique, secure 6-character code (e.g. CMP-742K) valid for 48 hours. The parent enters this code to instantly link. Parents can view high-level progress, study streaks, and Esther Math matrices across multiple children, but cannot alter student quiz submissions or timers.',
+            ],
+            [
+                'question' => 'What resources are Free vs. Paid (Freemium Gatekeeper)?',
+                'answer' => 'Standard unworked past exam question papers and official Cambridge syllabus specifications remain completely free to download. Step-by-step worked solutions, downloadable revision summaries, topical past paper packs, video explanations, interactive flashcards, and the automated performance tracker require an active subscription.',
+            ],
+            [
+                'question' => 'Are mathematical equations and chemical formulas rendered clearly?',
+                'answer' => 'Yes! We use native LaTeX and KaTeX rendering engines for Cambridge Mathematics (9709), Physics (9702), and Chemistry. Equations, integrals, matrices, fractions, and chemical notations render razor-sharp across smartphones, tablets, and desktops.',
+            ],
+            [
+                'question' => 'What payment options and subscription terms are available?',
+                'answer' => 'Subscriptions are priced in British Pounds (GBP / £) for 3-Month and 12-Month recurring terms powered by Stripe (accepting UK cards, international cards, Apple Pay, Google Pay, and PayPal).',
+            ],
+        ];
+    }
 @endphp
 
 <section class="faq-section py-5 position-relative" style="background: var(--lms-bg-body);"

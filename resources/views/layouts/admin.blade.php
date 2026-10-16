@@ -15,7 +15,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Admin Hub') - {{ $site_settings['brand_name'] ?? 'Enterprise Academy' }}</title>
+    <title>{{ $site_settings['brand_name'] ?? config('app.name', 'AllThingsCambridge') }} &bull; @yield('title', 'Admin Management Console')</title>
 
     <!-- Favicon from Dynamic Brand Settings -->
     <link rel="icon" type="image/x-icon" href="{{ !empty($site_settings['brand_favicon_url']) ? $site_settings['brand_favicon_url'] : asset('favicon.ico') }}">
@@ -49,6 +49,38 @@
             --lms-text-secondary: #CBD5E1;
             --lms-text-muted: #94A3B8;
         }
+
+        /* Sticky Fixed Admin Topbar and Independent Scrollable Sidebar */
+        .admin-navbar {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 1040 !important;
+            height: 72px;
+            background: var(--lms-surface-card) !important;
+            border-bottom: 1px solid var(--lms-border) !important;
+        }
+        .admin-sidebar {
+            position: sticky !important;
+            top: 72px !important;
+            height: calc(100vh - 72px) !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            width: 280px !important;
+            flex-shrink: 0 !important;
+            background: var(--lms-surface-card) !important;
+            border-right: 1px solid var(--lms-border) !important;
+            scrollbar-width: thin;
+        }
+        .admin-sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .admin-sidebar::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 4px;
+        }
+        .admin-sidebar::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
+        }
     </style>
 
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
@@ -65,9 +97,15 @@
 
             <!-- Brand Logo -->
             <a class="navbar-brand d-flex align-items-center gap-2 fw-bold m-0" href="{{ route('admin.dashboard') }}">
-                <span class="badge rounded-3 p-2 shadow-sm" style="background: linear-gradient(135deg, var(--lms-accent), #FF4D00); font-size: 1.1rem; color: #FFF;">
-                    <i class="bi bi-building-gear"></i>
-                </span>
+                @if(!empty($site_settings['brand_logo_url']))
+                    <img src="{{ $site_settings['brand_logo_url'] }}" alt="Logo" height="36" class="rounded-2 shadow-xs">
+                @elseif(file_exists(public_path('images/site_logo.png')))
+                    <img src="{{ asset('images/site_logo.png') }}" alt="Logo" height="36" class="rounded-2 shadow-xs">
+                @else
+                    <span class="badge rounded-3 p-2 shadow-sm" style="background: linear-gradient(135deg, var(--lms-accent), #FF4D00); font-size: 1.1rem; color: #FFF;">
+                        <i class="bi bi-mortarboard-fill"></i>
+                    </span>
+                @endif
                 <div class="d-flex flex-column">
                     <span style="font-family: var(--lms-font-heading); font-size: 1.2rem; font-weight: 800; color: var(--lms-text-primary); letter-spacing: -0.5px; line-height: 1;">
                         {{ $site_settings['brand_name'] ?? 'Enterprise Academy' }}
@@ -125,6 +163,10 @@
                             <a class="dropdown-item py-2 rounded-2 small" href="{{ route('admin.settings.index') }}">
                                 <i class="bi bi-sliders text-secondary me-2"></i>System Settings
                             </a>
+                        <li>
+                            <a class="dropdown-item py-2 rounded-2 small" href="{{ route('profile.security') }}">
+                                <i class="bi bi-shield-lock text-warning me-2"></i>2FA &amp; Security Settings
+                            </a>
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
@@ -178,10 +220,10 @@
             </div>
 
             {{-- =========================================================================
-                 1. SUPER ADMINISTRATOR DEDICATED SIDEBAR (FULL SYSTEM CONTROL)
+                 1. SUPER ADMINISTRATOR & MANAGEMENT CORE SIDEBAR
                  ========================================================================= --}}
             @if($isSuperAdmin)
-                <div class="sidebar-heading text-nowrap">System &amp; Executive Core</div>
+                <div class="sidebar-heading text-nowrap">Core Administrative Operations</div>
                 <ul class="nav flex-column mb-2">
                     <li class="nav-item">
                         <a class="nav-link text-nowrap {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
@@ -190,43 +232,55 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.compliance*') ? 'active' : '' }}" href="{{ route('admin.compliance.index') }}">
-                            <div class="sidebar-icon-box"><i class="bi bi-shield-check"></i></div>
-                            <span class="text-nowrap">Compliance &amp; Audits</span>
+                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.users*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
+                            <div class="sidebar-icon-box"><i class="bi bi-people-fill text-primary"></i></div>
+                            <span class="text-nowrap fw-semibold">Users Directory</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-nowrap" href="{{ route('admin.compliance.export-csv') }}">
-                            <div class="sidebar-icon-box"><i class="bi bi-file-earmark-spreadsheet"></i></div>
-                            <span class="text-nowrap">Audit Trail Export</span>
+                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.teachers*') ? 'active' : '' }}" href="{{ route('admin.teachers.index') }}">
+                            <div class="sidebar-icon-box"><i class="bi bi-person-check-fill text-info"></i></div>
+                            <span class="text-nowrap fw-semibold">Teachers &amp; Approvals</span>
                         </a>
                     </li>
                 </ul>
 
-                <div class="sidebar-heading text-nowrap">Academic Subsystems &amp; Engine</div>
+                <div class="sidebar-heading text-nowrap">Cambridge Content &amp; Moderation</div>
                 <ul class="nav flex-column mb-2">
                     <li class="nav-item">
-                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.courses*') ? 'active' : '' }}" href="{{ route('admin.courses.index') }}">
-                            <div class="sidebar-icon-box"><i class="bi bi-journal-richtext"></i></div>
-                            <span class="text-nowrap">Course Curriculum</span>
+                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.levels*') ? 'active' : '' }}" href="{{ route('admin.levels.index') }}">
+                            <div class="sidebar-icon-box"><i class="bi bi-diagram-3-fill text-warning"></i></div>
+                            <span class="text-nowrap fw-semibold">Levels &amp; Accreditation Approvals</span>
+                            @php
+                                $sidebarPendingLevelsCount = \App\Models\TeacherLevelRequest::where('status', 'PENDING')->count();
+                            @endphp
+                            @if($sidebarPendingLevelsCount > 0)
+                                <span class="badge bg-warning text-dark font-mono rounded-pill ms-auto" style="font-size: 0.65rem;">{{ $sidebarPendingLevelsCount }}</span>
+                            @endif
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.scorm*') ? 'active' : '' }}" href="{{ route('admin.scorm.index') }}">
-                            <div class="sidebar-icon-box"><i class="bi bi-box-seam"></i></div>
-                            <span class="text-nowrap">SCORM 1.2/2004 Registry</span>
+                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.courses*') ? 'active' : '' }}" href="{{ route('admin.courses.index') }}">
+                            <div class="sidebar-icon-box"><i class="bi bi-journal-check text-success"></i></div>
+                            <span class="text-nowrap fw-semibold">Courses &amp; Syllabus Approvals</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-nowrap {{ request()->routeIs('admin.quizzes*') ? 'active' : '' }}" href="{{ route('admin.quizzes.index') }}">
                             <div class="sidebar-icon-box"><i class="bi bi-patch-question"></i></div>
-                            <span class="text-nowrap">Assessments &amp; Anti-Cheat</span>
+                            <span class="text-nowrap">Assessments &amp; Question Banks</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-nowrap {{ request()->routeIs('admin.gradebook*') ? 'active' : '' }}" href="{{ route('admin.gradebook.index') }}">
                             <div class="sidebar-icon-box"><i class="bi bi-calculator"></i></div>
                             <span class="text-nowrap">Weighted Gradebook</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.scorm*') ? 'active' : '' }}" href="{{ route('admin.scorm.index') }}">
+                            <div class="sidebar-icon-box"><i class="bi bi-box-seam"></i></div>
+                            <span class="text-nowrap">SCORM &amp; Media Repository</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -237,30 +291,54 @@
                     </li>
                 </ul>
 
-                <div class="sidebar-heading text-nowrap">Platform &amp; Identity Administration</div>
+                <div class="sidebar-heading text-nowrap">Site Management &amp; Engagement</div>
                 <ul class="nav flex-column mb-2">
                     <li class="nav-item">
-                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.users*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
-                            <div class="sidebar-icon-box"><i class="bi bi-people"></i></div>
-                            <span class="text-nowrap">CBAC Users &amp; Roles</span>
+                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.events*') ? 'active' : '' }}" href="{{ route('admin.events.index') }}">
+                            <div class="sidebar-icon-box"><i class="bi bi-calendar-event text-danger"></i></div>
+                            <span class="text-nowrap fw-semibold">Live Events &amp; Reservations</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.subscriptions*') ? 'active' : '' }}" href="{{ route('admin.subscriptions.index') }}">
+                            <div class="sidebar-icon-box"><i class="bi bi-currency-pound text-success"></i></div>
+                            <span class="text-nowrap fw-semibold">Subscription Plans (£)</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.faqs*') ? 'active' : '' }}" href="{{ route('admin.faqs.index') }}">
+                            <div class="sidebar-icon-box"><i class="bi bi-question-circle text-primary"></i></div>
+                            <span class="text-nowrap fw-semibold">Academic FAQs</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.contact*') ? 'active' : '' }}" href="{{ route('admin.contact.index') }}">
+                            <div class="sidebar-icon-box"><i class="bi bi-chat-dots-fill text-info"></i></div>
+                            <span class="text-nowrap fw-semibold">Contact Inquiries &amp; Chat</span>
+                            @php
+                                $sidebarPendingContactsCount = \App\Models\ContactMessage::where('status', 'PENDING')->count();
+                            @endphp
+                            @if($sidebarPendingContactsCount > 0)
+                                <span class="badge bg-danger text-white font-mono rounded-pill ms-auto" style="font-size: 0.65rem;">{{ $sidebarPendingContactsCount }}</span>
+                            @endif
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-nowrap {{ request()->routeIs('admin.cms*') ? 'active' : '' }}" href="{{ route('admin.cms.index') }}">
                             <div class="sidebar-icon-box"><i class="bi bi-layers"></i></div>
-                            <span class="text-nowrap">Headless CMS Engine</span>
+                            <span class="text-nowrap">Dynamic Homepage CMS</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.compliance*') ? 'active' : '' }}" href="{{ route('admin.compliance.index') }}">
+                            <div class="sidebar-icon-box"><i class="bi bi-shield-check"></i></div>
+                            <span class="text-nowrap">Compliance &amp; Audits</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-nowrap {{ request()->routeIs('admin.settings*') ? 'active' : '' }}" href="{{ route('admin.settings.index') }}">
                             <div class="sidebar-icon-box"><i class="bi bi-sliders"></i></div>
-                            <span class="text-nowrap">Site Dynamic Settings</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-nowrap" href="{{ url('/run-setup.php') }}" target="_blank">
-                            <div class="sidebar-icon-box"><i class="bi bi-tools"></i></div>
-                            <span class="text-nowrap">Server Maintenance Console</span>
+                            <span class="text-nowrap">Site Branding &amp; Settings</span>
                         </a>
                     </li>
                 </ul>
@@ -443,30 +521,24 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-nowrap {{ request()->routeIs('admin.courses*') ? 'active' : '' }}" href="{{ route('admin.courses.index') }}">
-                            <div class="sidebar-icon-box"><i class="bi bi-journal-richtext"></i></div>
-                            <span class="text-nowrap">My Courses &amp; Modules</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.scorm*') ? 'active' : '' }}" href="{{ route('admin.scorm.index') }}">
-                            <div class="sidebar-icon-box"><i class="bi bi-box-seam"></i></div>
-                            <span class="text-nowrap">Course SCORM Packages</span>
+                            <div class="sidebar-icon-box"><i class="bi bi-journal-check text-success"></i></div>
+                            <span class="text-nowrap fw-semibold">My Courses &amp; Materials</span>
                         </a>
                     </li>
                 </ul>
 
-                <div class="sidebar-heading text-nowrap">Grading &amp; Proctoring</div>
+                <div class="sidebar-heading text-nowrap">Assessments &amp; Attendance</div>
                 <ul class="nav flex-column mb-2">
                     <li class="nav-item">
                         <a class="nav-link text-nowrap {{ request()->routeIs('admin.quizzes*') ? 'active' : '' }}" href="{{ route('admin.quizzes.index') }}">
                             <div class="sidebar-icon-box"><i class="bi bi-patch-question"></i></div>
-                            <span class="text-nowrap">Assessments &amp; Anti-Cheat</span>
+                            <span class="text-nowrap">Assessments &amp; Question Banks</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-nowrap {{ request()->routeIs('admin.gradebook*') ? 'active' : '' }}" href="{{ route('admin.gradebook.index') }}">
                             <div class="sidebar-icon-box"><i class="bi bi-calculator"></i></div>
-                            <span class="text-nowrap">Gradebook &amp; Submissions</span>
+                            <span class="text-nowrap">Weighted Gradebook</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -477,18 +549,18 @@
                     </li>
                 </ul>
 
-                <div class="sidebar-heading text-nowrap">Classroom Cohorts</div>
+                <div class="sidebar-heading text-nowrap">Learner Environment</div>
                 <ul class="nav flex-column mb-3">
-                    <li class="nav-item">
-                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.users*') ? 'active' : '' }}" href="{{ route('admin.users.index') }}">
-                            <div class="sidebar-icon-box"><i class="bi bi-people"></i></div>
-                            <span class="text-nowrap">Cohort Student Roster</span>
-                        </a>
-                    </li>
                     <li class="nav-item">
                         <a class="nav-link text-nowrap" href="{{ route('my-learning') }}">
                             <div class="sidebar-icon-box"><i class="bi bi-person-workspace"></i></div>
-                            <span class="text-nowrap">Personal Learning Portal</span>
+                            <span class="text-nowrap">Learner Experience View</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-nowrap" href="{{ route('courses.index') }}" target="_blank">
+                            <div class="sidebar-icon-box"><i class="bi bi-grid"></i></div>
+                            <span class="text-nowrap">Public Course Catalog</span>
                         </a>
                     </li>
                 </ul>
@@ -641,6 +713,103 @@
     @endif
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 System-Wide Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success',
+                    text: {!! json_encode(session('success')) !!},
+                    confirmButtonColor: '#723EC3',
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+            @endif
+
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Notice',
+                    text: {!! json_encode(session('error')) !!},
+                    confirmButtonColor: '#723EC3'
+                });
+            @endif
+
+            @if(session('warning'))
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Warning',
+                    text: {!! json_encode(session('warning')) !!},
+                    confirmButtonColor: '#723EC3'
+                });
+            @endif
+
+            @if(session('info'))
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Information',
+                    text: {!! json_encode(session('info')) !!},
+                    confirmButtonColor: '#723EC3'
+                });
+            @endif
+
+            @if($errors->any())
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validation Error',
+                    html: `<ul class="text-start mb-0 small text-danger">@foreach($errors->all() as $err)<li>{{ $err }}</li>@endforeach</ul>`,
+                    confirmButtonColor: '#723EC3'
+                });
+            @endif
+
+            // Polyfill native window.alert to always use SweetAlert2
+            window.alert = function (message) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Notification',
+                    text: message,
+                    confirmButtonColor: '#723EC3'
+                });
+            };
+        });
+
+        // Global SweetAlert2 Confirm Action Helper
+        window.confirmAction = function(event, message, title = 'Are you sure?') {
+            event.preventDefault();
+            const form = event.target.closest('form') || event.target;
+            Swal.fire({
+                title: title,
+                text: message,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#723EC3',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Yes, proceed',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (form.tagName === 'FORM') {
+                        form.submit();
+                    } else if (event.target.href) {
+                        window.location.href = event.target.href;
+                    }
+                }
+            });
+            return false;
+        };
+
+        // Auto-Scroll Sidebar to Current Active Page Link on Screen
+        document.addEventListener('DOMContentLoaded', function () {
+            const activeSidebarItem = document.querySelector('.admin-sidebar .nav-link.active, .admin-sidebar .active');
+            if (activeSidebarItem) {
+                setTimeout(function() {
+                    activeSidebarItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 200);
+            }
+        });
+    </script>
     @stack('scripts')
 </body>
 </html>

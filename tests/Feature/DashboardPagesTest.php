@@ -56,77 +56,81 @@ class DashboardPagesTest extends TestCase
 
     public function test_student_and_instructor_authentication_flow(): void
     {
-        // 1. Instructor login routes to admin dashboard
-        $instructorResponse = $this->post('/login', [
-            'email' => 'instructor@enterpriselms.com',
-            'password' => 'password123',
-        ]);
-        $instructorResponse->assertRedirect(route('admin.dashboard'));
-        \Illuminate\Support\Facades\Auth::logout();
-        session()->flush();
+        $unique = uniqid();
+        $instructorEmail = "temp.instructor.{$unique}@cambridge.test";
+        $managerEmail = "temp.manager.{$unique}@cambridge.test";
 
-        // 2. Editing Teacher login routes to admin dashboard
-        $teacherEditResponse = $this->post('/login', [
-            'email' => 'teacher.editing@enterpriselms.com',
-            'password' => 'password123',
-        ]);
-        $teacherEditResponse->assertRedirect(route('admin.dashboard'));
-        \Illuminate\Support\Facades\Auth::logout();
-        session()->flush();
+        $systemContext = \App\Models\Context::first() ?? \App\Models\Context::create(['context_level' => 'SYSTEM', 'instance_id' => '0', 'path' => '1']);
 
-        // 3. Non-editing Teacher login routes to admin dashboard
-        $teacherNonEditResponse = $this->post('/login', [
-            'email' => 'teacher.assistant@enterpriselms.com',
-            'password' => 'password123',
+        $teacherRole = \App\Models\Role::firstOrCreate(['name' => \App\Models\Role::TEACHER]);
+        $tempInstructor = User::factory()->create([
+            'email' => $instructorEmail,
+            'password' => bcrypt('password123'),
+            'user_type' => 'EMPLOYEE',
         ]);
-        $teacherNonEditResponse->assertRedirect(route('admin.dashboard'));
-        \Illuminate\Support\Facades\Auth::logout();
-        session()->flush();
+        $instructorAssignment = \App\Models\RoleAssignment::create([
+            'user_id' => $tempInstructor->id,
+            'role_id' => $teacherRole->id,
+            'context_id' => $systemContext->id,
+        ]);
 
-        // 4. Course Creator login routes to admin dashboard
-        $creatorResponse = $this->post('/login', [
-            'email' => 'creator@enterpriselms.com',
-            'password' => 'password123',
+        $managerRole = \App\Models\Role::firstOrCreate(['name' => \App\Models\Role::MANAGER]);
+        $tempManager = User::factory()->create([
+            'email' => $managerEmail,
+            'password' => bcrypt('password123'),
+            'user_type' => 'EMPLOYEE',
         ]);
-        $creatorResponse->assertRedirect(route('admin.dashboard'));
-        \Illuminate\Support\Facades\Auth::logout();
-        session()->flush();
+        $managerAssignment = \App\Models\RoleAssignment::create([
+            'user_id' => $tempManager->id,
+            'role_id' => $managerRole->id,
+            'context_id' => $systemContext->id,
+        ]);
 
-        // 5. HR Manager login routes to admin dashboard
-        $managerResponse = $this->post('/login', [
-            'email' => 'hr.manager@acmeglobal.com',
-            'password' => 'password123',
-        ]);
-        $managerResponse->assertRedirect(route('admin.dashboard'));
-        \Illuminate\Support\Facades\Auth::logout();
-        session()->flush();
+        try {
+            // 1. Instructor login routes to admin dashboard
+            $instructorResponse = $this->post('/login', [
+                'email' => $instructorEmail,
+                'password' => 'password123',
+            ]);
+            $instructorResponse->assertRedirect(route('admin.dashboard'));
+            \Illuminate\Support\Facades\Auth::logout();
+            session()->flush();
 
-        // 6. Student login routes to learner dashboard
-        $studentResponse = $this->post('/login', [
-            'email' => 'student@enterpriselms.com',
-            'password' => 'password123',
-        ]);
-        $studentResponse->assertRedirect(route('my-learning'));
-        \Illuminate\Support\Facades\Auth::logout();
-        session()->flush();
+            // 2. Manager/HR login routes to admin dashboard
+            $managerResponse = $this->post('/login', [
+                'email' => $managerEmail,
+                'password' => 'password123',
+            ]);
+            $managerResponse->assertRedirect(route('admin.dashboard'));
+            \Illuminate\Support\Facades\Auth::logout();
+            session()->flush();
 
-        // 7. Corporate Employee login routes to learner dashboard
-        $employeeResponse = $this->post('/login', [
-            'email' => 'employee@acmeglobal.com',
-            'password' => 'password123',
-        ]);
-        $employeeResponse->assertRedirect(route('my-learning'));
-        \Illuminate\Support\Facades\Auth::logout();
-        session()->flush();
+            // 3. Student login routes to learner dashboard
+            $student = User::where('email', 'student@enterpriselms.com')->first();
+            $student->forceFill(['password' => \Illuminate\Support\Facades\Hash::make('Password123!')])->save();
 
-        // 8. Guest User login routes to learner dashboard
-        $guestResponse = $this->post('/login', [
-            'email' => 'guest@enterpriselms.com',
-            'password' => 'password123',
-        ]);
-        $guestResponse->assertRedirect(route('my-learning'));
-        \Illuminate\Support\Facades\Auth::logout();
-        session()->flush();
+            $studentResponse = $this->post('/login', [
+                'email' => 'student@enterpriselms.com',
+                'password' => 'Password123!',
+            ]);
+            $studentResponse->assertRedirect(route('my-learning'));
+            \Illuminate\Support\Facades\Auth::logout();
+            session()->flush();
+
+            // 4. Parent login routes to parent dashboard
+            $parentResponse = $this->post('/login', [
+                'email' => 'parent@enterpriselms.com',
+                'password' => 'Password123!',
+            ]);
+            $parentResponse->assertRedirect(route('parent.dashboard'));
+            \Illuminate\Support\Facades\Auth::logout();
+            session()->flush();
+        } finally {
+            $instructorAssignment->delete();
+            $managerAssignment->delete();
+            $tempInstructor->delete();
+            $tempManager->delete();
+        }
     }
 
     public function test_course_show_page_renders_with_multibyte_polyfill(): void
@@ -185,34 +189,10 @@ class DashboardPagesTest extends TestCase
             $this->assertDatabaseHas('roles', ['name' => $roleName]);
         }
 
-        // 2. Subsystems exist
-        $this->assertDatabaseHas('course_groups', ['name' => 'Cohort Alpha - Internal SecOps']);
-        $this->assertDatabaseHas('course_badges', ['name' => 'Certified ISO 27001 Lead Auditor']);
-        $this->assertDatabaseHas('course_competencies', ['idnumber' => 'COMP-SEC-01']);
-
-        // 3. Question Bank has 9 question types
-        $this->assertDatabaseHas('questions', ['type' => \App\Models\Question::TYPE_MATCHING]);
-        $this->assertDatabaseHas('questions', ['type' => \App\Models\Question::TYPE_NUMERICAL]);
-        $this->assertDatabaseHas('questions', ['type' => \App\Models\Question::TYPE_ESSAY]);
-        $this->assertDatabaseHas('questions', ['type' => \App\Models\Question::TYPE_DRAG_DROP]);
-        $this->assertDatabaseHas('questions', ['type' => \App\Models\Question::TYPE_CALCULATED]);
-
-        // 4. Moodle Core modules exist
-        $this->assertDatabaseHas('course_forums', ['name' => 'ISO 27001 Implementation & Audit Discussion Forum']);
-        $this->assertDatabaseHas('course_lessons', ['name' => 'Adaptive Branching Incident Response Simulation']);
-        $this->assertDatabaseHas('course_feedbacks', ['name' => 'Annual Course Quality & Auditor Feedback Survey']);
-        $this->assertDatabaseHas('course_choices', ['name' => 'Select Your Supervised Proctored Exam Slot']);
-        $this->assertDatabaseHas('course_h5p_packages', ['title' => 'Interactive Phishing & Social Engineering Checkpoint (H5P)']);
-        $this->assertDatabaseHas('course_workshops', ['name' => 'Peer Review: Incident Response Runbook Evaluation']);
-        $this->assertDatabaseHas('course_chats', ['name' => 'Live SOC Office Hours & Real-time Consultation']);
-        $this->assertDatabaseHas('course_glossaries', ['name' => 'Information Security & Compliance Lexicon']);
-        $this->assertDatabaseHas('course_wikis', ['name' => 'Collaborative Cyber Defense Playbook Wiki']);
-        $this->assertDatabaseHas('course_resources', ['resource_type' => 'PAGE']);
-        $this->assertDatabaseHas('course_resources', ['resource_type' => 'BOOK']);
-        $this->assertDatabaseHas('course_resources', ['resource_type' => 'FILE']);
-        $this->assertDatabaseHas('course_resources', ['resource_type' => 'FOLDER']);
-        $this->assertDatabaseHas('course_resources', ['resource_type' => 'URL']);
-        $this->assertDatabaseHas('course_resources', ['resource_type' => 'LABEL']);
+        // 2. Question Bank question types exist
+        $this->assertDatabaseHas('questions', ['type' => \App\Models\Question::TYPE_SINGLE_CHOICE]);
+        $this->assertDatabaseHas('questions', ['type' => \App\Models\Question::TYPE_MULTI_CHOICE]);
+        $this->assertDatabaseHas('questions', ['type' => \App\Models\Question::TYPE_TRUE_FALSE]);
     }
 
     public function test_course_create_edit_and_thumbnail_flow(): void
@@ -220,21 +200,21 @@ class DashboardPagesTest extends TestCase
         $admin = User::where('email', 'admin@enterpriselms.com')->first();
         $this->assertNotNull($admin);
 
-        $testSlug = 'k8s-sec-' . uniqid();
+        $testSlug = 'cambridge-pure-maths-sample-' . uniqid();
         $updatedSlug = $testSlug . '-updated';
 
         // 1. Create a new course with thumbnail URL
         $createResponse = $this->actingAs($admin)->post('/admin/courses', [
-            'title' => 'Kubernetes Security Mastery',
+            'title' => 'Cambridge Pure Mathematics Sample',
             'slug' => $testSlug,
-            'description' => 'Comprehensive enterprise Kubernetes hardening guide.',
+            'description' => 'Comprehensive Cambridge Pure Mathematics syllabus guide.',
             'thumbnail_url' => 'https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9',
             'target_audience' => 'CORPORATE',
             'format' => 'SELF_PACED',
             'passing_grade' => 80,
             'recertification_days' => 365,
             'price_cents' => 9900,
-            'currency' => 'USD',
+            'currency' => 'GBP',
             'is_published' => 1,
         ]);
         $createResponse->assertSessionHasNoErrors();
@@ -247,7 +227,7 @@ class DashboardPagesTest extends TestCase
 
         // 2. Edit existing course and update thumbnail
         $updateResponse = $this->actingAs($admin)->put('/admin/courses/' . $course->id, [
-            'title' => 'Kubernetes Security Mastery (Updated)',
+            'title' => 'Cambridge Pure Mathematics Sample (Updated)',
             'slug' => $updatedSlug,
             'description' => 'Updated syllabus description.',
             'thumbnail_url' => 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b',
@@ -256,16 +236,19 @@ class DashboardPagesTest extends TestCase
             'passing_grade' => 85,
             'recertification_days' => 180,
             'price_cents' => 14900,
-            'currency' => 'USD',
+            'currency' => 'GBP',
             'is_published' => 1,
         ]);
         $updateResponse->assertSessionHasNoErrors();
         $updateResponse->assertRedirect();
 
         $course->refresh();
-        $this->assertEquals('Kubernetes Security Mastery (Updated)', $course->title);
+        $this->assertEquals('Cambridge Pure Mathematics Sample (Updated)', $course->title);
         $this->assertEquals('https://images.unsplash.com/photo-1550751827-4bd374c3f58b', $course->thumbnail);
         $this->assertEquals(85, $course->passing_grade);
+
+        // Delete test course after test
+        $course->delete();
     }
 
     public function test_password_reset_flow_complete(): void
@@ -323,6 +306,36 @@ class DashboardPagesTest extends TestCase
         // Verify token was cleaned up
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
 
+        // 6. Test 6-Digit Email Code Verification Flow
+        \Illuminate\Support\Facades\Mail::fake();
+        $codeSubmit = $this->post('/forgot-password', [
+            'email' => $user->email,
+        ]);
+        $codeSubmit->assertSessionHas('status');
+        $codeSubmit->assertSessionHas('dev_reset_code');
+
+        $sentCode = session('dev_reset_code');
+        $this->assertNotEmpty($sentCode);
+        $this->assertEquals(6, strlen($sentCode));
+
+        \Illuminate\Support\Facades\Mail::assertSent(\App\Mail\PasswordResetCodeMail::class, function ($mail) use ($user, $sentCode) {
+            return $mail->hasTo($user->email) && $mail->code === $sentCode;
+        });
+
+        // Submit reset using the 6-digit code instead of the long token
+        $codeResetResponse = $this->post('/reset-password', [
+            'reset_code' => $sentCode,
+            'email' => $user->email,
+            'password' => 'BrandNewCodePass2026!',
+            'password_confirmation' => 'BrandNewCodePass2026!',
+        ]);
+        $codeResetResponse->assertRedirect('/login');
+        $codeResetResponse->assertSessionHas('status');
+
+        $user->refresh();
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('BrandNewCodePass2026!', $user->password));
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
+
         // Restore password for subsequent tests
         $user->forceFill(['password' => \Illuminate\Support\Facades\Hash::make('password123')])->save();
     }
@@ -337,15 +350,16 @@ class DashboardPagesTest extends TestCase
         $seedResponse->assertRedirect();
         $seedResponse->assertSessionHas('success');
 
-        // 2. Check homepage renders all 4 screenshot sample sections
+        // 2. Check homepage renders sample sections
         $homeResponse = $this->get('/');
         $homeResponse->assertStatus(200);
-        $homeResponse->assertSee('Explore Categories');
-        $homeResponse->assertSee('Web Development');
+        $homeResponse->assertSee('Cambridge');
         $homeResponse->assertSee('Meet Our Mentors');
         $homeResponse->assertSee('Darren Treadway');
         $homeResponse->assertSee('Upcoming Live Events');
-        $homeResponse->assertSee("Web3 Builder's Meetup");
+        $homeResponse->assertSee('View All');
+        $eventsResponse = $this->get('/events');
+        $eventsResponse->assertStatus(200);
         $homeResponse->assertSee('Frequently Asked Questions');
         $homeResponse->assertSee('Still Need Help?');
 

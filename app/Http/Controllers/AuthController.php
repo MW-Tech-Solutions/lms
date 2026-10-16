@@ -32,22 +32,43 @@ class AuthController extends Controller
 
         $remember = $request->boolean('remember');
 
+        if ($request->filled('redirect')) {
+            session()->put('url.intended', $request->input('redirect'));
+        }
+
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
 
             /** @var User $user */
             $user = Auth::user();
-            $isAdminRole = $user->roleAssignments()->whereHas('role', fn ($q) => $q->whereIn('name', [
+
+            // Check if 2FA is required
+            if ($user->two_factor_secret && session('2fa_verified_user_id') !== $user->id) {
+                // If 2FA enabled, redirect to challenge
+                session()->put('2fa_pending_user_id', $user->id);
+                session()->put('2fa_pending_remember', $remember);
+                Auth::logout();
+                return redirect()->route('auth.2fa.challenge');
+            }
+
+            $isTeacher = $user->isTeacher();
+            $isAdminRole = $user->isSuperAdmin() || $user->hasRole([
                 'SUPER_ADMIN', 'MANAGER', 'COURSE_CREATOR', 'TEACHER', 'TEACHER_NON_EDITING',
                 'CORP_MANAGER', 'INSTRUCTOR', 'TRAINER'
-            ]))->exists();
+            ]);
 
             $intendedUrl = session()->get('url.intended');
-            if (!$isAdminRole && $intendedUrl && str_contains($intendedUrl, '/admin')) {
+            if (!$isAdminRole && !$isTeacher && $intendedUrl && str_contains($intendedUrl, '/admin')) {
                 session()->forget('url.intended');
             }
 
-            if ($isAdminRole) {
+            // Check if parent account logging in
+            if (!$isAdminRole && !$isTeacher && !session()->has('url.intended') && \App\Models\ParentStudent::where('parent_id', $user->id)->exists()) {
+                return redirect()->route('parent.dashboard');
+            }
+
+            // Teachers must always be redirected to their teaching dashboard (admin.dashboard)
+            if ($isTeacher || $isAdminRole) {
                 return redirect()->intended(route('admin.dashboard'));
             }
 
@@ -73,7 +94,13 @@ class AuthController extends Controller
             'user_type' => ['required', 'in:EMPLOYEE,STUDENT,HYBRID'],
             'employee_id' => ['nullable', 'string', 'max:64'],
             'department_id' => ['nullable', 'exists:departments,id'],
+            'about_instructor' => ['nullable', 'string'],
+            'teaching_methodology' => ['nullable', 'string'],
         ]);
+
+        if (empty($validated['employee_id'])) {
+            $validated['employee_id'] = app(\App\Services\SiteConfigService::class)->generateIdForType($validated['user_type']);
+        }
 
         $user = User::create([
             'name' => $validated['name'],
@@ -83,6 +110,7 @@ class AuthController extends Controller
             'employee_id' => $validated['employee_id'] ?? null,
             'department_id' => $validated['department_id'] ?? null,
             'is_active' => true,
+            'approval_status' => 'PENDING',
         ]);
 
         $jobTitle = match ($user->user_type) {
@@ -93,9 +121,15 @@ class AuthController extends Controller
 
         UserProfile::create([
             'user_id' => $user->id,
+            'avatar_url' => asset('images/profile-img.png'),
             'job_title' => $jobTitle,
             'timezone' => 'UTC',
             'locale' => 'en',
+            'about_instructor' => $validated['about_instructor'] ?? null,
+            'teaching_methodology' => $validated['teaching_methodology'] ?? null,
+            'bio' => $validated['about_instructor'] ?? null,
+            'kyc_status' => !empty($validated['teaching_methodology']) ? 'SUBMITTED' : 'PENDING',
+            'kyc_submitted_at' => !empty($validated['teaching_methodology']) ? now() : null,
         ]);
 
         // Assign default CBAC Role
@@ -134,7 +168,7 @@ class AuthController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/')->with('success', 'You have been safely signed out.');
+        return redirect('/');
     }
 
     public function showForgotPassword(): View
@@ -151,25 +185,41 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user) {
-            return back()->with('status', 'If your email is registered in our portal, you will receive a secure password reset link shortly.');
+            return back()->with('status', 'If your email is registered in our portal, you will receive a secure password reset code shortly.');
         }
 
+        // Generate high-entropy secure token and human-friendly 6-digit verification code
         $token = Str::random(64);
+        $code = (string) random_int(100000, 999999);
 
+        // Store combined identifier so both token or code can authorize reset
+        // Format stored in DB: $token . '|' . $code
         \Illuminate\Support\Facades\DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $user->email],
             [
-                'token' => \Illuminate\Support\Facades\Hash::make($token),
+                'token' => $token . '|' . $code,
                 'created_at' => now(),
             ]
         );
 
         $resetUrl = route('password.reset', ['token' => $token, 'email' => $user->email]);
 
-        \App\Services\AuditService::log('PASSWORD_RESET_REQUESTED', $user, null, ['email' => $user->email]);
+        // Send Email with Reset Code
+        try {
+            \Illuminate\Support\Facades\Mail::to($user->email)->send(
+                new \App\Mail\PasswordResetCodeMail($user, $code, $resetUrl, 60)
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Password reset email could not be sent: ' . $e->getMessage());
+        }
 
-        return back()->with('status', 'A secure password recovery link has been generated for your account.')
-            ->with('dev_reset_url', $resetUrl);
+        \App\Services\AuditService::log('PASSWORD_RESET_REQUESTED', $user, null, ['email' => $user->email, 'code_sent' => true]);
+
+        return back()
+            ->with('status', 'A 6-digit password reset verification code has been dispatched to your email.')
+            ->with('dev_reset_url', $resetUrl)
+            ->with('dev_reset_code', $code)
+            ->with('submitted_email', $user->email);
     }
 
     public function showResetPassword(Request $request, string $token): View
@@ -183,7 +233,8 @@ class AuthController extends Controller
     public function resetPassword(Request $request): RedirectResponse
     {
         $request->validate([
-            'token' => ['required', 'string'],
+            'token' => ['nullable', 'string'],
+            'reset_code' => ['nullable', 'string'],
             'email' => ['required', 'email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
@@ -193,18 +244,37 @@ class AuthController extends Controller
             ->first();
 
         if (!$record) {
-            return back()->withErrors(['email' => 'Invalid or expired password reset request. Please request a new link.']);
+            return back()->withErrors(['email' => 'Invalid or expired password reset request. Please request a new code.']);
         }
 
         // Check if token expired (60 minutes)
         if (\Carbon\Carbon::parse($record->created_at)->addMinutes(60)->isPast()) {
             \Illuminate\Support\Facades\DB::table('password_reset_tokens')->where('email', $request->email)->delete();
-            return back()->withErrors(['email' => 'This password reset link has expired. Please request a new link.']);
+            return back()->withErrors(['email' => 'This password reset request has expired. Please request a new code.']);
         }
 
-        // Check token hash or raw string
-        if (!\Illuminate\Support\Facades\Hash::check($request->token, $record->token) && $request->token !== $record->token) {
-            return back()->withErrors(['email' => 'Invalid security token provided.']);
+        // Parse stored token: token|code or legacy single token
+        $parts = explode('|', (string) $record->token, 2);
+        $storedToken = $parts[0] ?? '';
+        $storedCode = $parts[1] ?? '';
+
+        $providedToken = trim((string) $request->input('token', ''));
+        $providedCode = trim((string) $request->input('reset_code', ''));
+
+        $tokenValid = false;
+        if (!empty($providedToken)) {
+            $tokenValid = ($providedToken === $storedToken) 
+                || ($providedToken === $record->token) 
+                || \Illuminate\Support\Facades\Hash::check($providedToken, $record->token);
+        }
+
+        $codeValid = false;
+        if (!empty($providedCode) && !empty($storedCode)) {
+            $codeValid = hash_equals($storedCode, $providedCode);
+        }
+
+        if (!$tokenValid && !$codeValid) {
+            return back()->withErrors(['reset_code' => 'The 6-digit verification code or security token is incorrect.']);
         }
 
         $user = User::where('email', $request->email)->first();
@@ -221,6 +291,6 @@ class AuthController extends Controller
 
         \App\Services\AuditService::log('PASSWORD_RESET_COMPLETED', $user, null, ['email' => $user->email]);
 
-        return redirect()->route('login')->with('status', 'Your password has been successfully reset! You may now sign in with your new password.');
+        return redirect()->route('login')->with('status', 'Your password has been successfully reset! You may now sign in with your new credentials.');
     }
 }

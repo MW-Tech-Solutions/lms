@@ -16,29 +16,46 @@ use Illuminate\View\View;
 class CourseController extends Controller
 {
     /**
-     * Public course catalog with audience filtering and text search.
+     * Public course catalog organized by category / Cambridge level, with audience filtering and search.
      */
     public function index(Request $request): View
     {
+        $categories = \App\Models\CourseCategory::orderBy('id', 'asc')->get();
+
+        $selectedCategory = null;
+        if ($request->filled('category') || $request->filled('level')) {
+            $catSlug = $request->input('category', $request->input('level'));
+            $selectedCategory = $categories->firstWhere('slug', $catSlug);
+        }
+
         $query = Course::with('category')->where('is_published', true);
 
-        if ($request->filled('audience')) {
-            $audience = $request->string('audience')->toString();
-            $query->where(function ($q) use ($audience) {
-                $q->where('target_audience', $audience)->orWhere('target_audience', Course::AUDIENCE_BOTH);
-            });
+        if ($selectedCategory) {
+            $query->where('category_id', $selectedCategory->id);
         }
 
         if ($request->filled('search')) {
             $term = '%' . $request->string('search')->toString() . '%';
             $query->where(function ($q) use ($term) {
-                $q->where('title', 'like', $term)->orWhere('slug', 'like', $term);
+                $q->where('title', 'like', $term)->orWhere('slug', 'like', $term)->orWhere('description', 'like', $term);
             });
         }
 
-        $courses = $query->paginate(12)->withQueryString();
+        // If a specific category or search is active, paginate courses for that selection
+        if ($selectedCategory || $request->filled('search')) {
+            $courses = $query->orderBy('id', 'desc')->paginate(12)->withQueryString();
+            $groupedCourses = null;
+        } else {
+            // "every program must have its own category like the IGCSE or others not all to be displayed randomly"
+            // Group all published courses under their respective category
+            $allCourses = $query->orderBy('category_id')->orderBy('id', 'desc')->get();
+            $groupedCourses = $allCourses->groupBy(function ($course) {
+                return $course->category?->name ?? 'Other Programs';
+            });
+            $courses = $query->orderBy('id', 'desc')->paginate(12)->withQueryString();
+        }
 
-        return view('courses.index', compact('courses'));
+        return view('courses.index', compact('courses', 'categories', 'groupedCourses', 'selectedCategory'));
     }
 
     /**
@@ -46,10 +63,21 @@ class CourseController extends Controller
      */
     public function show(string $slug): View
     {
-        $course = Course::with(['category', 'sections.modules'])
-            ->where('slug', $slug)
-            ->where('is_published', true)
-            ->firstOrFail();
+        $query = Course::with(['category', 'sections.modules'])
+            ->where('slug', $slug);
+
+        // Regular users/guests can only view published courses. Admins & instructors can preview unpublished materials.
+        $user = Auth::user();
+        $canPreview = $user && (
+            in_array($user->primaryRole(), ['SUPER_ADMIN', 'MANAGER', 'CORP_MANAGER', 'COURSE_CREATOR'], true)
+            || (int) $user->id === (int) Course::where('slug', $slug)->value('instructor_id')
+        );
+
+        if (!$canPreview) {
+            $query->where('is_published', true);
+        }
+
+        $course = $query->firstOrFail();
 
         $isEnrolled = false;
         if (Auth::check()) {
@@ -127,11 +155,12 @@ class CourseController extends Controller
             ->where(function ($q) use ($term) {
                 $q->where('title', 'like', "%{$term}%")
                   ->orWhere('slug', 'like', "%{$term}%")
+                  ->orWhere('description', 'like', "%{$term}%")
                   ->orWhereHas('category', function ($cq) use ($term) {
                       $cq->where('name', 'like', "%{$term}%");
                   });
             })
-            ->limit(6)
+            ->limit(8)
             ->get()
             ->map(function ($c) {
                 return [
