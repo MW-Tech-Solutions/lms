@@ -542,6 +542,7 @@ class DatabaseSeeder extends Seeder
             'job_title' => 'Authenticated Enterprise Learner',
             'timezone' => 'UTC',
             'locale' => 'en',
+        ]);
         RoleAssignment::create([
             'user_id' => $userAuth->id,
             'role_id' => $roleAuthUser->id,
@@ -796,35 +797,35 @@ class DatabaseSeeder extends Seeder
             'order_index' => 6,
             'content_json' => [
                 'title' => 'Frequently Asked Questions',
-                'subtitle' => 'Everything you need to know about Lerntix. Find clarity in seconds.',
+                'subtitle' => 'Everything you need to know about AllThingsCambridge. Find clarity in seconds.',
                 'support_title' => 'Still Need Help?',
-                'support_subtitle' => 'Our support team is available 24/7 to guide you through your learning journey.',
-                'support_email' => 'hello@lerntix.com',
+                'support_subtitle' => 'Our academic counseling and exam support team is here to assist learners and parents.',
+                'support_email' => 'support@allthingscambridge.com',
                 'support_image' => 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80',
                 'faqs' => [
                     [
-                        'question' => 'What makes Lerntix different from other LMS platforms?',
-                        'answer' => 'Lerntix combines AI-driven learning paths, hands-on labs, and real-time progress analytics. Unlike traditional LMS, we offer adaptive quizzes, industry-verified certificates, and a vibrant mentor community — all in one intuitive dashboard.',
+                        'question' => 'What makes AllThingsCambridge different from other LMS platforms?',
+                        'answer' => 'AllThingsCambridge is purpose-built exclusively for Cambridge International curricula (Primary Checkpoint, Lower Secondary, IGCSE, and AS & A Levels). We offer rigorous syllabus alignment, verified past papers, and interactive marking schemes.',
                     ],
                     [
-                        'question' => 'Are the certificates recognized by employers?',
-                        'answer' => 'Yes! Every certificate issued contains a unique verification UUID and QR code that can be authenticated instantly by employers and university registries worldwide.',
+                        'question' => 'Are your courses aligned with Cambridge International syllabus standards?',
+                        'answer' => 'Yes! Every course, assessment, and lesson module is meticulously mapped against official Cambridge assessment objectives (AO1, AO2, AO3) and updated annually.',
                     ],
                     [
-                        'question' => 'Can I try Lerntix before subscribing?',
-                        'answer' => 'Absolutely. You can explore foundational modules and select workshops completely free before deciding on individual or enterprise corporate subscriptions.',
+                        'question' => 'Can parents monitor their child\'s progress and grades?',
+                        'answer' => 'Absolutely. Parents have a dedicated Parent Portal where they can monitor live attendance, view exam score cards, download term reports, and communicate directly with educators.',
                     ],
                     [
-                        'question' => 'Are the courses self-paced or live?',
-                        'answer' => 'Both. We offer flexible self-paced video modules with interactive coding playgrounds alongside scheduled live masterclasses and instructor office hours.',
+                        'question' => 'Are past paper solutions and marking schemes included?',
+                        'answer' => 'Yes. Learners gain access to worked step-by-step video solutions, examiner tip sheets, and self-assessment rubrics for recent Cambridge examination series.',
                     ],
                     [
-                        'question' => 'Is there a mobile app for offline learning?',
-                        'answer' => 'Yes. Our platform is completely responsive and supports offline lesson caching so you can study smoothly on smartphones, tablets, or laptops anywhere.',
+                        'question' => 'Can I access lessons on mobile and tablet?',
+                        'answer' => 'Yes. Our platform is completely responsive and supports offline study caching across desktop, laptop, tablet, and smartphone devices.',
                     ],
                     [
-                        'question' => 'Can teams or businesses use Lerntix?',
-                        'answer' => 'Yes. Our dedicated Corporate Console features CBAC role assignment, SCORM packages, employee completion matrices, and automated compliance recertification engines.',
+                        'question' => 'Can schools and tutoring centers enroll cohorts?',
+                        'answer' => 'Yes. Our institutional console offers multi-seat management, custom grading scales, teacher gradebooks, and cohort progress reports.',
                     ],
                 ],
             ],

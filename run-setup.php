@@ -18,7 +18,7 @@ $isAuthenticated = isset($_SESSION['setup_auth']) && $_SESSION['setup_auth'] ===
 
 // Handle PIN Verification
 $loginError = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'login') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['action']) && $_POST['action'] === 'login') {
     $enteredPin = trim((string) ($_POST['security_pin'] ?? ''));
     if ($enteredPin === DEFAULT_SECURITY_PIN || $enteredPin === 'admin123') {
         $_SESSION['setup_auth'] = true;
@@ -262,14 +262,289 @@ function safeOptimizeClear(\Illuminate\Foundation\Application $app): string
     return $buffer;
 }
 
-if ($isAuthenticated && $laravelLoaded && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['command'])) {
+// Resilient System & Cambridge Branding Updater
+function safeUpdateSystem(\Illuminate\Foundation\Application $app): string
+{
+    $buffer = "========================================================\n";
+    $buffer .= ">>> ALLTHINGSCAMBRIDGE - SYSTEM & ASSET UPDATE ROUTINE <<<\n";
+    $buffer .= "========================================================\n\n";
+
+    // 1. Run Migrations Safely
+    $buffer .= "--- STEP 1: DATABASE MIGRATIONS ---\n";
+    $buffer .= safeMigrate($app) . "\n";
+
+    // 2. Storage Link & Asset Folders
+    $buffer .= "--- STEP 2: STORAGE LINK & ASSET DIRECTORIES ---\n";
+    $buffer .= safeStorageLink($app);
+
+    $publicImages = public_path('images');
+    $publicBranding = public_path('uploads/branding');
+    if (!is_dir($publicImages)) {
+        @mkdir($publicImages, 0755, true);
+        $buffer .= "✓ Created directory: public/images\n";
+    }
+    if (!is_dir($publicBranding)) {
+        @mkdir($publicBranding, 0755, true);
+        $buffer .= "✓ Created directory: public/uploads/branding\n";
+    }
+
+    // 3. Asset Synchronization (Logos & Favicons)
+    $buffer .= "\n--- STEP 3: LOGO & BRANDING ASSET SYNCHRONIZATION ---\n";
+    $siteLogoPath = public_path('images/site_logo.png');
+    $brandingLogoPath = public_path('uploads/branding/logo_1792147720.png');
+    $brandingFaviconPath = public_path('uploads/branding/favicon_1792147720.png');
+    $emailLogoPath = public_path('images/site_logo_email.png');
+
+    // Cross-copy main logo if missing in one location
+    if (file_exists($siteLogoPath) && filesize($siteLogoPath) > 0) {
+        if (!file_exists($brandingLogoPath) || filesize($brandingLogoPath) === 0) {
+            @copy($siteLogoPath, $brandingLogoPath);
+            $buffer .= "✓ Synced logo to public/uploads/branding/logo_1792147720.png\n";
+        }
+        if (!file_exists($brandingFaviconPath) || filesize($brandingFaviconPath) === 0) {
+            @copy($siteLogoPath, $brandingFaviconPath);
+            $buffer .= "✓ Synced favicon to public/uploads/branding/favicon_1792147720.png\n";
+        }
+    } elseif (file_exists($brandingLogoPath) && filesize($brandingLogoPath) > 0) {
+        if (!file_exists($siteLogoPath) || filesize($siteLogoPath) === 0) {
+            @copy($brandingLogoPath, $siteLogoPath);
+            $buffer .= "✓ Synced logo to public/images/site_logo.png\n";
+        }
+    }
+
+    // Ensure lightweight email logo exists
+    if (!file_exists($emailLogoPath) || filesize($emailLogoPath) === 0) {
+        $sourceForEmail = (file_exists($siteLogoPath) && filesize($siteLogoPath) > 0) ? $siteLogoPath : ((file_exists($brandingLogoPath) && filesize($brandingLogoPath) > 0) ? $brandingLogoPath : null);
+        if ($sourceForEmail && function_exists('imagecreatefrompng') && function_exists('imagecopyresampled')) {
+            try {
+                $src = @imagecreatefrompng($sourceForEmail);
+                if ($src) {
+                    $sw = imagesx($src);
+                    $sh = imagesy($src);
+                    $dw = 140;
+                    $dh = 140;
+                    $dst = imagecreatetruecolor($dw, $dh);
+                    imagealphablending($dst, false);
+                    imagesavealpha($dst, true);
+                    $transparent = imagecolorallocatealpha($dst, 255, 255, 255, 127);
+                    imagefilledrectangle($dst, 0, 0, $dw, $dh, $transparent);
+                    imagecopyresampled($dst, $src, 0, 0, 0, 0, $dw, $dh, $sw, $sh);
+                    imagepng($dst, $emailLogoPath, 9);
+                    imagedestroy($dst);
+                    imagedestroy($src);
+                    $buffer .= "✓ Generated 140x140 lightweight email logo at public/images/site_logo_email.png\n";
+                }
+            } catch (\Throwable $eLogo) {
+                @copy($sourceForEmail, $emailLogoPath);
+                $buffer .= "✓ Copied fallback logo to public/images/site_logo_email.png\n";
+            }
+        } elseif ($sourceForEmail) {
+            @copy($sourceForEmail, $emailLogoPath);
+            $buffer .= "✓ Copied fallback logo to public/images/site_logo_email.png\n";
+        }
+    } else {
+        $buffer .= "✓ Verified email logo exists: public/images/site_logo_email.png (" . round(filesize($emailLogoPath) / 1024, 1) . " KB)\n";
+    }
+
+    // 4. Update Site Settings in Database
+    $buffer .= "\n--- STEP 4: DATABASE BRANDING & SETTINGS SYNC ---\n";
+    try {
+        if (\Illuminate\Support\Facades\Schema::hasTable('site_settings')) {
+            $logoUrl = (file_exists($brandingLogoPath) && filesize($brandingLogoPath) > 0) ? '/uploads/branding/logo_1792147720.png' : '/images/site_logo.png';
+            $faviconUrl = (file_exists($brandingFaviconPath) && filesize($brandingFaviconPath) > 0) ? '/uploads/branding/favicon_1792147720.png' : '/images/site_logo.png';
+
+            $targetSettings = [
+                'brand_name' => 'AllThingsCambridge',
+                'site_title' => 'AllThingsCambridge - Cambridge International Learning & Exam Platform',
+                'brand_tagline' => 'Excellence in Cambridge International Education & Examination Preparation',
+                'brand_logo_url' => $logoUrl,
+                'brand_favicon_url' => $faviconUrl,
+                'primary_color' => '#723EC3',
+                'secondary_color' => '#FF4D00',
+                'support_email' => 'support@allthingscambridge.com',
+                'currency' => 'GBP',
+                'currency_symbol' => '£',
+            ];
+
+            // Update Global Settings (tenant_id = null)
+            foreach ($targetSettings as $key => $val) {
+                \Illuminate\Support\Facades\DB::table('site_settings')->updateOrInsert(
+                    ['tenant_id' => null, 'setting_key' => $key],
+                    ['setting_value' => $val, 'data_type' => 'STRING', 'is_public' => true, 'updated_at' => now()]
+                );
+            }
+            $buffer .= "✓ Updated global system settings: brand_name => 'AllThingsCambridge', logo => '{$logoUrl}', currency => 'GBP (£)'.\n";
+
+            // Update Tenant-specific Settings & Rename Tenants if outdated
+            if (\Illuminate\Support\Facades\Schema::hasTable('tenants')) {
+                \Illuminate\Support\Facades\DB::table('tenants')
+                    ->whereIn('name', ['Enterprise Academy', 'Acme Global Academy'])
+                    ->update(['name' => 'AllThingsCambridge']);
+
+                $tenants = \Illuminate\Support\Facades\DB::table('tenants')->get();
+                foreach ($tenants as $t) {
+                    foreach ($targetSettings as $key => $val) {
+                        \Illuminate\Support\Facades\DB::table('site_settings')->updateOrInsert(
+                            ['tenant_id' => $t->id, 'setting_key' => $key],
+                            ['setting_value' => $val, 'data_type' => 'STRING', 'is_public' => true, 'updated_at' => now()]
+                        );
+                    }
+                    $buffer .= "✓ Synced branding settings for tenant [{$t->name}] ({$t->subdomain}).\n";
+                }
+            }
+        }
+    } catch (\Throwable $eSettings) {
+        $buffer .= "Settings notice: " . $eSettings->getMessage() . "\n";
+    }
+
+    // 5. Ensure Cambridge Course Categories
+    $buffer .= "\n--- STEP 5: CAMBRIDGE COURSE CATEGORIES ---\n";
+    try {
+        if (\Illuminate\Support\Facades\Schema::hasTable('course_categories')) {
+            $cambridgeCats = [
+                ['name' => 'Cambridge Primary Checkpoint', 'slug' => 'primary-checkpoint'],
+                ['name' => 'Cambridge Lower Secondary', 'slug' => 'lower-secondary'],
+                ['name' => 'Cambridge IGCSE', 'slug' => 'igcse'],
+                ['name' => 'Cambridge AS Level', 'slug' => 'as-level'],
+                ['name' => 'Cambridge A Level', 'slug' => 'a-level'],
+                ['name' => 'Cambridge Mathematics (9709)', 'slug' => 'cambridge-mathematics'],
+                ['name' => 'Cambridge Physics (9702)', 'slug' => 'cambridge-physics'],
+                ['name' => 'Cambridge Chemistry (9701/0620)', 'slug' => 'cambridge-chemistry'],
+                ['name' => 'Cambridge Biology (9700/0610)', 'slug' => 'cambridge-biology'],
+            ];
+
+            $catTenantId = \Illuminate\Support\Facades\Schema::hasTable('tenants')
+                ? \Illuminate\Support\Facades\DB::table('tenants')->value('id')
+                : null;
+
+            $addedCats = 0;
+            foreach ($cambridgeCats as $cat) {
+                $exists = \Illuminate\Support\Facades\DB::table('course_categories')
+                    ->where('slug', $cat['slug'])
+                    ->exists();
+
+                if (!$exists) {
+                    \Illuminate\Support\Facades\DB::table('course_categories')->insert([
+                        'tenant_id' => $catTenantId,
+                        'name' => $cat['name'],
+                        'slug' => $cat['slug'],
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $addedCats++;
+                }
+            }
+            $buffer .= "✓ Cambridge categories verified (" . ($addedCats > 0 ? "{$addedCats} new categories added" : "all categories present") . ").\n";
+        }
+    } catch (\Throwable $eCats) {
+        $buffer .= "Category sync notice: " . $eCats->getMessage() . "\n";
+    }
+
+    // 6. Homepage CMS Sections Sync
+    $buffer .= "\n--- STEP 6: HOMEPAGE CMS SECTIONS ---\n";
+    try {
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE `cms_sections` MODIFY COLUMN `section_type` VARCHAR(64) NOT NULL");
+        }
+        app(\App\Http\Controllers\Admin\CmsAdminController::class)->seedSamples();
+        
+        // Ensure dynamic form is removed from home page
+        $home = \App\Models\CmsPage::where('slug', 'home')->first();
+        if ($home) {
+            \App\Models\CmsSection::where('page_id', $home->id)
+                ->where('section_type', 'DYNAMIC_FORM')
+                ->delete();
+        }
+        $buffer .= "✓ Homepage CMS modules synced (Cambridge Checkpoint, Lower Sec, IGCSE, A-Level, Mentors, Events, FAQs).\n";
+    } catch (\Throwable $eCms) {
+        $buffer .= "CMS sync notice: " . $eCms->getMessage() . "\n";
+    }
+
+    // 7. Clear All Caches & Compiled Views
+    $buffer .= "\n--- STEP 7: PURGING APPLICATION CACHES ---\n";
+    $buffer .= safeOptimizeClear($app);
+    try {
+        \Illuminate\Support\Facades\Cache::flush();
+        if (class_exists(\App\Services\SiteConfigService::class)) {
+            $siteConfig = app(\App\Services\SiteConfigService::class);
+            $siteConfig->flushCache();
+            if (\Illuminate\Support\Facades\Schema::hasTable('tenants')) {
+                foreach (\Illuminate\Support\Facades\DB::table('tenants')->pluck('id') as $tId) {
+                    $siteConfig->flushCache($tId);
+                }
+            }
+        }
+        $buffer .= "✓ Application Cache & SiteConfigService flushed completely.\n";
+    } catch (\Throwable $eCache) {
+        $buffer .= "Cache notice: " . $eCache->getMessage() . "\n";
+    }
+
+    $buffer .= "\n========================================================\n";
+    $buffer .= ">>> UPDATE COMPLETED SUCCESSFULLY! <<<\n";
+    $buffer .= "All migrations, Cambridge branding, logos, CMS sections,\n";
+    $buffer .= "and caches have been synchronized.\n";
+    $buffer .= "========================================================\n";
+
+    return $buffer;
+}
+
+if ($isAuthenticated && $laravelLoaded && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST' && isset($_POST['command'])) {
     $command = trim((string) $_POST['command']);
     $startTime = microtime(true);
 
     try {
         $outputBuffer = '';
 
-        if ($command === 'one_click_setup') {
+        if ($command === 'update_system') {
+            $commandName = 'Update Cambridge System & Sync Assets';
+            $commandOutput = safeUpdateSystem($app);
+        } elseif ($command === 'sync_cambridge_branding') {
+            $commandName = 'Sync Cambridge Branding & Logos';
+            $outputBuffer = ">>> Syncing Cambridge Branding, Logos & Caches...\n";
+            $brandingLogoPath = public_path('uploads/branding/logo_1792147720.png');
+            $brandingFaviconPath = public_path('uploads/branding/favicon_1792147720.png');
+            $logoUrl = (file_exists($brandingLogoPath) && filesize($brandingLogoPath) > 0) ? '/uploads/branding/logo_1792147720.png' : '/images/site_logo.png';
+            $faviconUrl = (file_exists($brandingFaviconPath) && filesize($brandingFaviconPath) > 0) ? '/uploads/branding/favicon_1792147720.png' : '/images/site_logo.png';
+            $targetSettings = [
+                'brand_name' => 'AllThingsCambridge',
+                'site_title' => 'AllThingsCambridge - Cambridge International Learning & Exam Platform',
+                'brand_tagline' => 'Excellence in Cambridge International Education & Examination Preparation',
+                'brand_logo_url' => $logoUrl,
+                'brand_favicon_url' => $faviconUrl,
+                'primary_color' => '#723EC3',
+                'secondary_color' => '#FF4D00',
+                'support_email' => 'support@allthingscambridge.com',
+                'currency' => 'GBP',
+                'currency_symbol' => '£',
+            ];
+            foreach ($targetSettings as $k => $v) {
+                \Illuminate\Support\Facades\DB::table('site_settings')->updateOrInsert(
+                    ['tenant_id' => null, 'setting_key' => $k],
+                    ['setting_value' => $v, 'data_type' => 'STRING', 'is_public' => true, 'updated_at' => now()]
+                );
+            }
+            if (\Illuminate\Support\Facades\Schema::hasTable('tenants')) {
+                \Illuminate\Support\Facades\DB::table('tenants')
+                    ->whereIn('name', ['Enterprise Academy', 'Acme Global Academy'])
+                    ->update(['name' => 'AllThingsCambridge']);
+                foreach (\Illuminate\Support\Facades\DB::table('tenants')->get() as $t) {
+                    foreach ($targetSettings as $k => $v) {
+                        \Illuminate\Support\Facades\DB::table('site_settings')->updateOrInsert(
+                            ['tenant_id' => $t->id, 'setting_key' => $k],
+                            ['setting_value' => $v, 'data_type' => 'STRING', 'is_public' => true, 'updated_at' => now()]
+                        );
+                    }
+                }
+            }
+            $outputBuffer .= "✓ Branding database records set to AllThingsCambridge.\n";
+            $outputBuffer .= safeOptimizeClear($app);
+            \Illuminate\Support\Facades\Cache::flush();
+            if (class_exists(\App\Services\SiteConfigService::class)) {
+                app(\App\Services\SiteConfigService::class)->flushCache();
+            }
+            $outputBuffer .= "✓ Caches flushed successfully.\n";
+            $commandOutput = $outputBuffer;
+        } elseif ($command === 'one_click_setup') {
             $commandName = 'Complete Initial System Setup';
             
             // 1. Generate Key if missing
@@ -620,7 +895,26 @@ function checkWritable(string $path): bool {
                         </ul>
                     </div>
 
-                    <!-- 2. One-Click Automated Setup Card -->
+                    <!-- 2. Recommended: Update Cambridge System & Assets -->
+                    <div class="lms-card p-3 mb-3 border-success border-opacity-50" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.18) 0%, rgba(15, 19, 33, 0.85) 100%); box-shadow: 0 10px 25px rgba(16, 185, 129, 0.15);">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h6 class="fw-bold text-white mb-0">
+                                <i class="bi bi-arrow-repeat text-success me-2"></i>Update Cambridge System
+                            </h6>
+                            <span class="badge bg-success text-white fw-bold font-mono px-2 py-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">RECOMMENDED</span>
+                        </div>
+                        <p class="text-white-50 small mb-3" style="font-size: 0.78rem; line-height: 1.5;">
+                            Safely runs pending migrations, synchronizes branding to <strong>AllThingsCambridge</strong> (currency £ GBP), verifies &amp; regenerates logo assets (site &amp; email), updates Cambridge CMS modules, and purges all server caches. Preserves existing users and student progress.
+                        </p>
+                        <form method="POST" action="run-setup.php" onsubmit="return confirm('Update system and synchronize Cambridge assets, branding, and CMS?')">
+                            <input type="hidden" name="command" value="update_system">
+                            <button type="submit" class="btn btn-success w-100 py-2.5 fw-bold rounded-pill text-white shadow">
+                                <i class="bi bi-lightning-charge-fill me-1.5"></i> Update System &amp; Sync Branding
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- 3. One-Click Automated Setup Card -->
                     <div class="lms-card p-3 mb-3 border-primary border-opacity-25" style="background: linear-gradient(135deg, rgba(114, 62, 195, 0.15) 0%, rgba(15, 19, 33, 0.6) 100%);">
                         <h6 class="fw-bold text-white mb-1"><i class="bi bi-rocket-takeoff-fill text-warning me-2"></i>One-Click Full Setup</h6>
                         <p class="text-white-50 small mb-3" style="font-size: 0.78rem;">
@@ -634,12 +928,21 @@ function checkWritable(string $path): bool {
                         </form>
                     </div>
 
-                    <!-- 3. Essential Artisan Tasks -->
+                    <!-- 4. Essential Artisan Tasks -->
                     <div class="lms-card p-3 mb-3">
                         <h6 class="fw-bold text-white mb-2 pb-2 border-bottom border-secondary border-opacity-25">
                             <i class="bi bi-tools text-primary me-2"></i>Database &amp; Storage Actions
                         </h6>
                         <div class="d-flex flex-column gap-2">
+                            <!-- Sync Cambridge Branding & Logos -->
+                            <form method="POST" action="run-setup.php">
+                                <input type="hidden" name="command" value="sync_cambridge_branding">
+                                <button type="submit" class="btn-lms-action" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
+                                    <span class="text-success"><i class="bi bi-patch-check-fill text-success me-2"></i>Sync Cambridge Branding &amp; Logos</span>
+                                    <span class="badge bg-success font-mono" style="font-size: 0.65rem;">Brand Sync</span>
+                                </button>
+                            </form>
+
                             <!-- Migrate -->
                             <form method="POST" action="run-setup.php">
                                 <input type="hidden" name="command" value="migrate">
@@ -662,7 +965,7 @@ function checkWritable(string $path): bool {
                             <form method="POST" action="run-setup.php">
                                 <input type="hidden" name="command" value="sync_cms_samples">
                                 <button type="submit" class="btn-lms-action" style="border-color: rgba(234, 179, 8, 0.4); background: rgba(234, 179, 8, 0.08);">
-                                    <span class="text-warning"><i class="bi bi-window-stack text-warning me-2"></i>Sync Homepage Sections (FAQ, Mentors, Events, Categories)</span>
+                                    <span class="text-warning"><i class="bi bi-window-stack text-warning me-2"></i>Sync Homepage Sections (Cambridge Levels, FAQ, Mentors)</span>
                                     <span class="badge bg-warning text-dark font-mono" style="font-size: 0.65rem;">Sync CMS</span>
                                 </button>
                             </form>

@@ -97,8 +97,8 @@
 
             <!-- Brand Logo -->
             <a class="navbar-brand d-flex align-items-center gap-2 fw-bold m-0" href="{{ route('admin.dashboard') }}">
-                @if(!empty($site_settings['brand_logo_url']))
-                    <img src="{{ $site_settings['brand_logo_url'] }}" alt="Logo" height="36" class="rounded-2 shadow-xs">
+                @if(!empty($site_settings['brand_logo_url']) && !str_contains($site_settings['brand_logo_url'], 'example.com'))
+                    <img src="{{ $site_settings['brand_logo_url'] }}" alt="Logo" height="36" class="rounded-2 shadow-xs" onerror="this.onerror=null; this.src='{{ asset('images/site_logo.png') }}';">
                 @elseif(file_exists(public_path('images/site_logo.png')))
                     <img src="{{ asset('images/site_logo.png') }}" alt="Logo" height="36" class="rounded-2 shadow-xs">
                 @else
@@ -108,10 +108,10 @@
                 @endif
                 <div class="d-flex flex-column">
                     <span style="font-family: var(--lms-font-heading); font-size: 1.2rem; font-weight: 800; color: var(--lms-text-primary); letter-spacing: -0.5px; line-height: 1;">
-                        {{ $site_settings['brand_name'] ?? 'Enterprise Academy' }}
+                        {{ $site_settings['brand_name'] ?? 'AllThingsCambridge' }}
                     </span>
                     <span class="text-muted" style="font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">
-                        Enterprise Console &bull; CBAC Engine
+                        Cambridge International Education &bull; Admin Console
                     </span>
                 </div>
             </a>

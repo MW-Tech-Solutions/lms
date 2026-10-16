@@ -116,7 +116,7 @@
                     <!-- System Brand Name -->
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Platform Brand Name <span class="text-danger">*</span></label>
-                        <input type="text" name="settings[brand_name]" class="form-control" value="{{ $site_settings['brand_name'] ?? 'Enterprise Academy' }}" required placeholder="Enterprise Academy">
+                        <input type="text" name="settings[brand_name]" class="form-control" value="{{ $site_settings['brand_name'] ?? 'AllThingsCambridge' }}" required placeholder="AllThingsCambridge">
                         <div class="form-text small">Broadcast to header logos, automated emails, certificate seals, and page titles.</div>
                     </div>
 
@@ -184,11 +184,18 @@
                             @endif
                         </label>
 
-                        @if(!empty($site_settings['brand_logo_url']))
+                        @if(!empty($site_settings['brand_logo_url']) && !str_contains($site_settings['brand_logo_url'], 'example.com'))
                             <div class="d-flex align-items-center gap-3 mb-2 p-2 rounded-2 bg-white border">
-                                <img src="{{ $site_settings['brand_logo_url'] }}" alt="Logo Preview" height="36" class="rounded">
+                                <img src="{{ $site_settings['brand_logo_url'] }}" alt="Logo Preview" height="36" class="rounded" onerror="this.onerror=null; this.src='{{ asset('images/site_logo.png') }}';">
                                 <div class="small text-truncate text-muted font-mono" style="font-size: 0.75rem;">
                                     {{ $site_settings['brand_logo_url'] }}
+                                </div>
+                            </div>
+                        @elseif(file_exists(public_path('images/site_logo.png')))
+                            <div class="d-flex align-items-center gap-3 mb-2 p-2 rounded-2 bg-white border">
+                                <img src="{{ asset('images/site_logo.png') }}" alt="Default Logo Preview" height="36" class="rounded">
+                                <div class="small text-truncate text-muted font-mono" style="font-size: 0.75rem;">
+                                    {{ asset('images/site_logo.png') }} (Default System Asset)
                                 </div>
                             </div>
                         @endif
