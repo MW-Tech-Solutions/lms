@@ -314,6 +314,34 @@
                                         </div>
                                     </div>
                                 </div>
+                                <!-- School / Institutional Invitation Code -->
+                                <div class="mt-3 pt-3 border-top" style="border-color: var(--lms-border) !important;">
+                                    <div class="d-flex align-items-center justify-content-between mb-1.5">
+                                        <label class="form-label small fw-semibold text-secondary mb-0">
+                                            <i class="bi bi-buildings-fill text-warning me-1"></i> School / Institutional Code (Optional)
+                                        </label>
+                                        @if(request()->filled('school_code'))
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">
+                                                <i class="bi bi-check-circle me-1"></i> School Invite Applied
+                                            </span>
+                                        @else
+                                            <span class="badge bg-secondary-subtle text-muted rounded-pill px-2 py-0.5" style="font-size: 0.65rem;">e.g. ATC-EMP-22361</span>
+                                        @endif
+                                    </div>
+                                    <div class="input-group rounded-3 border overflow-hidden" style="background: var(--lms-bg-body); border-color: var(--lms-border) !important;">
+                                        <span class="input-group-text bg-transparent border-0 text-muted ps-3">
+                                            <i class="bi bi-qr-code-scan"></i>
+                                        </span>
+                                        <input type="text" 
+                                               name="school_code" 
+                                               class="form-control border-0 bg-transparent ps-2 fs-6 font-mono fw-semibold text-uppercase" 
+                                               placeholder="Enter School Code to unlock full institutional access" 
+                                               value="{{ old('school_code', request()->query('school_code')) }}">
+                                    </div>
+                                    <div class="form-text small text-muted" style="font-size: 0.72rem;">
+                                        If provided by your school/principal, enter your school invite code to instantly access all study materials without subscription paywalls.
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- 2. Faculty / Educator Specific Fields (With Full KYC) -->

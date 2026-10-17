@@ -93,16 +93,27 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'user_type' => ['required', 'in:EMPLOYEE,STUDENT,HYBRID'],
             'employee_id' => ['nullable', 'string', 'max:64'],
+            'school_code' => ['nullable', 'string', 'max:64'],
             'department_id' => ['nullable', 'exists:departments,id'],
             'about_instructor' => ['nullable', 'string'],
             'teaching_methodology' => ['nullable', 'string'],
         ]);
+
+        // If school_code is supplied, look up the school tenant
+        $schoolTenant = null;
+        if (!empty($validated['school_code'])) {
+            $codeClean = strtoupper(trim($validated['school_code']));
+            $schoolTenant = \App\Models\Tenant::where('school_code', $codeClean)
+                ->orWhere('subdomain', strtolower($codeClean))
+                ->first();
+        }
 
         if (empty($validated['employee_id'])) {
             $validated['employee_id'] = app(\App\Services\SiteConfigService::class)->generateIdForType($validated['user_type']);
         }
 
         $user = User::create([
+            'tenant_id' => $schoolTenant ? $schoolTenant->id : null,
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
@@ -110,8 +121,24 @@ class AuthController extends Controller
             'employee_id' => $validated['employee_id'] ?? null,
             'department_id' => $validated['department_id'] ?? null,
             'is_active' => true,
-            'approval_status' => 'PENDING',
+            'approval_status' => $schoolTenant ? 'APPROVED' : 'PENDING',
         ]);
+
+        // If user joined via valid school code, grant full school access (auto-enroll in active courses)
+        if ($schoolTenant) {
+            $publishedCourses = \App\Models\Course::where('is_published', true)->get();
+            foreach ($publishedCourses as $pCourse) {
+                \App\Models\Enrollment::firstOrCreate([
+                    'user_id' => $user->id,
+                    'course_id' => $pCourse->id,
+                ], [
+                    'tenant_id' => $schoolTenant->id,
+                    'status' => \App\Models\Enrollment::STATUS_ACTIVE,
+                    'enrolled_at' => now(),
+                    'enrollment_type' => 'INSTITUTIONAL',
+                ]);
+            }
+        }
 
         $jobTitle = match ($user->user_type) {
             'HYBRID' => 'Faculty & Curriculum Instructor',

@@ -294,6 +294,12 @@
                             <span class="text-nowrap fw-semibold">Teachers &amp; Approvals</span>
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-nowrap {{ request()->routeIs('admin.schools*') ? 'active' : '' }}" href="{{ route('admin.schools.index') }}">
+                            <div class="sidebar-icon-box"><i class="bi bi-buildings-fill text-warning"></i></div>
+                            <span class="text-nowrap fw-semibold">Schools &amp; Institutions</span>
+                        </a>
+                    </li>
                 </ul>
 
                 <div class="sidebar-heading text-nowrap">Cambridge Content &amp; Moderation</div>

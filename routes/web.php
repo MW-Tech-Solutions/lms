@@ -106,6 +106,9 @@ Route::get('/mentors/{id}', [MentorController::class, 'show'])->name('mentors.sh
 // Exam Notification & Newsletter Subscriptions
 Route::post('/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('newsletter.subscribe');
 
+// Dedicated Public/Institutional School Portal Route (e.g. /schools/mundramodelschool)
+Route::get('/schools/{slug}', [\App\Http\Controllers\SchoolController::class, 'show'])->name('schools.show');
+
 /*
 |--------------------------------------------------------------------------
 | Authentication Routes
@@ -242,6 +245,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:SUPER_ADMIN,MA
         Route::post('/users/assign-role', [UserAdminController::class, 'assignRole'])->name('users.assign-role');
         Route::post('/users/remove-role', [UserAdminController::class, 'removeRole'])->name('users.remove-role');
         Route::post('/users/roles', [UserAdminController::class, 'storeRole'])->name('users.store-role');
+
+        // Institutional Schools & Cohort Hub
+        Route::get('/schools', [\App\Http\Controllers\Admin\SchoolAdminController::class, 'index'])->name('schools.index');
+        Route::post('/schools', [\App\Http\Controllers\Admin\SchoolAdminController::class, 'store'])->name('schools.store');
+        Route::get('/schools/{school}', [\App\Http\Controllers\Admin\SchoolAdminController::class, 'show'])->name('schools.show');
+        Route::put('/schools/{school}', [\App\Http\Controllers\Admin\SchoolAdminController::class, 'update'])->name('schools.update');
     });
 
     // Faculty Level Requests (Teacher Submits)

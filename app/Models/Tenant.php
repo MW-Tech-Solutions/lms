@@ -15,16 +15,25 @@ class Tenant extends Model
     protected $fillable = [
         'id',
         'name',
+        'slug',
         'subdomain',
+        'school_code',
         'custom_domain',
         'branding_json',
+        'admin_user_id',
         'is_active',
+        'subscription_status',
     ];
 
     protected $casts = [
         'branding_json' => 'array',
         'is_active' => 'boolean',
     ];
+
+    public function admin(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'admin_user_id');
+    }
 
     public function departments(): HasMany
     {
