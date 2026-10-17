@@ -167,11 +167,23 @@
                         <tr x-show="!liveSearch || '{{ strtolower(addslashes($material->title . ' ' . $material->slug . ' ' . ($material->category?->name ?? '') . ' ' . ($material->instructor?->name ?? '') . ' ' . ($material->approval_status ?? ''))) }}'.includes(liveSearch.toLowerCase().trim())">
                             <td class="ps-4 py-3">
                                 <div class="d-flex align-items-center gap-3">
-                                    <div class="rounded-3 overflow-hidden flex-shrink-0 border shadow-xs" 
-                                         style="width: 50px; height: 50px; background: #EEF2F6;">
-                                        <img src="{{ !empty($material->thumbnail) && !str_contains($material->thumbnail, 'unsplash.com') ? $material->thumbnail : asset('images/profile-img.png') }}" 
-                                             alt="{{ $material->title }}" 
-                                             class="w-100 h-100 object-fit-cover">
+                                    <div class="rounded-3 overflow-hidden flex-shrink-0 border shadow-xs position-relative d-flex align-items-center justify-content-center" 
+                                         style="width: 50px; height: 50px; min-width: 50px; background: linear-gradient(135deg, #723EC3, #2563EB);">
+                                        @if($material->thumbnailUrl())
+                                            <img src="{{ $material->thumbnailUrl() }}" 
+                                                 alt="" 
+                                                 loading="lazy"
+                                                 referrerpolicy="no-referrer"
+                                                 class="w-100 h-100 object-fit-cover"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="align-items-center justify-content-center text-white w-100 h-100" style="display: none;">
+                                                <i class="bi bi-mortarboard-fill fs-5 text-light"></i>
+                                            </div>
+                                        @else
+                                            <div class="d-flex align-items-center justify-content-center text-white w-100 h-100">
+                                                <i class="bi bi-mortarboard-fill fs-5 text-light"></i>
+                                            </div>
+                                        @endif
                                     </div>
                                     <div>
                                         <div class="fw-bold text-body-emphasis" style="font-size: 0.92rem;">
