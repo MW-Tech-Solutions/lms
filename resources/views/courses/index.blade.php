@@ -121,8 +121,21 @@
                                 <!-- Thumbnail Container -->
                                 <div class="course-thumb-wrap position-relative">
                                     @if($course->thumbnailUrl())
-                                        <div class="w-100 overflow-hidden position-relative" style="height: 180px;">
-                                            <img src="{{ $course->thumbnailUrl() }}" alt="{{ $course->title }}" class="w-100 h-100 object-fit-cover">
+                                        <div class="w-100 overflow-hidden position-relative" style="height: 180px; background: linear-gradient(135deg, #0284C7, #0369A1);">
+                                            <img src="{{ $course->thumbnailUrl() }}" 
+                                                 alt=""
+                                                 loading="lazy"
+                                                 referrerpolicy="no-referrer"
+                                                 class="w-100 h-100 object-fit-cover"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="align-items-center justify-content-center text-white w-100 h-100" style="display: none;">
+                                                <div class="text-center p-3">
+                                                    <i class="bi bi-mortarboard-fill fs-1 text-light d-block mb-1"></i>
+                                                    <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-1 small fw-semibold">
+                                                        {{ $course->category?->name ?? 'Cambridge Resource' }}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
                                     @else
                                         <div class="w-100 h-100 d-flex align-items-center justify-content-center text-white" 

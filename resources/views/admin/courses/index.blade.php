@@ -216,10 +216,22 @@
                             x-show="!liveSearch || '{{ strtolower(addslashes($course->title . ' ' . $course->slug . ' ' . ($course->course_code ?? '') . ' ' . ($course->category?->name ?? '') . ' ' . ($course->instructor?->name ?? ''))) }}'.includes(liveSearch.toLowerCase().trim())">
                             <td>
                                 @if($course->thumbnailUrl())
-                                    <img src="{{ $course->thumbnailUrl() }}" alt="{{ $course->title }}" class="rounded-2 shadow-xs object-fit-cover" style="width: 44px; height: 32px; border: 1px solid var(--lms-border);">
+                                    <div class="position-relative rounded-2 overflow-hidden shadow-xs d-flex align-items-center justify-content-center" 
+                                         style="width: 44px; height: 32px; min-width: 44px; border: 1px solid var(--lms-border); background: {{ $course->target_audience === 'CORPORATE' ? 'linear-gradient(135deg, #0F172A, #1E293B)' : 'linear-gradient(135deg, #723EC3, #2563EB)' }};">
+                                        <img src="{{ $course->thumbnailUrl() }}" 
+                                             alt=""
+                                             loading="lazy"
+                                             referrerpolicy="no-referrer"
+                                             class="w-100 h-100 object-fit-cover" 
+                                             style="display: block;"
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div class="align-items-center justify-content-center text-white small w-100 h-100" style="display: none; font-size: 0.85rem;">
+                                            <i class="bi {{ $course->target_audience === 'CORPORATE' ? 'bi-shield-check text-warning' : 'bi-mortarboard-fill text-light' }}"></i>
+                                        </div>
+                                    </div>
                                 @else
                                     <div class="rounded-2 d-flex align-items-center justify-content-center text-white small" 
-                                         style="width: 44px; height: 32px; background: {{ $course->target_audience === 'CORPORATE' ? 'linear-gradient(135deg, #0F172A, #1E293B)' : 'linear-gradient(135deg, #723EC3, #2563EB)' }}; font-size: 0.85rem;">
+                                         style="width: 44px; height: 32px; min-width: 44px; background: {{ $course->target_audience === 'CORPORATE' ? 'linear-gradient(135deg, #0F172A, #1E293B)' : 'linear-gradient(135deg, #723EC3, #2563EB)' }}; font-size: 0.85rem;">
                                         <i class="bi {{ $course->target_audience === 'CORPORATE' ? 'bi-shield-check text-warning' : 'bi-mortarboard-fill text-light' }}"></i>
                                     </div>
                                 @endif
