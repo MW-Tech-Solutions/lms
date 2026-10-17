@@ -5,7 +5,7 @@
 @section('content')
 <div class="container-fluid" 
      x-data="{ 
-         showCreateModal: false,
+         showCreateModal: {{ $errors->any() && !old('_method') ? 'true' : 'false' }},
          showEditModal: false,
          liveSearch: '{{ addslashes($search ?? '') }}',
          editCourse: {
@@ -454,7 +454,7 @@
                                     <select name="category_id" class="form-select" required>
                                         <option value="">-- Select Authorized Cambridge Level (Compulsory) --</option>
                                         @foreach($categories as $category)
-                                            <option value="{{ $category->id }}">{{ $category->name }} (Approved Scope)</option>
+                                            <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }} (Approved Scope)</option>
                                         @endforeach
                                     </select>
                                     @if($isTeacher && $categories->isEmpty())
@@ -467,15 +467,15 @@
 
                             <div class="col-md-8">
                                 <label class="form-label small fw-semibold">Course Title <span class="text-danger">*</span></label>
-                                <input type="text" name="title" class="form-control" required placeholder="e.g., Cambridge IGCSE Mathematics: Paper 2 Core Framework">
+                                <input type="text" name="title" class="form-control" required value="{{ old('title') }}" placeholder="e.g., Cambridge IGCSE Mathematics: Paper 2 Core Framework">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">URL Slug <span class="text-danger">*</span></label>
-                                <input type="text" name="slug" class="form-control" required placeholder="igcse-math-paper-2">
+                                <input type="text" name="slug" class="form-control" required value="{{ old('slug') }}" placeholder="igcse-math-paper-2">
                             </div>
                             <div class="col-12">
                                 <label class="form-label small fw-semibold">Course Description</label>
-                                <textarea name="description" class="form-control" rows="2" placeholder="Brief summary of syllabus objectives, competencies, and learning outcomes..."></textarea>
+                                <textarea name="description" class="form-control" rows="2" placeholder="Brief summary of syllabus objectives, competencies, and learning outcomes...">{{ old('description') }}</textarea>
                             </div>
 
                             <!-- Course Lecture Video Section -->
@@ -487,6 +487,16 @@
                                     <div class="text-muted small mb-2" style="font-size: 0.78rem;">
                                         Upload an MP4/WebM video recording or paste an external URL (YouTube / Vimeo / CDN). Students will stream this lecture directly in the course player.
                                     </div>
+                                    @php
+                                        $preservedVideo = session('preserved_video_file', old('preserved_video_file'));
+                                    @endphp
+                                    @if($preservedVideo)
+                                        <input type="hidden" name="preserved_video_file" value="{{ $preservedVideo }}">
+                                        <div class="alert alert-success border-0 py-2 px-3 mb-2 rounded-3 small d-flex align-items-center justify-content-between">
+                                            <span><i class="bi bi-check-circle-fill me-1 text-success"></i> Video uploaded previously: <code>{{ basename($preservedVideo) }}</code> (retained)</span>
+                                            <span class="badge bg-success-subtle text-success">Ready</span>
+                                        </div>
+                                    @endif
                                     <div class="row g-2">
                                         <div class="col-md-6">
                                             <label class="form-label small text-muted">Upload Video File (MP4, WebM)</label>
@@ -494,7 +504,7 @@
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label small text-muted">Or Video Link (URL)</label>
-                                            <input type="url" name="video_url" class="form-control form-control-sm" placeholder="https://www.youtube.com/watch?v=...">
+                                            <input type="url" name="video_url" class="form-control form-control-sm" value="{{ old('video_url') }}" placeholder="https://www.youtube.com/watch?v=...">
                                         </div>
                                     </div>
                                 </div>
@@ -509,13 +519,23 @@
                                     <div class="text-muted small mb-2" style="font-size: 0.78rem;">
                                         Upload document files (PDF, Past Papers, Slides, Zip) and write detailed study notes. Files and notes will format cleanly as native reading materials for students.
                                     </div>
+                                    @php
+                                        $preservedMaterial = session('preserved_material_file', old('preserved_material_file'));
+                                    @endphp
+                                    @if($preservedMaterial)
+                                        <input type="hidden" name="preserved_material_file" value="{{ $preservedMaterial }}">
+                                        <div class="alert alert-success border-0 py-2 px-3 mb-2 rounded-3 small d-flex align-items-center justify-content-between">
+                                            <span><i class="bi bi-check-circle-fill me-1 text-success"></i> Document uploaded previously: <code>{{ basename($preservedMaterial) }}</code> (retained)</span>
+                                            <span class="badge bg-success-subtle text-success">Ready</span>
+                                        </div>
+                                    @endif
                                     <div class="mb-2">
                                         <label class="form-label small text-muted">Upload Document / Past Paper (PDF, Doc, PPT, Zip)</label>
                                         <input type="file" name="material_file" class="form-control form-control-sm" accept=".pdf,.doc,.docx,.ppt,.pptx,.zip,.txt">
                                     </div>
                                     <div>
                                         <label class="form-label small text-muted">Inline Study Text &amp; Notes (Formatted like normal system texts)</label>
-                                        <textarea name="material_notes" class="form-control" rows="4" placeholder="Enter key revision notes, formula guides, paper instructions, or reading text here. It will display seamlessly in the student reader pane..."></textarea>
+                                        <textarea name="material_notes" class="form-control" rows="4" placeholder="Enter key revision notes, formula guides, paper instructions, or reading text here. It will display seamlessly in the student reader pane...">{{ old('material_notes') }}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -526,6 +546,16 @@
                                     <label class="form-label small fw-bold mb-2 d-flex align-items-center gap-1">
                                         <i class="bi bi-image text-primary"></i> Course Thumbnail Image
                                     </label>
+                                    @php
+                                        $preservedThumbnail = session('preserved_thumbnail_file', old('preserved_thumbnail_file'));
+                                    @endphp
+                                    @if($preservedThumbnail)
+                                        <input type="hidden" name="preserved_thumbnail_file" value="{{ $preservedThumbnail }}">
+                                        <div class="alert alert-success border-0 py-2 px-3 mb-2 rounded-3 small d-flex align-items-center justify-content-between">
+                                            <span><i class="bi bi-check-circle-fill me-1 text-success"></i> Thumbnail uploaded previously: <code>{{ basename($preservedThumbnail) }}</code> (retained)</span>
+                                            <span class="badge bg-success-subtle text-success">Ready</span>
+                                        </div>
+                                    @endif
                                     <div class="row g-2">
                                         <div class="col-md-6">
                                             <label class="form-label small text-muted">Upload File (JPG, PNG, WebP, SVG)</label>
@@ -533,7 +563,7 @@
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label small text-muted">Or Image URL</label>
-                                            <input type="url" name="thumbnail_url" class="form-control form-control-sm" placeholder="https://example.com/image.jpg">
+                                            <input type="url" name="thumbnail_url" class="form-control form-control-sm" value="{{ old('thumbnail_url') }}" placeholder="https://example.com/image.jpg">
                                         </div>
                                     </div>
                                 </div>
@@ -542,42 +572,42 @@
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">Target Audience</label>
                                 <select name="target_audience" class="form-select">
-                                    <option value="PUBLIC">Public &amp; Academic</option>
-                                    <option value="BOTH">Dual-Audience (Both)</option>
-                                    <option value="CORPORATE">Corporate Workforce</option>
+                                    <option value="PUBLIC" {{ old('target_audience', 'PUBLIC') === 'PUBLIC' ? 'selected' : '' }}>Public &amp; Academic</option>
+                                    <option value="BOTH" {{ old('target_audience') === 'BOTH' ? 'selected' : '' }}>Dual-Audience (Both)</option>
+                                    <option value="CORPORATE" {{ old('target_audience') === 'CORPORATE' ? 'selected' : '' }}>Corporate Workforce</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">Course Format</label>
                                 <select name="format" class="form-select">
-                                    <option value="SELF_PACED">Self-Paced Modular</option>
-                                    <option value="WEEKLY">Weekly Cohorts</option>
-                                    <option value="TOPICS">Thematic Topics</option>
+                                    <option value="SELF_PACED" {{ old('format', 'SELF_PACED') === 'SELF_PACED' ? 'selected' : '' }}>Self-Paced Modular</option>
+                                    <option value="WEEKLY" {{ old('format') === 'WEEKLY' ? 'selected' : '' }}>Weekly Cohorts</option>
+                                    <option value="TOPICS" {{ old('format') === 'TOPICS' ? 'selected' : '' }}>Thematic Topics</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">Passing Threshold (%)</label>
-                                <input type="number" name="passing_grade" class="form-control" value="70" min="1" max="100">
+                                <input type="number" name="passing_grade" class="form-control" value="{{ old('passing_grade', 70) }}" min="1" max="100">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-semibold">Recertification Cycle (Days)</label>
-                                <input type="number" name="recertification_days" class="form-control" placeholder="e.g. 365">
+                                <input type="number" name="recertification_days" class="form-control" value="{{ old('recertification_days') }}" placeholder="e.g. 365">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small fw-semibold">Price (Cents)</label>
-                                <input type="number" name="price_cents" class="form-control" value="0">
+                                <input type="number" name="price_cents" class="form-control" value="{{ old('price_cents', 0) }}">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label small fw-semibold">Currency</label>
-                                <input type="text" name="currency" class="form-control" value="GBP" maxlength="3">
+                                <input type="text" name="currency" class="form-control" value="{{ old('currency', 'GBP') }}" maxlength="3">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-semibold">Special Pricing Tag (Optional)</label>
-                                <input type="text" name="special_pricing_tag" class="form-control" placeholder="e.g. Early Bird Revision, Term 1 Special, Cambridge Sprint">
+                                <input type="text" name="special_pricing_tag" class="form-control" value="{{ old('special_pricing_tag') }}" placeholder="e.g. Early Bird Revision, Term 1 Special, Cambridge Sprint">
                             </div>
                             <div class="col-12">
                                 <div class="form-check form-switch mt-2">
-                                    <input class="form-check-input" type="checkbox" name="is_published" value="1" id="createPublishSwitch" {{ $isTeacher ? '' : 'checked' }}>
+                                    <input class="form-check-input" type="checkbox" name="is_published" value="1" id="createPublishSwitch" {{ old('is_published', $isTeacher ? 0 : 1) ? 'checked' : '' }}>
                                     <label class="form-check-label fw-semibold" for="createPublishSwitch">
                                         {{ $isTeacher ? 'Submit & Publish Immediately (Requires Admin Approval if Moderated)' : 'Publish Immediately to Catalog' }}
                                     </label>

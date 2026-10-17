@@ -94,35 +94,55 @@ class CourseAdminController extends Controller
             'public_preview_content' => ['nullable', 'string'],
             'thumbnail_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp,svg', 'max:4096'],
             'thumbnail_url' => ['nullable', 'string', 'max:500'],
+            'preserved_thumbnail_file' => ['nullable', 'string'],
             'video_file' => ['nullable', 'file', 'mimes:mp4,mov,ogg,qt,webm', 'max:51200'], // Up to 50MB
             'video_url' => ['nullable', 'string', 'max:500'],
+            'preserved_video_file' => ['nullable', 'string'],
             'material_file' => ['nullable', 'file', 'mimes:pdf,doc,docx,ppt,pptx,zip,txt', 'max:51200'],
+            'preserved_material_file' => ['nullable', 'string'],
             'material_notes' => ['nullable', 'string'],
         ];
 
-        $validated = $request->validate($rules);
+        // If files were uploaded in this request, pre-store them so they aren't lost if validation fails
+        $preStoredThumbnail = null;
+        if ($request->hasFile('thumbnail_file') && $request->file('thumbnail_file')->isValid()) {
+            $preStoredThumbnail = $request->file('thumbnail_file')->store('courses', 'public');
+        } elseif ($request->filled('preserved_thumbnail_file')) {
+            $preStoredThumbnail = $request->input('preserved_thumbnail_file');
+        }
+
+        $preStoredVideo = null;
+        if ($request->hasFile('video_file') && $request->file('video_file')->isValid()) {
+            $preStoredVideo = $request->file('video_file')->store('courses/videos', 'public');
+        } elseif ($request->filled('preserved_video_file')) {
+            $preStoredVideo = $request->input('preserved_video_file');
+        }
+
+        $preStoredMaterial = null;
+        if ($request->hasFile('material_file') && $request->file('material_file')->isValid()) {
+            $preStoredMaterial = $request->file('material_file')->store('courses/materials', 'public');
+        } elseif ($request->filled('preserved_material_file')) {
+            $preStoredMaterial = $request->input('preserved_material_file');
+        }
+
+        try {
+            $validated = $request->validate($rules);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Flash the successfully uploaded file paths to session so the form picks them back up
+            if ($preStoredThumbnail) session()->flash('preserved_thumbnail_file', $preStoredThumbnail);
+            if ($preStoredVideo) session()->flash('preserved_video_file', $preStoredVideo);
+            if ($preStoredMaterial) session()->flash('preserved_material_file', $preStoredMaterial);
+            throw $e;
+        }
 
         // Thumbnail resolution
-        $thumbnailPath = null;
-        if ($request->hasFile('thumbnail_file')) {
-            $thumbnailPath = $request->file('thumbnail_file')->store('courses', 'public');
-        } elseif (!empty($validated['thumbnail_url'])) {
-            $thumbnailPath = $validated['thumbnail_url'];
-        }
+        $thumbnailPath = $preStoredThumbnail ?: (!empty($validated['thumbnail_url']) ? $validated['thumbnail_url'] : null);
 
         // Lecture Video resolution
-        $videoPath = null;
-        if ($request->hasFile('video_file')) {
-            $videoPath = $request->file('video_file')->store('courses/videos', 'public');
-        } elseif (!empty($validated['video_url'])) {
-            $videoPath = $validated['video_url'];
-        }
+        $videoPath = $preStoredVideo ?: (!empty($validated['video_url']) ? $validated['video_url'] : null);
 
         // Material Document file resolution
-        $materialFilePath = null;
-        if ($request->hasFile('material_file')) {
-            $materialFilePath = $request->file('material_file')->store('courses/materials', 'public');
-        }
+        $materialFilePath = $preStoredMaterial;
 
         $course = Course::create([
             'instructor_id' => $isTeacher ? $user->id : ($request->input('instructor_id') ?: $user?->id),
