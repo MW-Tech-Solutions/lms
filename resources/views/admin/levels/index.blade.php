@@ -250,39 +250,6 @@
                                         </button>
                                     @endif
                                 </div>
-
-                                <!-- Reject Material Modal -->
-                                <div class="modal fade" id="rejectMaterialModal{{ $material->id }}" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered text-start">
-                                        <div class="modal-content border-0 shadow-lg rounded-4">
-                                            <div class="modal-header border-bottom pb-3">
-                                                <h5 class="modal-title fw-bold text-danger">
-                                                    <i class="bi bi-shield-x me-2"></i> Reject Material &amp; Syllabus
-                                                </h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <form method="POST" action="{{ route('admin.levels.materials.reject', $material->id) }}">
-                                                @csrf
-                                                @method('PATCH')
-                                                <div class="modal-body py-3">
-                                                    <p class="small text-secondary mb-3">
-                                                        You are rejecting <strong>{{ $material->title }}</strong> submitted by <strong>{{ $material->instructor?->name ?? 'Instructor' }}</strong>. Please specify the non-compliance reason below. The instructor will receive a formal notification email with an authenticated direct link to revise their submission.
-                                                    </p>
-                                                    <div class="mb-3">
-                                                        <label class="form-label small fw-bold">Reason for Non-Compliance <span class="text-danger">*</span></label>
-                                                        <textarea name="reason" rows="4" class="form-control" placeholder="Specify why this syllabus or material file was not compliant (e.g. wrong syllabus code, missing answer keys, incomplete modules)..." required></textarea>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer border-top pt-2">
-                                                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                                                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold">
-                                                        <i class="bi bi-send-fill me-1"></i> Confirm Rejection &amp; Email Instructor
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
                             </td>
                         </tr>
                     @empty
@@ -396,30 +363,6 @@
                                             <i class="bi bi-x-circle me-1"></i> Reject
                                         </button>
                                     </div>
-
-                                    <!-- Reject Modal -->
-                                    <div class="modal fade" id="rejectLevelReqModal{{ $req->id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered text-start">
-                                            <form method="POST" action="{{ route('admin.teachers.reject-level-request', $req->id) }}" class="modal-content border-0 shadow-lg rounded-4">
-                                                @csrf
-                                                <div class="modal-header border-bottom">
-                                                    <h5 class="modal-title fw-bold text-danger">Decline Level Request</h5>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                </div>
-                                                <div class="modal-body py-3">
-                                                    <p class="small text-secondary mb-2">
-                                                        Decline authorization for <strong>{{ $req->user?->name }}</strong> to tutor <strong>{{ $req->category?->name }}</strong>.
-                                                    </p>
-                                                    <label class="form-label small fw-bold">Feedback / Notes</label>
-                                                    <textarea name="admin_feedback" rows="3" class="form-control" placeholder="Specify why this accreditation was declined..."></textarea>
-                                                </div>
-                                                <div class="modal-footer border-top">
-                                                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                                                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3">Confirm Decline</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
                                 @else
                                     <span class="text-muted small">Reviewed</span>
                                 @endif
@@ -506,36 +449,6 @@
                                         </button>
                                     @endif
                                 </div>
-
-                                <!-- Edit Level Modal -->
-                                <div class="modal fade" id="editLevelModal{{ $lvl->id }}" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered text-start">
-                                        <form method="POST" action="{{ route('admin.levels.update', $lvl->id) }}" class="modal-content border-0 shadow-lg rounded-4">
-                                            @csrf
-                                            @method('PUT')
-                                            <div class="modal-header border-bottom">
-                                                <h5 class="modal-title fw-bold">Edit Cambridge Level</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body py-3">
-                                                <div class="mb-3">
-                                                    <label class="form-label small fw-bold">Level Name <span class="text-danger">*</span></label>
-                                                    <input type="text" name="name" class="form-control" required value="{{ $lvl->name }}" placeholder="e.g. Cambridge IGCSE">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label small fw-bold">Slug / URL Identifier</label>
-                                                    <input type="text" name="slug" class="form-control font-mono" value="{{ $lvl->slug }}" placeholder="e.g. cambridge-igcse">
-                                                    <span class="small text-muted" style="font-size: 0.72rem;">Leave blank to auto-generate from name.</span>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer border-top">
-                                                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" class="tj-btn-primary px-3 py-1.5 small">Save Changes</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-
                             </td>
                         </tr>
                     @empty
@@ -577,6 +490,96 @@
             </form>
         </div>
     </div>
+
+    <!-- Modals moved outside table markup to prevent display and layout issues -->
+    @foreach($materials as $material)
+        <div class="modal fade" id="rejectMaterialModal{{ $material->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered text-start">
+                <div class="modal-content border-0 shadow-lg rounded-4">
+                    <div class="modal-header border-bottom pb-3">
+                        <h5 class="modal-title fw-bold text-danger">
+                            <i class="bi bi-shield-x me-2"></i> Reject Material &amp; Syllabus
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" action="{{ route('admin.levels.materials.reject', $material->id) }}">
+                        @csrf
+                        @method('PATCH')
+                        <div class="modal-body py-3">
+                            <p class="small text-secondary mb-3">
+                                You are rejecting <strong>{{ $material->title }}</strong> submitted by <strong>{{ $material->instructor?->name ?? 'Instructor' }}</strong>. Please specify the non-compliance reason below. The instructor will receive a formal notification email with an authenticated direct link to revise their submission.
+                            </p>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Reason for Non-Compliance <span class="text-danger">*</span></label>
+                                <textarea name="reason" rows="4" class="form-control" placeholder="Specify why this syllabus or material file was not compliant (e.g. wrong syllabus code, missing answer keys, incomplete modules)..." required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top pt-2">
+                            <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold">
+                                <i class="bi bi-send-fill me-1"></i> Confirm Rejection &amp; Email Instructor
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endforeach
+
+    @foreach($levelRequests as $req)
+        <div class="modal fade" id="rejectLevelReqModal{{ $req->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered text-start">
+                <form method="POST" action="{{ route('admin.teachers.reject-level-request', $req->id) }}" class="modal-content border-0 shadow-lg rounded-4">
+                    @csrf
+                    <div class="modal-header border-bottom">
+                        <h5 class="modal-title fw-bold text-danger">Decline Level Request</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <p class="small text-secondary mb-2">
+                            Decline authorization for <strong>{{ $req->user?->name }}</strong> to tutor <strong>{{ $req->category?->name }}</strong>.
+                        </p>
+                        <label class="form-label small fw-bold">Feedback / Notes</label>
+                        <textarea name="admin_feedback" rows="3" class="form-control" placeholder="Specify why this accreditation was declined..."></textarea>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3">Confirm Decline</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endforeach
+
+    @foreach($levels as $lvl)
+        <div class="modal fade" id="editLevelModal{{ $lvl->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered text-start">
+                <form method="POST" action="{{ route('admin.levels.update', $lvl->id) }}" class="modal-content border-0 shadow-lg rounded-4">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-header border-bottom">
+                        <h5 class="modal-title fw-bold">Edit Cambridge Level</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body py-3">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Level Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control" required value="{{ $lvl->name }}" placeholder="e.g. Cambridge IGCSE">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Slug / URL Identifier</label>
+                            <input type="text" name="slug" class="form-control font-mono" value="{{ $lvl->slug }}" placeholder="e.g. cambridge-igcse">
+                            <span class="small text-muted" style="font-size: 0.72rem;">Leave blank to auto-generate from name.</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="tj-btn-primary px-3 py-1.5 small">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endforeach
 
 </div>
 @endsection

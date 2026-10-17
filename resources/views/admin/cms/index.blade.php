@@ -150,96 +150,6 @@
                                             </button>
                                         </form>
                                     </div>
-
-                                    <!-- EDIT MODAL FOR THIS SECTION -->
-                                    <div class="modal fade text-start" id="editModal{{ $sec->id }}" tabindex="-1" aria-hidden="true">
-                                        <div class="modal-dialog modal-dialog-centered modal-lg">
-                                            <div class="modal-content border-0 shadow-lg rounded-4">
-                                                <form action="{{ route('admin.cms.sections.update', $sec) }}" method="POST">
-                                                    @csrf
-                                                    @method('PUT')
-                                                    
-                                                    <div class="modal-header border-bottom px-4 pt-4 pb-3">
-                                                        <div class="d-flex align-items-center gap-2">
-                                                            <span class="badge {{ $badgeColor }} font-mono px-2 py-1">
-                                                                {{ $sec->section_type }}
-                                                            </span>
-                                                            <h5 class="modal-title fw-bold mb-0">Edit Section Content</h5>
-                                                        </div>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                    </div>
-
-                                                    <div class="modal-body px-4 py-3">
-                                                        <div class="row g-3">
-                                                            <div class="col-md-4">
-                                                                <label class="form-label small fw-semibold text-secondary">Display Order Index</label>
-                                                                <input type="number" name="order_index" class="form-control" value="{{ $sec->order_index }}" required min="1" max="99">
-                                                                <div class="form-text small">Lower numbers display higher up.</div>
-                                                            </div>
-
-                                                            <div class="col-md-8">
-                                                                <label class="form-label small fw-semibold text-secondary">Section Title</label>
-                                                                <input type="text" name="title" class="form-control" value="{{ $c['title'] ?? '' }}" placeholder="e.g. Explore Categories">
-                                                            </div>
-
-                                                            <div class="col-12">
-                                                                <label class="form-label small fw-semibold text-secondary">Subtitle / Description</label>
-                                                                <textarea name="subtitle" class="form-control" rows="2" placeholder="Descriptive subheading for section...">{{ $c['subtitle'] ?? '' }}</textarea>
-                                                            </div>
-
-                                                            @if($sec->section_type === 'CATEGORIES' || $sec->section_type === 'EVENTS')
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label small fw-semibold text-secondary">View All Link Text</label>
-                                                                    <input type="text" name="view_all_text" class="form-control" value="{{ $c['view_all_text'] ?? '' }}" placeholder="View All Categories">
-                                                                </div>
-                                                            @endif
-
-                                                            @if($sec->section_type === 'EVENTS')
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label small fw-semibold text-secondary">Right Featured Speaker / Graphic URL</label>
-                                                                    <input type="url" name="featured_image_url" class="form-control font-mono" value="{{ $c['featured_image_url'] ?? '' }}" placeholder="https://images.unsplash.com/...">
-                                                                </div>
-                                                            @endif
-
-                                                            @if($sec->section_type === 'FAQ')
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label small fw-semibold text-secondary">Support Card Title</label>
-                                                                    <input type="text" name="support_title" class="form-control" value="{{ $c['support_title'] ?? 'Still Need Help?' }}">
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                    <label class="form-label small fw-semibold text-secondary">Support Email Badge</label>
-                                                                    <input type="email" name="support_email" class="form-control" value="{{ $c['support_email'] ?? 'hello@lerntix.com' }}">
-                                                                </div>
-                                                                <div class="col-12">
-                                                                    <label class="form-label small fw-semibold text-secondary">Support Image URL (Desk/Laptop Photo)</label>
-                                                                    <input type="url" name="support_image" class="form-control font-mono" value="{{ $c['support_image'] ?? '' }}" placeholder="https://images.unsplash.com/...">
-                                                                </div>
-                                                            @endif
-
-                                                            @if(in_array($sec->section_type, ['CATEGORIES', 'MENTORS', 'EVENTS', 'FAQ']))
-                                                                <div class="col-12">
-                                                                    <label class="form-label small fw-semibold text-secondary d-flex justify-content-between align-items-center">
-                                                                        <span>Custom Items (Advanced JSON Array)</span>
-                                                                        <span class="text-muted font-mono" style="font-size: 0.72rem;">Valid JSON format</span>
-                                                                    </label>
-                                                                    <textarea name="content_raw_json" class="form-control font-mono small" rows="8" placeholder="Optional raw JSON override">{{ json_encode(array_filter($c, fn($k) => in_array($k, ['categories', 'mentors', 'events', 'faqs', 'highlights']), ARRAY_FILTER_USE_KEY), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</textarea>
-                                                                    <div class="form-text small">Admins can adjust item titles, lesson counts, ratings, and questions in this structured JSON format.</div>
-                                                                </div>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-
-                                                    <div class="modal-footer border-top px-4 py-3">
-                                                        <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                                                        <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold">
-                                                            <i class="bi bi-check-lg me-1"></i> Save Changes
-                                                        </button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-
                                 </td>
                             </tr>
                         @endforeach
@@ -376,6 +286,112 @@
             </div>
         </div>
     </div>
+    <!-- EDIT MODALS MOVED OUTSIDE TABLE MARKUP TO PREVENT MODAL SHRINKING -->
+    @if($homePage && $homePage->sections->isNotEmpty())
+        @foreach($homePage->sections as $sec)
+            @php
+                $c = $sec->content ?? [];
+                $badgeColor = match($sec->section_type) {
+                    'HERO' => 'bg-primary text-white',
+                    'CATEGORIES' => 'bg-info-subtle text-info-emphasis border border-info',
+                    'CATALOG' => 'bg-primary-subtle text-primary border border-primary',
+                    'MENTORS' => 'bg-warning-subtle text-warning-emphasis border border-warning',
+                    'EVENTS' => 'bg-success-subtle text-success border border-success',
+                    'FAQ' => 'bg-secondary-subtle text-dark border',
+                    'DYNAMIC_FORM' => 'bg-dark text-white',
+                    'PRICING' => 'bg-danger-subtle text-danger border border-danger',
+                    default => 'bg-secondary text-white',
+                };
+            @endphp
+            <div class="modal fade text-start" id="editModal{{ $sec->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content border-0 shadow-lg rounded-4">
+                        <form action="{{ route('admin.cms.sections.update', $sec) }}" method="POST">
+                            @csrf
+                            @method('PUT')
+                            
+                            <div class="modal-header border-bottom px-4 pt-4 pb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge {{ $badgeColor }} font-mono px-2 py-1">
+                                        {{ $sec->section_type }}
+                                    </span>
+                                    <h5 class="modal-title fw-bold mb-0">Edit Section Content</h5>
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+
+                            <div class="modal-body px-4 py-3">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-semibold text-secondary">Display Order Index</label>
+                                        <input type="number" name="order_index" class="form-control" value="{{ $sec->order_index }}" required min="1" max="99">
+                                        <div class="form-text small">Lower numbers display higher up.</div>
+                                    </div>
+
+                                    <div class="col-md-8">
+                                        <label class="form-label small fw-semibold text-secondary">Section Title</label>
+                                        <input type="text" name="title" class="form-control" value="{{ $c['title'] ?? '' }}" placeholder="e.g. Explore Categories">
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label small fw-semibold text-secondary">Subtitle / Description</label>
+                                        <textarea name="subtitle" class="form-control" rows="2" placeholder="Descriptive subheading for section...">{{ $c['subtitle'] ?? '' }}</textarea>
+                                    </div>
+
+                                    @if($sec->section_type === 'CATEGORIES' || $sec->section_type === 'EVENTS')
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold text-secondary">View All Link Text</label>
+                                            <input type="text" name="view_all_text" class="form-control" value="{{ $c['view_all_text'] ?? '' }}" placeholder="View All Categories">
+                                        </div>
+                                    @endif
+
+                                    @if($sec->section_type === 'EVENTS')
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold text-secondary">Right Featured Speaker / Graphic URL</label>
+                                            <input type="url" name="featured_image_url" class="form-control font-mono" value="{{ $c['featured_image_url'] ?? '' }}" placeholder="https://images.unsplash.com/...">
+                                        </div>
+                                    @endif
+
+                                    @if($sec->section_type === 'FAQ')
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold text-secondary">Support Card Title</label>
+                                            <input type="text" name="support_title" class="form-control" value="{{ $c['support_title'] ?? 'Still Need Help?' }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold text-secondary">Support Email Badge</label>
+                                            <input type="email" name="support_email" class="form-control" value="{{ $c['support_email'] ?? 'hello@lerntix.com' }}">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label small fw-semibold text-secondary">Support Image URL (Desk/Laptop Photo)</label>
+                                            <input type="url" name="support_image" class="form-control font-mono" value="{{ $c['support_image'] ?? '' }}" placeholder="https://images.unsplash.com/...">
+                                        </div>
+                                    @endif
+
+                                    @if(in_array($sec->section_type, ['CATEGORIES', 'MENTORS', 'EVENTS', 'FAQ']))
+                                        <div class="col-12">
+                                            <label class="form-label small fw-semibold text-secondary d-flex justify-content-between align-items-center">
+                                                <span>Custom Items (Advanced JSON Array)</span>
+                                                <span class="text-muted font-mono" style="font-size: 0.72rem;">Valid JSON format</span>
+                                            </label>
+                                            <textarea name="content_raw_json" class="form-control font-mono small" rows="8" placeholder="Optional raw JSON override">{{ json_encode(array_filter($c, fn($k) => in_array($k, ['categories', 'mentors', 'events', 'faqs', 'highlights']), ARRAY_FILTER_USE_KEY), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</textarea>
+                                            <div class="form-text small">Admins can adjust item titles, lesson counts, ratings, and questions in this structured JSON format.</div>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="modal-footer border-top px-4 py-3">
+                                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm fw-semibold">
+                                    <i class="bi bi-check-lg me-1"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    @endif
 
 </div>
 @endsection

@@ -121,65 +121,6 @@
                             </td>
                         </tr>
 
-                        <!-- Modal: Edit Subscription Plan -->
-                        <div class="modal fade" id="editPlanModal{{ $plan->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <form method="POST" action="{{ route('admin.subscriptions.update', $plan->id) }}" class="modal-content border-0 shadow rounded-4 text-start">
-                                    @csrf
-                                    @method('PUT')
-                                    <div class="modal-header border-0 pb-0">
-                                        <h5 class="modal-title fw-bold">Edit Subscription Plan</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-semibold">Plan Name *</label>
-                                            <input type="text" name="name" class="form-control" value="{{ $plan->name }}" required>
-                                        </div>
-                                        <div class="row g-2 mb-3">
-                                            <div class="col-6">
-                                                <label class="form-label small fw-semibold">Price in British Pounds (£) *</label>
-                                                <div class="input-group">
-                                                    <span class="input-group-text">£</span>
-                                                    <input type="number" step="0.01" name="price_pounds" class="form-control font-mono fw-bold" value="{{ number_format($plan->price_pence / 100, 2, '.', '') }}" required>
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <label class="form-label small fw-semibold">Duration Term *</label>
-                                                <select name="duration_term" class="form-select" required>
-                                                    <option value="3_MONTHS" {{ $plan->duration_term === '3_MONTHS' ? 'selected' : '' }}>3 Months Access</option>
-                                                    <option value="12_MONTHS" {{ $plan->duration_term === '12_MONTHS' ? 'selected' : '' }}>12 Months Annual Pass</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-semibold">Associated Cambridge Level</label>
-                                            <select name="category_id" class="form-select">
-                                                <option value="">-- All Levels / Site-wide --</option>
-                                                @foreach($categories as $category)
-                                                    <option value="{{ $category->id }}" {{ $plan->category_id === $category->id ? 'selected' : '' }}>
-                                                        {{ $category->name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-semibold">Plan Features (One per line)</label>
-                                            <textarea name="features" class="form-control" rows="4">{{ is_array($plan->features) ? implode("\n", $plan->features) : '' }}</textarea>
-                                        </div>
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" name="is_active" value="1" id="active{{ $plan->id }}" {{ $plan->is_active ? 'checked' : '' }}>
-                                            <label class="form-check-label small fw-semibold" for="active{{ $plan->id }}">Active for Purchase</label>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer border-0 pt-0">
-                                        <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-primary rounded-pill px-4">Update Plan</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-
                     @empty
                         <tr>
                             <td colspan="6" class="text-center py-5 text-muted">
@@ -258,4 +199,67 @@
         </form>
     </div>
 </div>
+
+<!-- Modals: Edit Subscription Plans (Cleanly isolated from table DOM) -->
+@foreach($plans as $plan)
+<div class="modal fade" id="editPlanModal{{ $plan->id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" action="{{ route('admin.subscriptions.update', $plan->id) }}" class="modal-content border-0 shadow-lg rounded-4 text-start">
+            @csrf
+            @method('PUT')
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-pencil-square text-primary me-2"></i> Edit Subscription Plan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Plan Name *</label>
+                    <input type="text" name="name" class="form-control" value="{{ $plan->name }}" required>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Price in British Pounds (£) *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">£</span>
+                            <input type="number" step="0.01" name="price_pounds" class="form-control font-mono fw-bold" value="{{ number_format($plan->price_pence / 100, 2, '.', '') }}" required>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Duration Term *</label>
+                        <select name="duration_term" class="form-select" required>
+                            <option value="3_MONTHS" {{ $plan->duration_term === '3_MONTHS' ? 'selected' : '' }}>3 Months Access</option>
+                            <option value="12_MONTHS" {{ $plan->duration_term === '12_MONTHS' ? 'selected' : '' }}>12 Months Annual Pass</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Associated Cambridge Level</label>
+                    <select name="category_id" class="form-select">
+                        <option value="">-- All Levels / Site-wide --</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" {{ $plan->category_id === $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Plan Features (One per line)</label>
+                    <textarea name="features" class="form-control" rows="4">{{ is_array($plan->features) ? implode("\n", $plan->features) : '' }}</textarea>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_active" value="1" id="active{{ $plan->id }}" {{ $plan->is_active ? 'checked' : '' }}>
+                    <label class="form-check-label small fw-semibold" for="active{{ $plan->id }}">Active for Purchase</label>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary rounded-pill px-4">Update Plan</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endforeach
 @endsection

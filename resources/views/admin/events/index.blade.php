@@ -180,70 +180,6 @@
                             </td>
                         </tr>
 
-                        <!-- Modal: Edit Event -->
-                        <div class="modal fade" id="editEventModal{{ $event->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <form method="POST" action="{{ route('admin.events.update', $event->id) }}" class="modal-content border-0 shadow rounded-4 text-start">
-                                    @csrf
-                                    @method('PUT')
-                                    <div class="modal-header border-0 pb-0">
-                                        <h5 class="modal-title fw-bold">Edit Live Event</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-semibold">Event Title *</label>
-                                            <input type="text" name="title" class="form-control" value="{{ $event->title }}" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-semibold">Level Badge *</label>
-                                            <input type="text" name="level_badge" class="form-control" value="{{ $event->level_badge }}" required>
-                                        </div>
-                                        <div class="row g-2 mb-3">
-                                            <div class="col-8">
-                                                <label class="form-label small fw-semibold">Date &amp; Time *</label>
-                                                <input type="datetime-local" name="event_date" class="form-control" value="{{ $event->event_date ? $event->event_date->format('Y-m-d\TH:i') : '' }}" required>
-                                            </div>
-                                            <div class="col-4">
-                                                <label class="form-label small fw-semibold">Duration (Min)</label>
-                                                <input type="number" name="duration_minutes" class="form-control" value="{{ $event->duration_minutes }}" required>
-                                            </div>
-                                        </div>
-                                        <div class="row g-2 mb-3">
-                                            <div class="col-6">
-                                                <label class="form-label small fw-semibold">Instructor Name *</label>
-                                                <input type="text" name="instructor_name" class="form-control" value="{{ $event->instructor_name }}" required>
-                                            </div>
-                                            <div class="col-6">
-                                                <label class="form-label small fw-semibold">Instructor Role *</label>
-                                                <input type="text" name="instructor_role" class="form-control" value="{{ $event->instructor_role }}" required>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-semibold">Zoom / Meeting URL</label>
-                                            <input type="url" name="meeting_link" class="form-control" value="{{ $event->meeting_link }}">
-                                        </div>
-                                        <div class="row g-2 mb-3">
-                                            <div class="col-6">
-                                                <label class="form-label small fw-semibold">Max Capacity *</label>
-                                                <input type="number" name="max_capacity" class="form-control" value="{{ $event->max_capacity }}" required>
-                                            </div>
-                                            <div class="col-6 d-flex align-items-center pt-3">
-                                                <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" name="is_active" value="1" id="active{{ $event->id }}" {{ $event->is_active ? 'checked' : '' }}>
-                                                    <label class="form-check-label small fw-semibold" for="active{{ $event->id }}">Active on Homepage</label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer border-0 pt-0">
-                                        <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-primary rounded-pill px-4">Update Event</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-
                     @empty
                         <tr>
                             <td colspan="6" class="text-center py-5 text-muted">
@@ -478,4 +414,72 @@
         </form>
     </div>
 </div>
+
+<!-- Modals: Edit Live Events (Cleanly isolated from table DOM) -->
+@foreach($events as $event)
+<div class="modal fade" id="editEventModal{{ $event->id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" action="{{ route('admin.events.update', $event->id) }}" class="modal-content border-0 shadow-lg rounded-4 text-start">
+            @csrf
+            @method('PUT')
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-pencil-square text-primary me-2"></i> Edit Live Event
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Event Title *</label>
+                    <input type="text" name="title" class="form-control" value="{{ $event->title }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Level Badge *</label>
+                    <input type="text" name="level_badge" class="form-control" value="{{ $event->level_badge }}" required>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-8">
+                        <label class="form-label small fw-semibold">Date &amp; Time *</label>
+                        <input type="datetime-local" name="event_date" class="form-control" value="{{ $event->event_date ? $event->event_date->format('Y-m-d\TH:i') : '' }}" required>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small fw-semibold">Duration (Min)</label>
+                        <input type="number" name="duration_minutes" class="form-control" value="{{ $event->duration_minutes }}" required>
+                    </div>
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Instructor Name *</label>
+                        <input type="text" name="instructor_name" class="form-control" value="{{ $event->instructor_name }}" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Instructor Role *</label>
+                        <input type="text" name="instructor_role" class="form-control" value="{{ $event->instructor_role }}" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Zoom / Meeting URL</label>
+                    <input type="url" name="meeting_link" class="form-control" value="{{ $event->meeting_link }}">
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Max Capacity *</label>
+                        <input type="number" name="max_capacity" class="form-control" value="{{ $event->max_capacity }}" required>
+                    </div>
+                    <div class="col-6 d-flex align-items-center pt-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="is_active" value="1" id="active{{ $event->id }}" {{ $event->is_active ? 'checked' : '' }}>
+                            <label class="form-check-label small fw-semibold" for="active{{ $event->id }}">Active on Homepage</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary rounded-pill px-4">Update Event</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endforeach
 @endsection

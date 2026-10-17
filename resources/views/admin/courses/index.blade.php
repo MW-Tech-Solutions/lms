@@ -393,39 +393,8 @@
                                         </ul>
                                     </div>
                                 </div>
-
-                                <!-- Reject Pricing Modal -->
-                                <div class="modal fade" id="rejectPricingModal{{ $course->id }}" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered text-start">
-                                        <div class="modal-content border-0 shadow-lg rounded-4">
-                                            <div class="modal-header border-bottom pb-3">
-                                                <h5 class="modal-title fw-bold text-danger">
-                                                    <i class="bi bi-tag-fill me-2"></i> Reject Pricing Proposal
-                                                </h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <form method="POST" action="{{ route('admin.courses.reject-pricing', $course->id) }}">
-                                                @csrf
-                                                <div class="modal-body py-3">
-                                                    <p class="small text-secondary mb-3">
-                                                        You are rejecting the proposed price ({{ $course->currency }} {{ number_format(($course->proposed_price_cents ?? 0) / 100, 2) }}) and special tag "{{ $course->special_pricing_tag ?? 'None' }}" for <strong>{{ $course->title }}</strong> submitted by <strong>{{ $course->instructor?->name ?? 'Instructor' }}</strong>. Please provide the non-compliance reason below.
-                                                    </p>
-                                                    <div class="mb-3">
-                                                        <label class="form-label small fw-bold">Reason for Pricing Non-Compliance <span class="text-danger">*</span></label>
-                                                        <textarea name="reason" rows="4" class="form-control" placeholder="Specify why the pricing or special tag was not compliant (e.g. price outside approved band, discount period invalid)..." required></textarea>
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer border-top pt-2">
-                                                    <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                                                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold">
-                                                        <i class="bi bi-send-fill me-1"></i> Reject &amp; Email Instructor
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
                             </td>
+                        </tr>
                     @empty
                         <tr>
                             <td colspan="{{ $isTeacher ? 7 : 8 }}" class="text-center py-4 text-muted">
@@ -807,5 +776,39 @@
             </div>
         </div>
     </div>
+
+    <!-- Modals moved outside table markup to avoid table cell layout clipping -->
+    @foreach($courses as $course)
+        <div class="modal fade" id="rejectPricingModal{{ $course->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered text-start">
+                <div class="modal-content border-0 shadow-lg rounded-4">
+                    <div class="modal-header border-bottom pb-3">
+                        <h5 class="modal-title fw-bold text-danger">
+                            <i class="bi bi-tag-fill me-2"></i> Reject Pricing Proposal
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" action="{{ route('admin.courses.reject-pricing', $course->id) }}">
+                        @csrf
+                        <div class="modal-body py-3">
+                            <p class="small text-secondary mb-3">
+                                You are rejecting the proposed price ({{ $course->currency }} {{ number_format(($course->proposed_price_cents ?? 0) / 100, 2) }}) and special tag "{{ $course->special_pricing_tag ?? 'None' }}" for <strong>{{ $course->title }}</strong> submitted by <strong>{{ $course->instructor?->name ?? 'Instructor' }}</strong>. Please provide the non-compliance reason below.
+                            </p>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Reason for Pricing Non-Compliance <span class="text-danger">*</span></label>
+                                <textarea name="reason" rows="4" class="form-control" placeholder="Specify why the pricing or special tag was not compliant (e.g. price outside approved band, discount period invalid)..." required></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-top pt-2">
+                            <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold">
+                                <i class="bi bi-send-fill me-1"></i> Reject &amp; Email Instructor
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endforeach
 </div>
 @endsection

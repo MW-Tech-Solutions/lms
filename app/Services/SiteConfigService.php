@@ -96,7 +96,25 @@ class SiteConfigService
      */
     public function flushCache(?string $tenantId = null): void
     {
-        Cache::forget(self::CACHE_PREFIX . ($tenantId ?? 'system_global'));
+        Cache::forget(self::CACHE_PREFIX . 'system_global');
+        if ($tenantId !== null) {
+            Cache::forget(self::CACHE_PREFIX . $tenantId);
+        }
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('tenants')) {
+                foreach (\App\Models\Tenant::all() as $t) {
+                    Cache::forget(self::CACHE_PREFIX . $t->id);
+                }
+            }
+        } catch (\Throwable $e) {}
+    }
+
+    /**
+     * Flush all settings caches unconditionally.
+     */
+    public function flushAllCache(): void
+    {
+        $this->flushCache(null);
     }
 
     /**
@@ -172,17 +190,15 @@ class SiteConfigService
     {
         $logoUrl = $this->get('brand_logo_url', null, $tenantId);
 
-        // Candidate paths to check locally on filesystem (prioritizing optimized lightweight email logo)
-        $candidates = [
-            public_path('images/site_logo_email.png'),
-        ];
+        // Candidate paths to check locally on filesystem (prioritizing the currently configured logo)
+        $candidates = [];
         if (!empty($logoUrl)) {
             $parsedPath = parse_url($logoUrl, PHP_URL_PATH);
             if ($parsedPath) {
                 $candidates[] = public_path(ltrim($parsedPath, '/\\'));
             }
         }
-        $candidates[] = public_path('uploads/branding/logo_1792147720.png');
+        $candidates[] = public_path('images/site_logo_email.png');
         $candidates[] = public_path('images/site_logo.png');
 
         foreach ($candidates as $filePath) {

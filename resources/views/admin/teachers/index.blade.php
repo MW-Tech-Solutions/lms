@@ -241,41 +241,6 @@
                                         </li>
                                     </ul>
                                 </div>
-
-                                <!-- Rejection Reason Modal -->
-                                <div class="modal fade" id="rejectModal{{ $teacher->id }}" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <form method="POST" action="{{ route('admin.teachers.status', $teacher->id) }}" class="modal-content border-0 shadow rounded-4 text-start">
-                                            @csrf
-                                            @method('PATCH')
-                                            <input type="hidden" name="approval_status" value="REJECTED">
-                                            <div class="modal-header border-0 pb-0">
-                                                <div>
-                                                    <span class="badge bg-danger-subtle text-danger rounded-pill mb-1">Registration Compliance Rejection</span>
-                                                    <h5 class="modal-title fw-bold" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary);">
-                                                        Reject {{ $teacher->name }}
-                                                    </h5>
-                                                </div>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body py-3">
-                                                <p class="small text-secondary mb-3">
-                                                    Please specify the non-compliance rationale. This reason will be stored in the audit trail and emailed to <strong class="text-dark">{{ $teacher->email }}</strong> along with an authentication link.
-                                                </p>
-                                                <div class="mb-3">
-                                                    <label class="form-label small fw-semibold">Reason for Non-Compliance / Rejection <span class="text-danger">*</span></label>
-                                                    <textarea name="rejection_reason" class="form-control" rows="3" required placeholder="e.g. Incomplete credentials, unverified accreditation, or syllabus mismatch."></textarea>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer border-0 pt-0">
-                                                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" class="btn btn-danger rounded-pill px-4 fw-semibold">
-                                                    <i class="bi bi-x-circle me-1"></i> Confirm &amp; Dispatch Rejection
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
                             </td>
                         </tr>
                     @empty
@@ -361,4 +326,41 @@
         </form>
     </div>
 </div>
+
+<!-- Modals: Teacher Rejection Reason (Cleanly isolated from table DOM) -->
+@foreach($teachers as $teacher)
+<div class="modal fade" id="rejectModal{{ $teacher->id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" action="{{ route('admin.teachers.status', $teacher->id) }}" class="modal-content border-0 shadow-lg rounded-4 text-start">
+            @csrf
+            @method('PATCH')
+            <input type="hidden" name="approval_status" value="REJECTED">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <span class="badge bg-danger-subtle text-danger rounded-pill mb-1">Registration Compliance Rejection</span>
+                    <h5 class="modal-title fw-bold" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary);">
+                        Reject {{ $teacher->name }}
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="small text-secondary mb-3">
+                    Please specify the non-compliance rationale. This reason will be stored in the audit trail and emailed to <strong class="text-dark">{{ $teacher->email }}</strong> along with an authentication link.
+                </p>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Reason for Non-Compliance / Rejection <span class="text-danger">*</span></label>
+                    <textarea name="rejection_reason" class="form-control" rows="3" required placeholder="e.g. Incomplete credentials, unverified accreditation, or syllabus mismatch."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger rounded-pill px-4 fw-semibold">
+                    <i class="bi bi-x-circle me-1"></i> Confirm &amp; Dispatch Rejection
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endforeach
 @endsection

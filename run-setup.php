@@ -350,12 +350,35 @@ function safeUpdateSystem(\Illuminate\Foundation\Application $app): string
     $buffer .= "\n--- STEP 4: DATABASE BRANDING & SETTINGS SYNC ---\n";
     try {
         if (\Illuminate\Support\Facades\Schema::hasTable('site_settings')) {
-            $logoUrl = (file_exists($brandingLogoPath) && filesize($brandingLogoPath) > 0) ? '/uploads/branding/logo_1792147720.png' : '/images/site_logo.png';
+            // Check if admin already entered a custom brand name or logo
+            $existingBrandName = \Illuminate\Support\Facades\DB::table('site_settings')
+                ->where('setting_key', 'brand_name')
+                ->whereNotNull('setting_value')
+                ->where('setting_value', '!=', '')
+                ->where('setting_value', '!=', 'Enterprise Academy')
+                ->value('setting_value');
+
+            $existingLogoUrl = \Illuminate\Support\Facades\DB::table('site_settings')
+                ->where('setting_key', 'brand_logo_url')
+                ->whereNotNull('setting_value')
+                ->where('setting_value', '!=', '')
+                ->value('setting_value');
+
+            if ($existingLogoUrl && (str_contains($existingLogoUrl, 'http://localhost') || str_contains($existingLogoUrl, 'http://127.0.0.1'))) {
+                $parsed = parse_url($existingLogoUrl, PHP_URL_PATH);
+                if ($parsed) {
+                    $existingLogoUrl = $parsed;
+                }
+            }
+
+            $currentBrandName = !empty($existingBrandName) ? $existingBrandName : 'AllThingsCambridge';
+            $defaultLogoUrl = (file_exists($brandingLogoPath) && filesize($brandingLogoPath) > 0) ? '/uploads/branding/logo_1792147720.png' : '/images/site_logo.png';
+            $logoUrl = !empty($existingLogoUrl) ? $existingLogoUrl : $defaultLogoUrl;
             $faviconUrl = (file_exists($brandingFaviconPath) && filesize($brandingFaviconPath) > 0) ? '/uploads/branding/favicon_1792147720.png' : '/images/site_logo.png';
 
             $targetSettings = [
-                'brand_name' => 'AllThingsCambridge',
-                'site_title' => 'AllThingsCambridge - Cambridge International Learning & Exam Platform',
+                'brand_name' => $currentBrandName,
+                'site_title' => $currentBrandName . ' - Cambridge International Learning & Exam Platform',
                 'brand_tagline' => 'Excellence in Cambridge International Education & Examination Preparation',
                 'brand_logo_url' => $logoUrl,
                 'brand_favicon_url' => $faviconUrl,
@@ -373,7 +396,7 @@ function safeUpdateSystem(\Illuminate\Foundation\Application $app): string
                     ['setting_value' => $val, 'data_type' => 'STRING', 'is_public' => true, 'updated_at' => now()]
                 );
             }
-            $buffer .= "✓ Updated global system settings: brand_name => 'AllThingsCambridge', logo => '{$logoUrl}', currency => 'GBP (£)'.\n";
+            $buffer .= "✓ Updated global system settings: brand_name => '{$currentBrandName}', logo => '{$logoUrl}', currency => 'GBP (£)'.\n";
 
             // Update Tenant-specific Settings & Rename Tenants if outdated
             if (\Illuminate\Support\Facades\Schema::hasTable('tenants')) {

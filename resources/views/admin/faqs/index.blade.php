@@ -100,52 +100,6 @@
                             </td>
                         </tr>
 
-                        <!-- Modal: Edit FAQ -->
-                        <div class="modal fade" id="editFaqModal{{ $faq->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <form method="POST" action="{{ route('admin.faqs.update', $faq->id) }}" class="modal-content border-0 shadow rounded-4 text-start">
-                                    @csrf
-                                    @method('PUT')
-                                    <div class="modal-header border-0 pb-0">
-                                        <h5 class="modal-title fw-bold">Edit FAQ</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="row g-2 mb-3">
-                                            <div class="col-8">
-                                                <label class="form-label small fw-semibold">Category *</label>
-                                                <select name="category" class="form-select" required>
-                                                    @foreach($categories as $cat)
-                                                        <option value="{{ $cat }}" {{ $faq->category === $cat ? 'selected' : '' }}>{{ $cat }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <div class="col-4">
-                                                <label class="form-label small fw-semibold">Sort Order</label>
-                                                <input type="number" name="sort_order" class="form-control" value="{{ $faq->sort_order }}">
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-semibold">Question *</label>
-                                            <input type="text" name="question" class="form-control" value="{{ $faq->question }}" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-semibold">Answer *</label>
-                                            <textarea name="answer" class="form-control" rows="5" required>{{ $faq->answer }}</textarea>
-                                        </div>
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" name="is_published" value="1" id="pub{{ $faq->id }}" {{ $faq->is_published ? 'checked' : '' }}>
-                                            <label class="form-check-label small fw-semibold" for="pub{{ $faq->id }}">Published on Homepage</label>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer border-0 pt-0">
-                                        <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                                        <button type="submit" class="btn btn-primary rounded-pill px-4">Save Changes</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-
                     @empty
                         <tr>
                             <td colspan="5" class="text-center py-5 text-muted">
@@ -218,4 +172,54 @@
         </form>
     </div>
 </div>
+
+<!-- Modals: Edit FAQs (Cleanly isolated from table DOM) -->
+@foreach($faqs as $faq)
+<div class="modal fade" id="editFaqModal{{ $faq->id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" action="{{ route('admin.faqs.update', $faq->id) }}" class="modal-content border-0 shadow-lg rounded-4 text-start">
+            @csrf
+            @method('PUT')
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-pencil-square text-primary me-2"></i> Edit FAQ
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-8">
+                        <label class="form-label small fw-semibold">Category *</label>
+                        <select name="category" class="form-select" required>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat }}" {{ $faq->category === $cat ? 'selected' : '' }}>{{ $cat }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small fw-semibold">Sort Order</label>
+                        <input type="number" name="sort_order" class="form-control" value="{{ $faq->sort_order }}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Question *</label>
+                    <input type="text" name="question" class="form-control" value="{{ $faq->question }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Answer *</label>
+                    <textarea name="answer" class="form-control" rows="5" required>{{ $faq->answer }}</textarea>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" name="is_published" value="1" id="pub{{ $faq->id }}" {{ $faq->is_published ? 'checked' : '' }}>
+                    <label class="form-check-label small fw-semibold" for="pub{{ $faq->id }}">Published on Homepage</label>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary rounded-pill px-4">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endforeach
 @endsection

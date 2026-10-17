@@ -162,34 +162,44 @@ class SettingsAdminController extends Controller
         if ($request->hasFile('logo_file')) {
             $logoDir = public_path('uploads/branding');
             if (!is_dir($logoDir)) {
-                mkdir($logoDir, 0755, true);
+                @mkdir($logoDir, 0755, true);
             }
 
             $file = $request->file('logo_file');
             $filename = 'logo_' . time() . '.' . $file->getClientOriginalExtension();
             $file->move($logoDir, $filename);
 
-            $settings['brand_logo_url'] = asset('uploads/branding/' . $filename);
+            // Store clean root-relative path so it works across any domain, port, and HTTPS without mixed content
+            $settings['brand_logo_url'] = '/uploads/branding/' . $filename;
+
+            // Also copy to canonical public/images/site_logo.png and public/images/site_logo_email.png
+            $imagesDir = public_path('images');
+            if (!is_dir($imagesDir)) {
+                @mkdir($imagesDir, 0755, true);
+            }
+            @copy($logoDir . '/' . $filename, $imagesDir . '/site_logo.png');
+            @copy($logoDir . '/' . $filename, $imagesDir . '/site_logo_email.png');
         }
 
         // 3. Handle System Favicon File Upload
         if ($request->hasFile('favicon_file')) {
             $favDir = public_path('uploads/branding');
             if (!is_dir($favDir)) {
-                mkdir($favDir, 0755, true);
+                @mkdir($favDir, 0755, true);
             }
 
             $fav = $request->file('favicon_file');
             $favFilename = 'favicon_' . time() . '.' . $fav->getClientOriginalExtension();
             $fav->move($favDir, $favFilename);
 
-            $settings['brand_favicon_url'] = asset('uploads/branding/' . $favFilename);
+            $settings['brand_favicon_url'] = '/uploads/branding/' . $favFilename;
+            @copy($favDir . '/' . $favFilename, public_path('favicon.ico'));
         }
 
         // 3b. Handle Hero Slides 1, 2, and 3 File Uploads
         $heroUploadDir = public_path('uploads/hero');
         if (!is_dir($heroUploadDir)) {
-            mkdir($heroUploadDir, 0755, true);
+            @mkdir($heroUploadDir, 0755, true);
         }
         foreach ([1, 2, 3] as $slideNum) {
             $fileInputKey = "hero_slide_{$slideNum}_file";
@@ -197,19 +207,65 @@ class SettingsAdminController extends Controller
                 $slideFile = $request->file($fileInputKey);
                 $slideFileName = "hero_slide_{$slideNum}_" . time() . '.' . $slideFile->getClientOriginalExtension();
                 $slideFile->move($heroUploadDir, $slideFileName);
-                $settings["hero_slide_{$slideNum}_image"] = asset('uploads/hero/' . $slideFileName);
+                $settings["hero_slide_{$slideNum}_image"] = '/uploads/hero/' . $slideFileName;
             }
         }
 
-        // 4. Update standard setting values
+        // 4. Update standard setting values across Global AND all Tenants
+        $tenants = \Illuminate\Support\Facades\Schema::hasTable('tenants')
+            ? \App\Models\Tenant::all()
+            : collect();
+
         foreach ($settings as $key => $value) {
             if ($value !== null) {
+                // If value points to localhost upload/image, normalize to root-relative
+                if (is_string($value) && (str_contains($value, 'http://localhost') || str_contains($value, 'http://127.0.0.1'))) {
+                    $parsed = parse_url($value, PHP_URL_PATH);
+                    if ($parsed && (str_starts_with($parsed, '/uploads') || str_starts_with($parsed, '/images'))) {
+                        $value = $parsed;
+                    }
+                }
+
                 $dataType = str_ends_with((string) $key, '_color') ? 'COLOR' : 'STRING';
-                $config->set((string) $key, (string) $value, $dataType);
+
+                // Update global setting (tenant_id = null)
+                $config->set((string) $key, (string) $value, $dataType, null);
+
+                // Update tenant-specific setting rows so they never silently override global values
+                foreach ($tenants as $t) {
+                    $config->set((string) $key, (string) $value, $dataType, $t->id);
+                }
+
+                // Also update any other legacy row matching this setting_key in site_settings table
+                \App\Models\SiteSetting::where('setting_key', $key)->update([
+                    'setting_value' => (string) $value,
+                    'data_type' => $dataType,
+                ]);
             }
         }
 
-        $config->flushCache();
+        // If brand_name or brand_logo_url was updated, sync Tenant models too
+        if (!empty($settings['brand_name']) || !empty($settings['brand_logo_url'])) {
+            foreach ($tenants as $t) {
+                $bJson = $t->branding_json ?? [];
+                if (!empty($settings['brand_name'])) {
+                    $bJson['logo_text'] = (string) $settings['brand_name'];
+                    $t->name = (string) $settings['brand_name'];
+                }
+                if (!empty($settings['brand_logo_url'])) {
+                    $bJson['logo_url'] = (string) $settings['brand_logo_url'];
+                }
+                $t->branding_json = $bJson;
+                $t->save();
+            }
+        }
+
+        // Flush all settings and compiled view caches so updates display immediately system-wide
+        $config->flushAllCache();
+
+        try {
+            \Illuminate\Support\Facades\Artisan::call('view:clear');
+        } catch (\Throwable $e) {}
 
         // 5. Audit Log
         AuditService::log('SETTINGS_UPDATE', null, null, [

@@ -40,6 +40,27 @@ class AppServiceProvider extends ServiceProvider
             $settings = [];
             try {
                 $settings = $siteConfig->all($tenantId);
+
+                // Ensure brand_logo_url never points to localhost on a live server
+                if (!empty($settings['brand_logo_url']) && (str_contains($settings['brand_logo_url'], 'http://localhost') || str_contains($settings['brand_logo_url'], 'http://127.0.0.1'))) {
+                    $parsed = parse_url($settings['brand_logo_url'], PHP_URL_PATH);
+                    if ($parsed) {
+                        $settings['brand_logo_url'] = $parsed;
+                    }
+                }
+
+                // If brand_logo_url is not set, use canonical local asset if present
+                if (empty($settings['brand_logo_url'])) {
+                    if (file_exists(public_path('images/site_logo.png'))) {
+                        $settings['brand_logo_url'] = '/images/site_logo.png';
+                    }
+                }
+
+                // If brand_name is empty, fallback to system name
+                if (empty($settings['brand_name'])) {
+                    $settings['brand_name'] = config('app.name', 'AllThingsCambridge');
+                }
+
                 $settings['system_abbreviation'] = $siteConfig->getSystemAbbreviation($tenantId);
                 $settings['generated_faculty_id'] = $siteConfig->generateFacultyStaffId($tenantId);
                 $settings['generated_student_id'] = $siteConfig->generateStudentId($tenantId);

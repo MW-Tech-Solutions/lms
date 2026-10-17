@@ -145,6 +145,44 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* Global Bootstrap Modal Positioning & Width Enforcement */
+        .modal {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 1055 !important;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+        }
+        .modal-backdrop {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 1050 !important;
+        }
+        .modal-dialog {
+            width: 92% !important;
+            max-width: 560px !important;
+            margin: 1.75rem auto !important;
+        }
+        .modal-dialog.modal-lg {
+            max-width: 820px !important;
+        }
+        .modal-dialog.modal-xl {
+            max-width: 1140px !important;
+        }
+        .modal-dialog.modal-sm {
+            max-width: 380px !important;
+        }
+        .modal-content {
+            width: 100% !important;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25) !important;
+        }
     </style>
 
     <!-- Scroll Reveal Controller -->
