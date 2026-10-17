@@ -120,25 +120,42 @@ class User extends Authenticatable
 
     /**
      * Get all category IDs the teacher is authorized to teach/upload materials for.
-     * Includes explicitly assigned teaching levels, plus the department category if applicable.
+     * Includes explicitly assigned teaching levels, plus the initial registered department level if applicable.
      *
      * @return array<int>
      */
     public function getAuthorizedCategoryIds(): array
     {
-        $ids = $this->teachingLevels()->pluck('course_categories.id')->all();
+        $categories = $this->all_authorized_levels;
+        return $categories->pluck('id')->all();
+    }
 
-        // Also resolve matching category from teacher's registered department
+    /**
+     * Get all Cambridge level categories authorized for this teacher,
+     * combining explicitly assigned teaching levels and the initial level selected at registration.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<\App\Models\CourseCategory>
+     */
+    public function getAllAuthorizedLevelsAttribute(): \Illuminate\Database\Eloquent\Collection
+    {
+        $levels = $this->teachingLevels;
+
+        // If initial registration department selected and not yet explicitly in levels, resolve & merge
         if ($this->department_id && $this->department) {
-            $matchingCat = CourseCategory::where('name', 'like', '%' . $this->department->name . '%')
-                ->orWhere('name', $this->department->name)
+            $deptName = $this->department->name;
+            $cleanName = trim(preg_replace('/\s*\(.*?\)/', '', $deptName));
+
+            $matchingCat = CourseCategory::where('name', 'like', "%{$cleanName}%")
+                ->orWhere('name', $cleanName)
+                ->orWhere('name', $deptName)
                 ->first();
-            if ($matchingCat && !in_array($matchingCat->id, $ids, true)) {
-                $ids[] = $matchingCat->id;
+
+            if ($matchingCat && !$levels->contains('id', $matchingCat->id)) {
+                $levels = $levels->concat([$matchingCat]);
             }
         }
 
-        return $ids;
+        return $levels;
     }
 
     public function isEmployee(): bool

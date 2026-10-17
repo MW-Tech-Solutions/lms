@@ -38,13 +38,14 @@ class AdminDashboardController extends Controller
                 $q->whereIn('course_id', $myCourseIds);
             })->whereNull('grade')->count();
 
-            $myAssignedLevels = $user->teachingLevels()->get();
+            $myAssignedLevels = $user->all_authorized_levels;
             $pendingLevelRequests = $user->levelRequests()->where('status', 'PENDING')->with('category')->get();
 
+            $assignedCategoryIds = $myAssignedLevels->pluck('id')->all();
             $availableCambridgeLevels = \App\Models\CourseCategory::where(function ($q) {
                 $q->where('name', 'like', 'Cambridge%')
                   ->orWhereIn('slug', ['primary-checkpoint', 'lower-secondary', 'igcse', 'as-level', 'a-level']);
-            })->orderBy('id')->get();
+            })->whereNotIn('id', $assignedCategoryIds)->orderBy('id')->get();
 
             return view('admin.dashboard', compact(
                 'isTeacher',

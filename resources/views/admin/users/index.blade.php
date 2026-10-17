@@ -218,9 +218,9 @@
                                     <i class="bi bi-building text-muted me-1"></i>
                                     {{ $user->department?->name ?? 'Corporate Staff' }}
                                 </div>
-                                @if($user->teachingLevels->isNotEmpty())
+                                @if($user->all_authorized_levels->isNotEmpty())
                                     <div class="mt-1 d-flex flex-wrap gap-1">
-                                        @foreach($user->teachingLevels as $lvl)
+                                        @foreach($user->all_authorized_levels as $lvl)
                                             <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono" style="font-size: 0.68rem;">
                                                 <i class="bi bi-mortarboard-fill me-0.5"></i> {{ $lvl->name }}
                                             </span>

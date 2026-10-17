@@ -449,7 +449,7 @@
                         </h6>
                         <div class="p-3 rounded-3 border h-100" style="background: var(--lms-bg-secondary);">
                             <div class="d-flex flex-wrap gap-1.5">
-                                @forelse($teacher->teachingLevels as $tl)
+                                @forelse($teacher->all_authorized_levels as $tl)
                                     <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2.5 py-1 small font-mono">
                                         {{ $tl->name }}
                                     </span>

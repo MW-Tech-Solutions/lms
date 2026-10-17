@@ -176,6 +176,24 @@ class AuthController extends Controller
             ]);
         }
 
+        // If registering as a teacher/faculty and selected an initial Cambridge Level, assign it by default
+        if ($user->user_type === 'HYBRID' && $user->department_id) {
+            $dept = \App\Models\Department::find($user->department_id);
+            if ($dept) {
+                $cleanName = trim(preg_replace('/\s*\(.*?\)/', '', $dept->name));
+                $matchingCategory = \App\Models\CourseCategory::where('name', 'like', "%{$cleanName}%")
+                    ->orWhere('name', $cleanName)
+                    ->orWhere('name', $dept->name)
+                    ->first();
+                if ($matchingCategory) {
+                    \App\Models\TeacherLevelAssignment::firstOrCreate([
+                        'user_id' => $user->id,
+                        'category_id' => $matchingCategory->id,
+                    ]);
+                }
+            }
+        }
+
         Auth::login($user);
         $request->session()->regenerate();
 
