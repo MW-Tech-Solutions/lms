@@ -61,9 +61,10 @@
 
         @if(auth()->user()->approval_status !== 'APPROVED')
             <!-- Teacher Pending Approval Banner -->
-            <div class="alert alert-warning border-0 rounded-4 p-3.5 mb-4 shadow-sm d-flex align-items-center justify-content-between">
+            <div class="alert alert-warning border-0 rounded-4 p-3.5 mb-4 shadow-sm d-flex align-items-center justify-content-between" style="background: #FFFBEB; border-left: 5px solid #F59E0B !important;">
                 <div class="d-flex align-items-center gap-3">
-                    <div class="p-2.5 rounded-3 bg-warning bg-opacity-20 text-warning fs-4 flex-shrink-0">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 text-white shadow-xs" 
+                         style="width: 44px; height: 44px; background: linear-gradient(135deg, #F59E0B, #D97706); font-size: 1.25rem;">
                         <i class="bi bi-hourglass-split"></i>
                     </div>
                     <div>

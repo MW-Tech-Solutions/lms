@@ -34,8 +34,11 @@
     @endif
 
     @if($isTeacher && !$isApproved)
-        <div class="alert alert-warning border-0 rounded-4 shadow-sm mb-4 p-3 d-flex align-items-center gap-3">
-            <i class="bi bi-hourglass-split fs-4 text-warning"></i>
+        <div class="alert alert-warning border-0 rounded-4 shadow-sm mb-4 p-3 d-flex align-items-center gap-3" style="background: #FFFBEB; border-left: 5px solid #F59E0B !important;">
+            <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 text-white shadow-xs" 
+                 style="width: 42px; height: 42px; background: linear-gradient(135deg, #F59E0B, #D97706); font-size: 1.25rem;">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
             <div>
                 <strong>Faculty Account Pending Moderation:</strong> Your teacher credentials are currently being verified by the Cambridge Academic Administrator. Once approved, you can generate geofenced attendance sessions for your designated Cambridge level and classes.
             </div>
