@@ -558,7 +558,7 @@
                                     @endif
                                     <div class="row g-2">
                                         <div class="col-md-6">
-                                            <label class="form-label small text-muted">Upload File (JPG, PNG, WebP, SVG)</label>
+                                            <label class="form-label small text-muted">Upload File (JPG, PNG, WebP, SVG up to 5MB)</label>
                                             <input type="file" name="thumbnail_file" class="form-control form-control-sm" accept="image/*">
                                         </div>
                                         <div class="col-md-6">
@@ -741,7 +741,7 @@
                                     </template>
                                     <div class="row g-2">
                                         <div class="col-md-6">
-                                            <label class="form-label small text-muted">Upload New Image File</label>
+                                            <label class="form-label small text-muted">Upload New Image File (JPG, PNG, WebP, SVG up to 5MB)</label>
                                             <input type="file" name="thumbnail_file" class="form-control form-control-sm" accept="image/*">
                                         </div>
                                         <div class="col-md-6">

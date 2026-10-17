@@ -144,3 +144,197 @@ if (!class_exists('DOMDocument')) {
         }
     }
 }
+
+// 3. Polyfill finfo and FileInfo functions/constants for shared hosting environments where ext-fileinfo is disabled
+if (!defined('FILEINFO_NONE')) {
+    define('FILEINFO_NONE', 0);
+}
+if (!defined('FILEINFO_SYMLINK')) {
+    define('FILEINFO_SYMLINK', 2);
+}
+if (!defined('FILEINFO_MIME')) {
+    define('FILEINFO_MIME', 1040);
+}
+if (!defined('FILEINFO_MIME_TYPE')) {
+    define('FILEINFO_MIME_TYPE', 16);
+}
+if (!defined('FILEINFO_MIME_ENCODING')) {
+    define('FILEINFO_MIME_ENCODING', 1024);
+}
+if (!defined('FILEINFO_DEVICES')) {
+    define('FILEINFO_DEVICES', 8);
+}
+if (!defined('FILEINFO_CONTINUE')) {
+    define('FILEINFO_CONTINUE', 32);
+}
+if (!defined('FILEINFO_PRESERVE_ATIME')) {
+    define('FILEINFO_PRESERVE_ATIME', 128);
+}
+if (!defined('FILEINFO_RAW')) {
+    define('FILEINFO_RAW', 256);
+}
+
+if (!class_exists('finfo', false)) {
+    class finfo
+    {
+        protected int $flags;
+        protected ?string $magicFile;
+
+        public function __construct(int $flags = FILEINFO_MIME_TYPE, ?string $magicFile = null)
+        {
+            $this->flags = $flags;
+            $this->magicFile = $magicFile;
+        }
+
+        public function set_flags(int $flags): bool
+        {
+            $this->flags = $flags;
+            return true;
+        }
+
+        public function file(string $filename, int $flags = FILEINFO_NONE, $context = null): string|false
+        {
+            if (!file_exists($filename) || !is_readable($filename)) {
+                return false;
+            }
+
+            // Try native mime_content_type if available
+            if (function_exists('mime_content_type')) {
+                $nativeMime = @mime_content_type($filename);
+                if (!empty($nativeMime)) {
+                    return $nativeMime;
+                }
+            }
+
+            // Read first few bytes for signature detection
+            $handle = @fopen($filename, 'rb');
+            if ($handle) {
+                $sample = (string) @fread($handle, 1024);
+                @fclose($handle);
+                $byMagic = self::guessFromMagicBytes($sample);
+                if ($byMagic) {
+                    return $byMagic;
+                }
+            }
+
+            // Fallback to extension lookup
+            $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+            return self::guessFromExtension($ext) ?? 'application/octet-stream';
+        }
+
+        public function buffer(string $string, int $flags = FILEINFO_NONE, $context = null): string|false
+        {
+            $byMagic = self::guessFromMagicBytes($string);
+            if ($byMagic) {
+                return $byMagic;
+            }
+
+            return 'application/octet-stream';
+        }
+
+        protected static function guessFromMagicBytes(string $sample): ?string
+        {
+            if (strlen($sample) === 0) {
+                return 'application/x-empty';
+            }
+
+            if (str_starts_with($sample, "\xFF\xD8\xFF")) {
+                return 'image/jpeg';
+            }
+            if (str_starts_with($sample, "\x89PNG\x0D\x0A\x1A\x0A")) {
+                return 'image/png';
+            }
+            if (str_starts_with($sample, "GIF87a") || str_starts_with($sample, "GIF89a")) {
+                return 'image/gif';
+            }
+            if (str_starts_with($sample, "RIFF") && substr($sample, 8, 4) === "WEBP") {
+                return 'image/webp';
+            }
+            if (str_starts_with($sample, "%PDF-")) {
+                return 'application/pdf';
+            }
+            if (str_starts_with($sample, "PK\x03\x04")) {
+                return 'application/zip';
+            }
+            if (str_starts_with($sample, "\x1A\x45\xDF\xA3")) {
+                return 'video/webm';
+            }
+            if (strlen($sample) >= 8 && substr($sample, 4, 4) === 'ftyp') {
+                return 'video/mp4';
+            }
+            if (stripos($sample, '<svg') !== false) {
+                return 'image/svg+xml';
+            }
+            if (stripos($sample, '<html') !== false || stripos($sample, '<!doctype html') !== false) {
+                return 'text/html';
+            }
+
+            return null;
+        }
+
+        public static function guessFromExtension(string $extension): ?string
+        {
+            $map = [
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                'svg' => 'image/svg+xml',
+                'bmp' => 'image/bmp',
+                'ico' => 'image/x-icon',
+                'pdf' => 'application/pdf',
+                'doc' => 'application/msword',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xls' => 'application/vnd.ms-excel',
+                'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'ppt' => 'application/vnd.ms-powerpoint',
+                'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                'zip' => 'application/zip',
+                'rar' => 'application/x-rar-compressed',
+                'txt' => 'text/plain',
+                'csv' => 'text/csv',
+                'json' => 'application/json',
+                'xml' => 'application/xml',
+                'mp4' => 'video/mp4',
+                'webm' => 'video/webm',
+                'mov' => 'video/quicktime',
+                'qt' => 'video/quicktime',
+                'ogg' => 'video/ogg',
+                'mp3' => 'audio/mpeg',
+                'wav' => 'audio/wav',
+            ];
+
+            return $map[$extension] ?? null;
+        }
+    }
+}
+
+if (!function_exists('finfo_open')) {
+    function finfo_open(int $flags = FILEINFO_MIME_TYPE, ?string $magicFile = null): finfo|false
+    {
+        return new finfo($flags, $magicFile);
+    }
+}
+
+if (!function_exists('finfo_close')) {
+    function finfo_close(finfo $finfo): bool
+    {
+        return true;
+    }
+}
+
+if (!function_exists('finfo_file')) {
+    function finfo_file(finfo $finfo, string $filename, int $flags = FILEINFO_NONE, $context = null): string|false
+    {
+        return $finfo->file($filename, $flags, $context);
+    }
+}
+
+if (!function_exists('finfo_buffer')) {
+    function finfo_buffer(finfo $finfo, string $string, int $flags = FILEINFO_NONE, $context = null): string|false
+    {
+        return $finfo->buffer($string, $flags, $context);
+    }
+}
+

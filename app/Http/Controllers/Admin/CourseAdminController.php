@@ -92,7 +92,7 @@ class CourseAdminController extends Controller
             'currency' => ['required', 'string', 'max:3'],
             'is_published' => ['nullable', 'boolean'],
             'public_preview_content' => ['nullable', 'string'],
-            'thumbnail_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp,svg', 'max:4096'],
+            'thumbnail_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp,svg', 'max:5120'],
             'thumbnail_url' => ['nullable', 'string', 'max:500'],
             'preserved_thumbnail_file' => ['nullable', 'string'],
             'video_file' => ['nullable', 'file', 'mimes:mp4,mov,ogg,qt,webm', 'max:51200'], // Up to 50MB
@@ -204,7 +204,7 @@ class CourseAdminController extends Controller
             'currency' => ['required', 'string', 'max:3'],
             'is_published' => ['nullable', 'boolean'],
             'public_preview_content' => ['nullable', 'string'],
-            'thumbnail_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp,svg', 'max:4096'],
+            'thumbnail_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp,svg', 'max:5120'],
             'thumbnail_url' => ['nullable', 'string', 'max:500'],
             'video_file' => ['nullable', 'file', 'mimes:mp4,mov,ogg,qt,webm', 'max:51200'],
             'video_url' => ['nullable', 'string', 'max:500'],
