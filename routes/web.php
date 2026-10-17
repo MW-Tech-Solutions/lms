@@ -37,6 +37,36 @@ use Illuminate\Support\Facades\Route;
 | Public CMS, Catalog & Credential Verification Routes
 |--------------------------------------------------------------------------
 */
+// Dynamic Favicon Route (Prevents 404s when requested directly by browsers)
+Route::get('/favicon.ico', function () {
+    $siteConfig = app(\App\Services\SiteConfigService::class);
+    $favUrl = $siteConfig->get('brand_favicon_url');
+    if (!empty($favUrl)) {
+        $parsed = parse_url($favUrl, PHP_URL_PATH);
+        $localPath = public_path(ltrim((string) $parsed, '/\\'));
+        if (file_exists($localPath) && is_readable($localPath)) {
+            $ext = strtolower(pathinfo($localPath, PATHINFO_EXTENSION));
+            $mime = match($ext) {
+                'ico' => 'image/x-icon',
+                'svg' => 'image/svg+xml',
+                'jpg', 'jpeg' => 'image/jpeg',
+                default => 'image/png',
+            };
+            return response()->file($localPath, ['Content-Type' => $mime, 'Cache-Control' => 'public, max-age=86400']);
+        }
+    }
+    if (file_exists(public_path('uploads/branding/favicon_1792147720.png'))) {
+        return response()->file(public_path('uploads/branding/favicon_1792147720.png'), ['Content-Type' => 'image/png', 'Cache-Control' => 'public, max-age=86400']);
+    }
+    if (file_exists(public_path('favicon.ico'))) {
+        return response()->file(public_path('favicon.ico'), ['Content-Type' => 'image/x-icon', 'Cache-Control' => 'public, max-age=86400']);
+    }
+    if (file_exists(public_path('images/site_logo.png'))) {
+        return response()->file(public_path('images/site_logo.png'), ['Content-Type' => 'image/png', 'Cache-Control' => 'public, max-age=86400']);
+    }
+    abort(404);
+});
+
 Route::get('/', [CmsController::class, 'show'])->name('home');
 Route::get('/p/{slug}', [CmsController::class, 'show'])->name('cms.show');
 Route::post('/cms/form-submit', [CmsController::class, 'handleFormSubmit'])->name('cms.form-submit');

@@ -7,7 +7,20 @@
     <title>{{ $site_settings['brand_name'] ?? config('app.name', 'AllThingsCambridge') }} &bull; @yield('title', 'Examination Environment')</title>
 
     <!-- Favicon from Dynamic Brand Settings -->
-    <link rel="icon" type="image/x-icon" href="{{ !empty($site_settings['brand_favicon_url']) ? $site_settings['brand_favicon_url'] : asset('favicon.ico') }}">
+    @php
+        $favUrl = $site_settings['brand_favicon_url'] ?? '/uploads/branding/favicon_1792147720.png';
+        $favExt = strtolower(pathinfo(parse_url($favUrl, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+        $favMime = match($favExt) {
+            'ico' => 'image/x-icon',
+            'svg' => 'image/svg+xml',
+            'jpg', 'jpeg' => 'image/jpeg',
+            default => 'image/png',
+        };
+        $favVersion = substr(md5($favUrl), 0, 8);
+    @endphp
+    <link rel="icon" type="{{ $favMime }}" href="{{ $favUrl }}?v={{ $favVersion }}">
+    <link rel="shortcut icon" href="{{ $favUrl }}?v={{ $favVersion }}">
+    <link rel="apple-touch-icon" href="{{ $favUrl }}?v={{ $favVersion }}">
 
     <!-- Google Fonts: Manrope (Body) & Urbanist (Headings) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

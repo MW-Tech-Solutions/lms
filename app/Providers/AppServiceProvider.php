@@ -56,6 +56,25 @@ class AppServiceProvider extends ServiceProvider
                     }
                 }
 
+                // Ensure brand_favicon_url never points to localhost on a live server
+                if (!empty($settings['brand_favicon_url']) && (str_contains($settings['brand_favicon_url'], 'http://localhost') || str_contains($settings['brand_favicon_url'], 'http://127.0.0.1'))) {
+                    $parsedFav = parse_url($settings['brand_favicon_url'], PHP_URL_PATH);
+                    if ($parsedFav) {
+                        $settings['brand_favicon_url'] = $parsedFav;
+                    }
+                }
+
+                // If brand_favicon_url is not set, use canonical local favicon or logo asset
+                if (empty($settings['brand_favicon_url'])) {
+                    if (file_exists(public_path('uploads/branding/favicon_1792147720.png'))) {
+                        $settings['brand_favicon_url'] = '/uploads/branding/favicon_1792147720.png';
+                    } elseif (file_exists(public_path('favicon.ico'))) {
+                        $settings['brand_favicon_url'] = '/favicon.ico';
+                    } elseif (file_exists(public_path('images/site_logo.png'))) {
+                        $settings['brand_favicon_url'] = '/images/site_logo.png';
+                    }
+                }
+
                 // If brand_name is empty, fallback to system name
                 if (empty($settings['brand_name'])) {
                     $settings['brand_name'] = config('app.name', 'AllThingsCambridge');
