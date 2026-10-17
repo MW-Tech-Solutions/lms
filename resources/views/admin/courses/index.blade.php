@@ -842,3 +842,96 @@
     @endforeach
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024; // 5 MB
+    const MAX_MEDIA_BYTES = 50 * 1024 * 1024;    // 50 MB
+
+    function validateFileInput(input, maxBytes, friendlyName) {
+        if (!input || !input.files || input.files.length === 0) return true;
+        const file = input.files[0];
+        if (file.size > maxBytes) {
+            const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+            const limitMb = (maxBytes / (1024 * 1024)).toFixed(0);
+            Swal.fire({
+                icon: 'error',
+                title: 'File Too Large',
+                html: `<div class="text-start">
+                    <p class="mb-2">The selected <strong>${friendlyName}</strong> is <strong>${sizeMb} MB</strong>, which exceeds the maximum allowed size of <strong>${limitMb} MB</strong>.</p>
+                    <p class="text-muted small mb-0">Please choose an image under ${limitMb} MB or compress the file before uploading.</p>
+                </div>`,
+                confirmButtonColor: '#723EC3'
+            });
+            input.value = '';
+            return false;
+        }
+        return true;
+    }
+
+    // Attach change listeners for immediate feedback
+    document.querySelectorAll('input[type="file"][name="thumbnail_file"]').forEach(function(input) {
+        input.addEventListener('change', function() {
+            validateFileInput(this, MAX_THUMBNAIL_BYTES, 'Course Thumbnail');
+        });
+    });
+
+    document.querySelectorAll('input[type="file"][name="video_file"]').forEach(function(input) {
+        input.addEventListener('change', function() {
+            validateFileInput(this, MAX_MEDIA_BYTES, 'Lecture Video');
+        });
+    });
+
+    document.querySelectorAll('input[type="file"][name="material_file"]').forEach(function(input) {
+        input.addEventListener('change', function() {
+            validateFileInput(this, MAX_MEDIA_BYTES, 'Course Study Material');
+        });
+    });
+
+    // Validate on form submission
+    const createForm = document.querySelector('#createCourseModal form');
+    if (createForm) {
+        createForm.addEventListener('submit', function(e) {
+            const thumbInput = createForm.querySelector('input[name="thumbnail_file"]');
+            if (thumbInput && !validateFileInput(thumbInput, MAX_THUMBNAIL_BYTES, 'Course Thumbnail')) {
+                e.preventDefault();
+                return false;
+            }
+            const videoInput = createForm.querySelector('input[name="video_file"]');
+            if (videoInput && !validateFileInput(videoInput, MAX_MEDIA_BYTES, 'Lecture Video')) {
+                e.preventDefault();
+                return false;
+            }
+            const matInput = createForm.querySelector('input[name="material_file"]');
+            if (matInput && !validateFileInput(matInput, MAX_MEDIA_BYTES, 'Course Study Material')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    }
+
+    const editForm = document.querySelector('#editCourseModal form');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            const thumbInput = editForm.querySelector('input[name="thumbnail_file"]');
+            if (thumbInput && !validateFileInput(thumbInput, MAX_THUMBNAIL_BYTES, 'Course Thumbnail')) {
+                e.preventDefault();
+                return false;
+            }
+            const videoInput = editForm.querySelector('input[name="video_file"]');
+            if (videoInput && !validateFileInput(videoInput, MAX_MEDIA_BYTES, 'Lecture Video')) {
+                e.preventDefault();
+                return false;
+            }
+            const matInput = editForm.querySelector('input[name="material_file"]');
+            if (matInput && !validateFileInput(matInput, MAX_MEDIA_BYTES, 'Course Study Material')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    }
+});
+</script>
+@endpush
+

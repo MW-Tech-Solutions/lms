@@ -103,26 +103,68 @@ class CourseAdminController extends Controller
             'material_notes' => ['nullable', 'string'],
         ];
 
+        // Check for PHP upload level errors (e.g. php.ini upload_max_filesize or post_max_size exceeded on hosting)
+        if ($request->hasFile('thumbnail_file')) {
+            $thumbUpload = $request->file('thumbnail_file');
+            if (!$thumbUpload->isValid()) {
+                $errCode = $thumbUpload->getError();
+                $errMsg = match ($errCode) {
+                    UPLOAD_ERR_INI_SIZE => 'The uploaded thumbnail file exceeds the server\'s upload_max_filesize limit configured on this hosting server. Please select an image under 5MB or compress it.',
+                    UPLOAD_ERR_FORM_SIZE => 'The thumbnail file exceeds the maximum allowed form upload size.',
+                    UPLOAD_ERR_PARTIAL => 'The thumbnail file was only partially uploaded. Please check your network and try again.',
+                    UPLOAD_ERR_NO_TMP_DIR => 'Server error: missing temporary upload folder on hosting.',
+                    UPLOAD_ERR_CANT_WRITE => 'Server error: failed to write uploaded thumbnail file to disk on hosting.',
+                    default => 'The thumbnail file could not be uploaded (' . $thumbUpload->getErrorMessage() . '). Please verify file format and size.',
+                };
+                return back()->withInput()->withErrors(['thumbnail_file' => $errMsg]);
+            }
+        }
+
+        if ($request->hasFile('video_file') && !$request->file('video_file')->isValid()) {
+            $videoUpload = $request->file('video_file');
+            $errMsg = match ($videoUpload->getError()) {
+                UPLOAD_ERR_INI_SIZE => 'The uploaded video file exceeds the server\'s upload_max_filesize limit configured on this hosting server. For large video lectures, please paste the video URL or compress the video.',
+                default => 'The video file failed to upload (' . $videoUpload->getErrorMessage() . ').',
+            };
+            return back()->withInput()->withErrors(['video_file' => $errMsg]);
+        }
+
+        if ($request->hasFile('material_file') && !$request->file('material_file')->isValid()) {
+            $matUpload = $request->file('material_file');
+            $errMsg = match ($matUpload->getError()) {
+                UPLOAD_ERR_INI_SIZE => 'The attached material file exceeds the server\'s upload_max_filesize limit configured on this hosting server. Please compress or link the material.',
+                default => 'The material file failed to upload (' . $matUpload->getErrorMessage() . ').',
+            };
+            return back()->withInput()->withErrors(['material_file' => $errMsg]);
+        }
+
         // If files were uploaded in this request, pre-store them so they aren't lost if validation fails
         $preStoredThumbnail = null;
         if ($request->hasFile('thumbnail_file') && $request->file('thumbnail_file')->isValid()) {
             $preStoredThumbnail = $request->file('thumbnail_file')->store('courses', 'public');
+            // If successfully saved to disk, remove from validation array so 'uploaded' failure isn't re-triggered
+            $rules['thumbnail_file'] = ['nullable'];
         } elseif ($request->filled('preserved_thumbnail_file')) {
             $preStoredThumbnail = $request->input('preserved_thumbnail_file');
+            $rules['thumbnail_file'] = ['nullable'];
         }
 
         $preStoredVideo = null;
         if ($request->hasFile('video_file') && $request->file('video_file')->isValid()) {
             $preStoredVideo = $request->file('video_file')->store('courses/videos', 'public');
+            $rules['video_file'] = ['nullable'];
         } elseif ($request->filled('preserved_video_file')) {
             $preStoredVideo = $request->input('preserved_video_file');
+            $rules['video_file'] = ['nullable'];
         }
 
         $preStoredMaterial = null;
         if ($request->hasFile('material_file') && $request->file('material_file')->isValid()) {
             $preStoredMaterial = $request->file('material_file')->store('courses/materials', 'public');
+            $rules['material_file'] = ['nullable'];
         } elseif ($request->filled('preserved_material_file')) {
             $preStoredMaterial = $request->input('preserved_material_file');
+            $rules['material_file'] = ['nullable'];
         }
 
         try {
@@ -137,6 +179,7 @@ class CourseAdminController extends Controller
 
         // Thumbnail resolution
         $thumbnailPath = $preStoredThumbnail ?: (!empty($validated['thumbnail_url']) ? $validated['thumbnail_url'] : null);
+
 
         // Lecture Video resolution
         $videoPath = $preStoredVideo ?: (!empty($validated['video_url']) ? $validated['video_url'] : null);
@@ -211,6 +254,34 @@ class CourseAdminController extends Controller
             'material_file' => ['nullable', 'file', 'mimes:pdf,doc,docx,ppt,pptx,zip,txt', 'max:51200'],
             'material_notes' => ['nullable', 'string'],
         ];
+
+        // Check for PHP upload level errors
+        if ($request->hasFile('thumbnail_file') && !$request->file('thumbnail_file')->isValid()) {
+            $errCode = $request->file('thumbnail_file')->getError();
+            $errMsg = match ($errCode) {
+                UPLOAD_ERR_INI_SIZE => 'The uploaded thumbnail file exceeds the server\'s upload_max_filesize limit configured on this hosting server. Please select an image under 5MB or compress it.',
+                default => 'The thumbnail file failed to upload (' . $request->file('thumbnail_file')->getErrorMessage() . ').',
+            };
+            return back()->withInput()->withErrors(['thumbnail_file' => $errMsg]);
+        }
+
+        if ($request->hasFile('video_file') && !$request->file('video_file')->isValid()) {
+            $videoUpload = $request->file('video_file');
+            $errMsg = match ($videoUpload->getError()) {
+                UPLOAD_ERR_INI_SIZE => 'The uploaded video file exceeds the server\'s upload_max_filesize limit configured on this hosting server. Please paste a video URL or compress the video.',
+                default => 'The video file failed to upload (' . $videoUpload->getErrorMessage() . ').',
+            };
+            return back()->withInput()->withErrors(['video_file' => $errMsg]);
+        }
+
+        if ($request->hasFile('material_file') && !$request->file('material_file')->isValid()) {
+            $matUpload = $request->file('material_file');
+            $errMsg = match ($matUpload->getError()) {
+                UPLOAD_ERR_INI_SIZE => 'The attached material file exceeds the server\'s upload_max_filesize limit configured on this hosting server. Please compress or link the material.',
+                default => 'The material file failed to upload (' . $matUpload->getErrorMessage() . ').',
+            };
+            return back()->withInput()->withErrors(['material_file' => $errMsg]);
+        }
 
         $validated = $request->validate($rules);
 
