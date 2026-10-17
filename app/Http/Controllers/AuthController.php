@@ -181,6 +181,11 @@ class AuthController extends Controller
 
         \App\Services\AuditService::log('USER_REGISTER', $user, null, ['name' => $user->name, 'email' => $user->email, 'type' => $user->user_type]);
 
+        // Staff (EMPLOYEE) or Academic Faculty (HYBRID) must be redirected to their Admin Console, NOT learner dashboard
+        if ($user->user_type === 'EMPLOYEE' || $user->user_type === 'HYBRID' || $user->isTeacher()) {
+            return redirect()->route('admin.dashboard')->with('success', 'Staff / Faculty account registered successfully! Welcome to your administrative console.');
+        }
+
         return redirect()->route('my-learning')->with('success', 'Account registered successfully! Welcome to your learning portal.');
     }
 

@@ -7,12 +7,40 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold mb-1">{{ $site_settings['title_attendance_manager'] ?? 'Attendance & Rolling QR Geofencing' }}</h2>
-            <div class="text-secondary small">{{ $site_settings['subtitle_attendance_manager'] ?? 'Configure session timeframes, geofencing boundary radiuses, and dynamic rotating QR tokens.' }}</div>
+            <div class="text-secondary small">
+                @if($isTeacher)
+                    Manage rolling QR attendance sessions for your assigned Cambridge classes and courses.
+                @else
+                    {{ $site_settings['subtitle_attendance_manager'] ?? 'Configure session timeframes, geofencing boundary radiuses, and dynamic rotating QR tokens.' }}
+                @endif
+            </div>
         </div>
-        <button class="tj-btn-primary py-2 px-3 small shadow-sm" @click="showCreateModal = true" data-bs-toggle="modal" data-bs-target="#createAttendanceModal">
-            <i class="bi bi-plus-lg me-1"></i> Create Attendance Session
-        </button>
+        @if(!$isTeacher || $isApproved)
+            <button class="tj-btn-primary py-2 px-3 small shadow-sm" @click="showCreateModal = true" data-bs-toggle="modal" data-bs-target="#createAttendanceModal">
+                <i class="bi bi-plus-lg me-1"></i> Create Attendance Session
+            </button>
+        @else
+            <button class="btn btn-secondary py-2 px-3 small shadow-sm opacity-50" disabled title="Pending Administrator Approval">
+                <i class="bi bi-lock-fill me-1"></i> Awaiting Approval
+            </button>
+        @endif
     </div>
+
+    @if(session('error'))
+        <div class="alert alert-danger border-0 rounded-4 shadow-sm mb-4 d-flex align-items-center gap-2 p-3">
+            <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+            <div>{{ session('error') }}</div>
+        </div>
+    @endif
+
+    @if($isTeacher && !$isApproved)
+        <div class="alert alert-warning border-0 rounded-4 shadow-sm mb-4 p-3 d-flex align-items-center gap-3">
+            <i class="bi bi-hourglass-split fs-4 text-warning"></i>
+            <div>
+                <strong>Faculty Account Pending Moderation:</strong> Your teacher credentials are currently being verified by the Cambridge Academic Administrator. Once approved, you can generate geofenced attendance sessions for your designated Cambridge level and classes.
+            </div>
+        </div>
+    @endif
 
     <!-- Attendance Sessions Table -->
     <div class="lms-card p-4 shadow-sm mb-4">
