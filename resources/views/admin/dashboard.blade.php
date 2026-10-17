@@ -37,17 +37,20 @@
 
             <div class="d-flex flex-wrap gap-2 mt-3 mt-lg-0">
                 <!-- Request Additional Level Modal Trigger -->
-                <button type="button" class="tj-btn-outline py-2 px-3 small shadow-sm" data-bs-toggle="modal" data-bs-target="#requestLevelModal">
-                    <i class="bi bi-plus-circle me-1"></i>
-                    <span>Request New Cambridge Level</span>
-                </button>
-
                 @if(auth()->user()->approval_status === 'APPROVED')
+                    <button type="button" class="tj-btn-outline py-2 px-3 small shadow-sm" data-bs-toggle="modal" data-bs-target="#requestLevelModal">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        <span>Request New Cambridge Level</span>
+                    </button>
                     <a href="{{ route('admin.courses.index') }}" class="tj-btn-primary py-2 px-3 small shadow-sm">
                         <i class="bi bi-cloud-arrow-up-fill me-1"></i>
                         <span>Upload Course / Materials</span>
                     </a>
                 @else
+                    <button type="button" class="btn btn-secondary py-2 px-3 small shadow-sm rounded-pill opacity-75" disabled title="Awaiting Administrator Approval">
+                        <i class="bi bi-lock-fill me-1"></i>
+                        <span>Level Request Restricted (Pending Approval)</span>
+                    </button>
                     <button type="button" class="btn btn-secondary py-2 px-3 small shadow-sm rounded-pill opacity-75" disabled title="Awaiting Administrator Approval">
                         <i class="bi bi-lock-fill me-1"></i>
                         <span>Upload Restricted (Pending Approval)</span>
@@ -168,9 +171,13 @@
                     </div>
                     <div class="small text-muted mt-3 pt-2 border-top d-flex align-items-center justify-content-between">
                         <span><i class="bi bi-shield-check text-success me-1"></i> Teaching Scope</span>
-                        <button type="button" class="btn btn-link text-warning p-0 small fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#requestLevelModal">
-                            + Add Level
-                        </button>
+                        @if(auth()->user()->approval_status === 'APPROVED')
+                            <button type="button" class="btn btn-link text-warning p-0 small fw-bold text-decoration-none" data-bs-toggle="modal" data-bs-target="#requestLevelModal">
+                                + Add Level
+                            </button>
+                        @else
+                            <span class="text-muted small" title="Pending initial credential approval"><i class="bi bi-lock me-1"></i>Locked</span>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -190,9 +197,15 @@
                             </h4>
                             <span class="text-muted small">Cambridge tiers you are verified to author and moderate</span>
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#requestLevelModal">
-                            <i class="bi bi-plus-lg me-1"></i> Request Level
-                        </button>
+                        @if(auth()->user()->approval_status === 'APPROVED')
+                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#requestLevelModal">
+                                <i class="bi bi-plus-lg me-1"></i> Request Level
+                            </button>
+                        @else
+                            <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3 opacity-50" disabled title="Awaiting Initial Verification">
+                                <i class="bi bi-lock-fill me-1"></i> Locked
+                            </button>
+                        @endif
                     </div>
 
                     <!-- Level Badges List -->

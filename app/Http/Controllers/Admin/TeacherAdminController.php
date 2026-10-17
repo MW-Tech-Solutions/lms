@@ -202,6 +202,11 @@ class TeacherAdminController extends Controller
             abort(403, 'Unauthorized. Only teachers can request additional Cambridge teaching levels.');
         }
 
+        // A teacher MUST be approved before they can request new or additional levels
+        if ($user->approval_status !== 'APPROVED') {
+            return back()->with('error', 'Account Verification Required: You must be an approved teacher before you can request additional Cambridge levels. Please await administrative approval for your initial teaching credentials.');
+        }
+
         $validated = $request->validate([
             'category_id' => ['required', 'exists:course_categories,id'],
             'request_notes' => ['required', 'string', 'max:2000'],
