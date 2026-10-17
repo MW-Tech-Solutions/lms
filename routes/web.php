@@ -203,8 +203,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:SUPER_ADMIN,MA
         Route::post('/courses/{course}/request-delete', [CourseAdminController::class, 'requestDelete'])->name('courses.request-delete');
     });
 
-    // Super Admin Course Deletion & Pricing Approvals
+    // Super Admin Course Moderation, Deletion & Pricing Approvals
     Route::middleware('role:SUPER_ADMIN')->group(function () {
+        Route::post('/courses/{course}/approve', [CourseAdminController::class, 'approve'])->name('courses.approve');
+        Route::post('/courses/{course}/reject', [CourseAdminController::class, 'reject'])->name('courses.reject');
         Route::post('/courses/{course}/approve-delete', [CourseAdminController::class, 'approveDelete'])->name('courses.approve-delete');
         Route::post('/courses/{course}/reject-delete', [CourseAdminController::class, 'rejectDelete'])->name('courses.reject-delete');
         Route::post('/courses/{course}/approve-pricing', [CourseAdminController::class, 'approvePricing'])->name('courses.approve-pricing');

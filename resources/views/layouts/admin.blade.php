@@ -321,6 +321,12 @@
                         <a class="nav-link text-nowrap {{ request()->routeIs('admin.courses*') ? 'active' : '' }}" href="{{ route('admin.courses.index') }}">
                             <div class="sidebar-icon-box"><i class="bi bi-journal-check text-success"></i></div>
                             <span class="text-nowrap fw-semibold">Courses &amp; Syllabus Approvals</span>
+                            @php
+                                $sidebarPendingCoursesCount = \App\Models\Course::where('is_published', false)->where('material_approval_status', '!=', 'REJECTED')->count();
+                            @endphp
+                            @if($sidebarPendingCoursesCount > 0)
+                                <span class="badge bg-warning text-dark font-mono rounded-pill ms-auto" style="font-size: 0.65rem;" title="{{ $sidebarPendingCoursesCount }} Courses Pending Approval">{{ $sidebarPendingCoursesCount }}</span>
+                            @endif
                         </a>
                     </li>
                     <li class="nav-item">

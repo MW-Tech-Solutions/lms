@@ -22,6 +22,7 @@ class CourseAdminController extends Controller
         $isTeacher = $user && $user->isTeacher() && !$user->isSuperAdmin();
         $levelFilter = (int) $request->get('level_id', 0);
         $search = trim((string) $request->get('search', ''));
+        $statusFilter = strtoupper((string) $request->get('status', 'ALL'));
 
         if ($isTeacher) {
             // A teacher can ONLY see his own courses and materials
@@ -53,10 +54,38 @@ class CourseAdminController extends Controller
             });
         }
 
+        if ($statusFilter === 'PENDING') {
+            $query->where('is_published', false)->where('material_approval_status', '!=', 'REJECTED');
+        } elseif ($statusFilter === 'LIVE' || $statusFilter === 'PUBLISHED') {
+            $query->where('is_published', true);
+        } elseif ($statusFilter === 'REJECTED') {
+            $query->where('material_approval_status', 'REJECTED');
+        }
+
         $courses = $query->paginate(12)->withQueryString();
         $pendingDeletionsCount = Course::where('deletion_status', Course::DELETION_REQUESTED)->count();
 
-        return view('admin.courses.index', compact('courses', 'categories', 'allFilterLevels', 'levelFilter', 'search', 'isTeacher', 'pendingDeletionsCount'));
+        // Scope summary stats for filter tabs
+        $statsBaseQuery = $isTeacher ? Course::where('instructor_id', $user->id) : Course::query();
+        $pendingApprovalCount = (clone $statsBaseQuery)->where('is_published', false)->where('material_approval_status', '!=', 'REJECTED')->count();
+        $liveCoursesCount = (clone $statsBaseQuery)->where('is_published', true)->count();
+        $rejectedCoursesCount = (clone $statsBaseQuery)->where('material_approval_status', 'REJECTED')->count();
+        $totalCoursesCount = (clone $statsBaseQuery)->count();
+
+        return view('admin.courses.index', compact(
+            'courses',
+            'categories',
+            'allFilterLevels',
+            'levelFilter',
+            'search',
+            'statusFilter',
+            'isTeacher',
+            'pendingDeletionsCount',
+            'pendingApprovalCount',
+            'liveCoursesCount',
+            'rejectedCoursesCount',
+            'totalCoursesCount'
+        ));
     }
 
     public function store(Request $request): RedirectResponse
@@ -206,10 +235,10 @@ class CourseAdminController extends Controller
             'proposed_price_cents' => $validated['price_cents'],
             'special_pricing_tag' => $validated['special_pricing_tag'] ?? null,
             'price_approval_status' => $isTeacher ? 'PENDING' : 'APPROVED',
-            'material_approval_status' => $isTeacher ? ($materialFilePath ? 'PENDING' : 'APPROVED') : 'APPROVED',
+            'material_approval_status' => $isTeacher ? 'PENDING' : 'APPROVED',
             'currency' => strtoupper($validated['currency']),
-            // For teachers, new course can be published or submitted for moderation
-            'is_published' => $request->boolean('is_published'),
+            // For teachers, new course MUST NOT be live directly; strictly requires administrator approval
+            'is_published' => $isTeacher ? false : $request->boolean('is_published'),
             'deletion_status' => Course::DELETION_NONE,
         ]);
 
@@ -220,7 +249,11 @@ class CourseAdminController extends Controller
             'sort_order' => 0,
         ]);
 
-        return redirect()->route('admin.courses.index')->with('success', sprintf('Course "%s" created under selected level with uploaded video & materials.', $course->title));
+        $successMsg = $isTeacher
+            ? sprintf('Course "%s" submitted successfully and queued for Academic Board moderation. It will become live to the public once approved by an administrator.', $course->title)
+            : sprintf('Course "%s" created under selected level with uploaded video & materials.', $course->title);
+
+        return redirect()->route('admin.courses.index')->with('success', $successMsg);
     }
 
     public function update(Request $request, Course $course): RedirectResponse
@@ -298,21 +331,33 @@ class CourseAdminController extends Controller
             'recertification_days' => $validated['recertification_days'] ?? null,
             'special_pricing_tag' => $validated['special_pricing_tag'] ?? null,
             'currency' => strtoupper($validated['currency']),
-            'is_published' => $request->boolean('is_published'),
         ];
 
         if ($isTeacher) {
+            // Teachers cannot self-publish. Only administrators can publish a course.
+            $data['is_published'] = $course->is_published;
             $data['proposed_price_cents'] = $validated['price_cents'];
             // If teacher modified price or tag, set pending approval
             if ($course->price_cents !== $validated['price_cents'] || $course->special_pricing_tag !== ($validated['special_pricing_tag'] ?? null)) {
                 $data['price_approval_status'] = 'PENDING';
                 $data['rejection_reason'] = null;
             }
+            // If the course was previously rejected or material was updated, queue for moderation
+            if ($course->material_approval_status === 'REJECTED' || $request->hasFile('material_file')) {
+                $data['material_approval_status'] = 'PENDING';
+                $data['material_rejection_reason'] = null;
+                $data['is_published'] = false;
+            }
         } else {
             $data['price_cents'] = $validated['price_cents'];
             $data['proposed_price_cents'] = $validated['price_cents'];
             $data['price_approval_status'] = 'APPROVED';
             $data['rejection_reason'] = null;
+            $data['is_published'] = $request->boolean('is_published');
+            if ($data['is_published']) {
+                $data['material_approval_status'] = 'APPROVED';
+                $data['material_rejection_reason'] = null;
+            }
         }
 
         if ($request->hasFile('thumbnail_file')) {
@@ -349,13 +394,11 @@ class CourseAdminController extends Controller
         // When a course has been approved/published or belongs to a teacher,
         // teacher cannot delete directly without admin approval.
         if ($isTeacher) {
-            if ($course->is_published || $course->deletion_status === Course::DELETION_APPROVED) {
-                return redirect()->route('admin.courses.index')->with('error', 'Approved courses cannot be deleted directly. Please click "Request Deletion" to submit an administrator approval request.');
-            }
-
             if ($course->instructor_id !== $user->id) {
                 abort(403, 'Unauthorized.');
             }
+
+            return redirect()->route('admin.courses.index')->with('error', 'Teacher courses cannot be deleted directly. Please click "Request Deletion" to submit an administrator approval request.');
         }
 
         $title = $course->title;
@@ -494,6 +537,71 @@ class CourseAdminController extends Controller
         ]);
 
         return redirect()->route('admin.courses.index')->with('info', sprintf('Pricing proposal for course "%s" was rejected and notification dispatched to instructor.', $course->title));
+    }
+
+    public function approve(Course $course): RedirectResponse
+    {
+        $course->is_published = true;
+        $course->material_approval_status = 'APPROVED';
+        $course->material_rejection_reason = null;
+        if ($course->price_approval_status === 'PENDING') {
+            $course->price_cents = $course->proposed_price_cents ?: $course->price_cents;
+            $course->price_approval_status = 'APPROVED';
+        }
+        $course->save();
+
+        \App\Services\AuditService::log('COURSE_APPROVED_AND_PUBLISHED', $course, null, [
+            'approved_by' => auth()->user()->name ?? 'Administrator',
+            'course_title' => $course->title,
+            'level' => $course->category?->name ?? 'Unassigned',
+        ]);
+
+        return back()->with('success', sprintf('Course "%s" has been approved and is now live to the public.', $course->title));
+    }
+
+    public function reject(Request $request, Course $course): RedirectResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $reason = $validated['reason'] ?? $request->input('reason', 'Course content or syllabus does not comply with curriculum standards.');
+
+        $course->is_published = false;
+        $course->material_approval_status = 'REJECTED';
+        $course->material_rejection_reason = $reason;
+        $course->save();
+
+        if ($course->instructor && $course->instructor->email) {
+            $directAuthLink = route('login', ['redirect' => route('admin.courses.index')]);
+            try {
+                \Illuminate\Support\Facades\Mail::send(
+                    'emails.compliance_notice',
+                    [
+                        'recipientName' => $course->instructor->name,
+                        'heading' => 'Curriculum Review Notice',
+                        'introText' => "Your course submission for \"{$course->title}\" was reviewed by the academic board and requires revision before publication.",
+                        'reasonText' => $course->material_rejection_reason,
+                        'actionUrl' => $directAuthLink,
+                        'actionText' => 'View & Update Course',
+                        'subject' => "Curriculum Non-Compliance Notice: {$course->title}",
+                    ],
+                    function ($m) use ($course) {
+                        $m->to($course->instructor->email)->subject("Curriculum Non-Compliance Notice: {$course->title}");
+                    }
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Failed sending course rejection email: ' . $e->getMessage());
+            }
+        }
+
+        \App\Services\AuditService::log('COURSE_REJECTED', $course, null, [
+            'rejected_by' => auth()->user()->name ?? 'Administrator',
+            'course_title' => $course->title,
+            'reason' => $course->material_rejection_reason,
+        ]);
+
+        return back()->with('info', sprintf('Course "%s" rejected and returned to draft with compliance feedback dispatched to author.', $course->title));
     }
 }
 

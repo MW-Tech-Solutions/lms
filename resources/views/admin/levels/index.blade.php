@@ -227,7 +227,7 @@
                                             {{ $material->material_rejection_reason }}
                                         </div>
                                     @endif
-                                @elseif($material->is_published || $material->material_approval_status === 'APPROVED')
+                                @elseif($material->is_published)
                                     <span class="badge rounded-pill px-2.5 py-1.5 fw-semibold" style="background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3);">
                                         <i class="bi bi-check-circle-fill me-1"></i> Approved &amp; Live
                                     </span>

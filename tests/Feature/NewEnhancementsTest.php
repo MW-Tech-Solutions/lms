@@ -18,6 +18,7 @@ use App\Models\Quiz;
 use App\Models\Role;
 use App\Models\RoleAssignment;
 use App\Models\SubscriptionPlan;
+use App\Models\Tenant;
 use App\Models\User;
 use App\Models\UserProfile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -569,6 +570,92 @@ class NewEnhancementsTest extends TestCase
         $mentorShow->assertSee('Cambridge A Level Test');
         $mentorShow->assertSee('Advanced Wave Particle Duality');
         $mentorShow->assertSee($course->course_code);
+    }
+
+    public function test_teacher_course_submission_requires_admin_approval_before_public_release(): void
+    {
+        $teacher = User::firstOrCreate(
+            ['email' => 'teacher_moderation_test@cambridge.local'],
+            [
+                'name' => 'Dr. Eleanor Vance',
+                'password' => bcrypt('password123'),
+                'approval_status' => 'APPROVED',
+            ]
+        );
+        $teacher->update(['approval_status' => 'APPROVED']);
+        $teacherRole = Role::firstOrCreate(['name' => 'TEACHER'], ['is_system' => true]);
+        RoleAssignment::firstOrCreate([
+            'user_id' => $teacher->id,
+            'role_id' => $teacherRole->id,
+            'context_id' => 1,
+        ]);
+
+        $category = CourseCategory::firstOrCreate(
+            ['slug' => 'cambridge-secondary-stage-9'],
+            ['name' => 'Cambridge Secondary Stage 9']
+        );
+
+        \App\Models\TeacherLevelAssignment::firstOrCreate([
+            'user_id' => $teacher->id,
+            'category_id' => $category->id,
+        ]);
+
+        // 1. Teacher submits course - even if request has is_published=1, it MUST remain unpublished (pending moderation)
+        $courseTitle = 'Multiplicative Reasoning Mastery ' . uniqid();
+        $storeResponse = $this->actingAs($teacher)->post(route('admin.courses.store'), [
+            'category_id' => $category->id,
+            'title' => $courseTitle,
+            'slug' => 'multiplicative-reasoning-' . uniqid(),
+            'description' => 'Comprehensive fractions, ratio & bounds syllabus.',
+            'target_audience' => 'PUBLIC',
+            'format' => 'SELF_PACED',
+            'passing_grade' => 70,
+            'price_cents' => 3500,
+            'currency' => 'GBP',
+            'is_published' => 1, // Attempt to publish directly
+        ]);
+        $storeResponse->assertRedirect(route('admin.courses.index'));
+
+        $course = Course::where('title', $courseTitle)->first();
+        $this->assertNotNull($course);
+        // Crucial requirement: Must NOT be published immediately
+        $this->assertFalse((bool) $course->is_published);
+        $this->assertEquals('PENDING', $course->material_approval_status);
+
+        // 2. Course is NOT visible in public courses catalog
+        session()->flush();
+        $publicCatalog = $this->get(route('courses.index'));
+        $publicCatalog->assertStatus(200);
+        $publicCatalog->assertDontSee('Comprehensive fractions, ratio & bounds syllabus.');
+
+        // 3. Admin views courses index filtered by pending approval
+        $adminCoursesView = $this->actingAs($this->admin)->get(route('admin.courses.index', ['status' => 'PENDING']));
+        $adminCoursesView->assertStatus(200);
+        $adminCoursesView->assertSee($courseTitle);
+        $adminCoursesView->assertSee('Pending Admin Approval');
+        $adminCoursesView->assertSee('Approve &amp; Publish', false);
+
+        // 4. Admin approves course
+        $approveResponse = $this->actingAs($this->admin)->post(route('admin.courses.approve', $course->id));
+        $approveResponse->assertRedirect();
+        $course->refresh();
+        $this->assertTrue((bool) $course->is_published);
+        $this->assertEquals('APPROVED', $course->material_approval_status);
+
+        // 5. Now course is live and visible in public courses catalog
+        $publicCatalogLive = $this->get(route('courses.index'));
+        $publicCatalogLive->assertStatus(200);
+        $publicCatalogLive->assertSee($courseTitle);
+
+        // 6. Admin can reject/return to draft with compliance reason
+        $rejectResponse = $this->actingAs($this->admin)->post(route('admin.courses.reject', $course->id), [
+            'reason' => 'Specimen paper 2026 practice questions need to be attached.',
+        ]);
+        $rejectResponse->assertRedirect();
+        $course->refresh();
+        $this->assertFalse((bool) $course->is_published);
+        $this->assertEquals('REJECTED', $course->material_approval_status);
+        $this->assertEquals('Specimen paper 2026 practice questions need to be attached.', $course->material_rejection_reason);
     }
 }
 

@@ -193,6 +193,44 @@
         </div>
     </div>
 
+    <!-- Status Filter Navigation Tabs -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="{{ route('admin.courses.index', array_merge(request()->except('status'), ['status' => 'ALL'])) }}" 
+               class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold {{ ($statusFilter ?? 'ALL') === 'ALL' ? 'btn-primary shadow-xs' : 'btn-outline-secondary' }}">
+                <i class="bi bi-grid-fill me-1"></i> All Courses
+                <span class="badge {{ ($statusFilter ?? 'ALL') === 'ALL' ? 'bg-white text-primary' : 'bg-secondary-subtle text-secondary' }} rounded-pill ms-1">{{ $totalCoursesCount ?? $courses->total() }}</span>
+            </a>
+
+            <a href="{{ route('admin.courses.index', array_merge(request()->except('status'), ['status' => 'PENDING'])) }}" 
+               class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold {{ ($statusFilter ?? 'ALL') === 'PENDING' ? 'btn-warning text-dark shadow-xs' : 'btn-outline-warning text-dark' }}">
+                <i class="bi bi-hourglass-split me-1 text-warning"></i> Pending Admin Approval
+                <span class="badge {{ ($statusFilter ?? 'ALL') === 'PENDING' ? 'bg-dark text-warning' : 'bg-warning text-dark' }} rounded-pill ms-1 font-mono">{{ $pendingApprovalCount ?? 0 }}</span>
+            </a>
+
+            <a href="{{ route('admin.courses.index', array_merge(request()->except('status'), ['status' => 'LIVE'])) }}" 
+               class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold {{ in_array(($statusFilter ?? 'ALL'), ['LIVE', 'PUBLISHED']) ? 'btn-success shadow-xs' : 'btn-outline-success' }}">
+                <i class="bi bi-check-circle-fill me-1 text-success"></i> Approved &amp; Live
+                <span class="badge {{ in_array(($statusFilter ?? 'ALL'), ['LIVE', 'PUBLISHED']) ? 'bg-white text-success' : 'bg-success-subtle text-success' }} rounded-pill ms-1 font-mono">{{ $liveCoursesCount ?? 0 }}</span>
+            </a>
+
+            @if(($rejectedCoursesCount ?? 0) > 0 || ($statusFilter ?? 'ALL') === 'REJECTED')
+                <a href="{{ route('admin.courses.index', array_merge(request()->except('status'), ['status' => 'REJECTED'])) }}" 
+                   class="btn btn-sm rounded-pill px-3 py-1.5 fw-semibold {{ ($statusFilter ?? 'ALL') === 'REJECTED' ? 'btn-danger shadow-xs' : 'btn-outline-danger' }}">
+                    <i class="bi bi-x-circle-fill me-1 text-danger"></i> Rejected
+                    <span class="badge {{ ($statusFilter ?? 'ALL') === 'REJECTED' ? 'bg-white text-danger' : 'bg-danger-subtle text-danger' }} rounded-pill ms-1 font-mono">{{ $rejectedCoursesCount ?? 0 }}</span>
+                </a>
+            @endif
+        </div>
+
+        @if(!$isTeacher && ($pendingApprovalCount ?? 0) > 0)
+            <div class="small text-warning-emphasis fw-semibold d-flex align-items-center gap-1">
+                <i class="bi bi-shield-exclamation text-warning fs-6"></i>
+                <span>{{ $pendingApprovalCount }} course(s) require review before public listing</span>
+            </div>
+        @endif
+    </div>
+
     <!-- Courses Table -->
     <div class="lms-card p-4 shadow-sm mb-4" style="min-height: 380px;">
         <div class="table-responsive" style="min-height: 280px; padding-bottom: 70px;">
@@ -206,8 +244,8 @@
                             <th>Teacher</th>
                         @endif
                         <th class="text-center" style="width: 85px;">Materials</th>
-                        <th style="width: 95px;">Status</th>
-                        <th class="text-end" style="width: 140px;">Actions</th>
+                        <th style="width: 140px;">Approval Status</th>
+                        <th class="text-end" style="min-width: 160px;">Review &amp; Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -310,20 +348,46 @@
                             </td>
                             <td>
                                 @if($course->is_published)
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0.5 small fw-semibold">LIVE</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 small fw-semibold">
+                                        <i class="bi bi-check-circle-fill me-1"></i> APPROVED &amp; LIVE
+                                    </span>
+                                @elseif($course->material_approval_status === 'REJECTED')
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1 small fw-semibold" title="{{ $course->material_rejection_reason ?? 'Curriculum non-compliant' }}">
+                                        <i class="bi bi-x-circle-fill me-1"></i> REJECTED
+                                    </span>
+                                    @if($course->material_rejection_reason)
+                                        <div class="text-danger small mt-0.5 text-truncate" style="max-width: 130px; font-size: 0.68rem;" title="{{ $course->material_rejection_reason }}">
+                                            {{ $course->material_rejection_reason }}
+                                        </div>
+                                    @endif
                                 @else
-                                    <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-2 py-0.5 small">DRAFT</span>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-2.5 py-1 small fw-bold">
+                                        <i class="bi bi-hourglass-split me-1"></i> PENDING APPROVAL
+                                    </span>
                                 @endif
                             </td>
                             <td class="text-end">
                                 <div class="d-inline-flex gap-1 align-items-center">
+                                    @if(!$isTeacher && !$course->is_published)
+                                        <form action="{{ route('admin.courses.approve', $course->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success rounded-pill px-2.5 py-1 fw-bold text-nowrap shadow-xs d-inline-flex align-items-center gap-1" style="font-size: 0.74rem;" title="Approve & Publish Course to Public Catalog" onclick="return confirm('Approve & make course live to public: {{ addslashes($course->title) }}?')">
+                                                <i class="bi bi-check-lg"></i>
+                                                <span>Approve &amp; Publish</span>
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-1 fw-semibold" style="font-size: 0.74rem;" title="Reject course submission" data-bs-toggle="modal" data-bs-target="#rejectCourseModal{{ $course->id }}">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    @endif
+
                                     <button type="button" 
                                             class="btn btn-sm btn-outline-primary p-1 px-2" 
                                             title="Edit Course"
                                             @click="openEdit({{ json_encode($course) }})">
                                         <i class="bi bi-pencil-fill"></i>
                                     </button>
-                                    <a href="{{ route('learning.player', ['course' => $course->slug]) }}" class="btn btn-sm btn-outline-success p-1 px-2" title="Preview">
+                                    <a href="{{ route('learning.player', ['course' => $course->slug]) }}" class="btn btn-sm btn-outline-success p-1 px-2" title="Preview Student View" target="_blank">
                                         <i class="bi bi-play-circle-fill"></i>
                                     </a>
 
@@ -338,7 +402,23 @@
                                                 </a>
                                             </li>
                                             <li><hr class="dropdown-divider"></li>
-                                             @if(!$isTeacher)
+                                            @if(!$isTeacher)
+                                                @if(!$course->is_published)
+                                                    <li>
+                                                        <form action="{{ route('admin.courses.approve', $course->id) }}" method="POST">
+                                                            @csrf
+                                                            <button type="submit" class="dropdown-item small text-success fw-bold">
+                                                                <i class="bi bi-check2-circle me-2"></i> Approve &amp; Make Live
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                    <li>
+                                                        <button type="button" class="dropdown-item small text-danger" data-bs-toggle="modal" data-bs-target="#rejectCourseModal{{ $course->id }}">
+                                                            <i class="bi bi-x-circle me-2"></i> Reject Course Submission
+                                                        </button>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                @endif
                                                 @if($course->price_approval_status === 'PENDING')
                                                     <li>
                                                         <form action="{{ route('admin.courses.approve-pricing', $course->id) }}" method="POST">
@@ -618,12 +698,21 @@
                                 <input type="text" name="special_pricing_tag" class="form-control" value="{{ old('special_pricing_tag') }}" placeholder="e.g. Early Bird Revision, Term 1 Special, Cambridge Sprint">
                             </div>
                             <div class="col-12">
-                                <div class="form-check form-switch mt-2">
-                                    <input class="form-check-input" type="checkbox" name="is_published" value="1" id="createPublishSwitch" {{ old('is_published', $isTeacher ? 0 : 1) ? 'checked' : '' }}>
-                                    <label class="form-check-label fw-semibold" for="createPublishSwitch">
-                                        {{ $isTeacher ? 'Submit & Publish Immediately (Requires Admin Approval if Moderated)' : 'Publish Immediately to Catalog' }}
-                                    </label>
-                                </div>
+                                @if($isTeacher)
+                                    <div class="alert alert-info py-2 px-3 small rounded-3 d-flex align-items-center gap-2 mb-0 border-info-subtle">
+                                        <i class="bi bi-shield-check fs-5 text-primary"></i>
+                                        <div>
+                                            <strong>Academic Board Approval Required:</strong> Your new course will be submitted in <em>Draft / Pending</em> status and reviewed by an administrator before becoming publicly visible in the course catalog.
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" name="is_published" value="1" id="createPublishSwitch" {{ old('is_published', 1) ? 'checked' : '' }}>
+                                        <label class="form-check-label fw-semibold" for="createPublishSwitch">
+                                            Publish Immediately to Public Catalog
+                                        </label>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -801,10 +890,19 @@
                                 <input type="text" name="special_pricing_tag" class="form-control" placeholder="e.g. Early Bird Revision, Term 1 Special" x-model="editCourse.special_pricing_tag">
                             </div>
                             <div class="col-12">
-                                <div class="form-check form-switch mt-2">
-                                    <input class="form-check-input" type="checkbox" name="is_published" value="1" id="editPublishSwitch" x-model="editCourse.is_published">
-                                    <label class="form-check-label fw-semibold" for="editPublishSwitch">Published in Public &amp; Enterprise Catalogs</label>
-                                </div>
+                                @if($isTeacher)
+                                    <div class="alert alert-light border py-2 px-3 small rounded-3 d-flex align-items-center gap-2 mb-0">
+                                        <i class="bi bi-info-circle-fill text-primary fs-5"></i>
+                                        <div>
+                                            <span class="fw-semibold">Publication Control:</span> Course public status is governed by Academic Administrators. Re-uploading materials or updating critical sections will place the course under moderation review.
+                                        </div>
+                                    </div>
+                                @else
+                                    <div class="form-check form-switch mt-2">
+                                        <input class="form-check-input" type="checkbox" name="is_published" value="1" id="editPublishSwitch" x-model="editCourse.is_published">
+                                        <label class="form-check-label fw-semibold" for="editPublishSwitch">Published &amp; Live in Public Catalogs</label>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -821,6 +919,40 @@
 
     <!-- Modals moved outside table markup to avoid table cell layout clipping -->
     @foreach($courses as $course)
+        @if(!$isTeacher)
+            <!-- Reject Course Modal -->
+            <div class="modal fade" id="rejectCourseModal{{ $course->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered text-start">
+                    <div class="modal-content border-0 shadow-lg rounded-4">
+                        <div class="modal-header border-bottom pb-3">
+                            <h5 class="modal-title fw-bold text-danger">
+                                <i class="bi bi-shield-x me-2"></i> Reject Course Submission
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form method="POST" action="{{ route('admin.courses.reject', $course->id) }}">
+                            @csrf
+                            <div class="modal-body py-3">
+                                <p class="small text-secondary mb-3">
+                                    You are returning <strong>{{ $course->title }}</strong> to draft status. The instructor (<strong>{{ $course->instructor?->name ?? 'Instructor' }}</strong>) will receive a compliance notification to revise their material or syllabus.
+                                </p>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Reason for Rejection / Revision Notes <span class="text-danger">*</span></label>
+                                    <textarea name="reason" rows="4" class="form-control" placeholder="Specify why this course cannot be approved for public listing (e.g. syllabus incomplete, specimen paper guidance missing)..." required></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-top pt-2">
+                                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold">
+                                    <i class="bi bi-x-circle-fill me-1"></i> Reject &amp; Notify Instructor
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         <div class="modal fade" id="rejectPricingModal{{ $course->id }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered text-start">
                 <div class="modal-content border-0 shadow-lg rounded-4">
