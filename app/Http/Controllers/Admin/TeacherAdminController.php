@@ -25,7 +25,7 @@ class TeacherAdminController extends Controller
         $sortBy = (string) $request->get('sort', 'latest');
 
         // Query all teacher accounts (by role or employee type)
-        $query = User::with(['profile', 'department', 'roleAssignments.role'])
+        $query = User::with(['profile', 'department', 'roleAssignments.role', 'teachingLevels', 'courses'])
             ->where(function ($q) {
                 $q->whereHas('roleAssignments.role', function ($rq) {
                     $rq->whereIn('name', [Role::TEACHER, Role::TEACHER_NON_EDITING]);
