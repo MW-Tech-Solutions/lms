@@ -1,0 +1,1 @@
+<?php require 'vendor/autoload.php';  = require_once 'bootstrap/app.php';  = ->make(Illuminate\Contracts\Console\Kernel::class); ->bootstrap(); foreach(App\Models\SiteSetting::whereIn('setting_key', ['brand_favicon_url', 'brand_name', 'brand_logo_url'])->get() as ) { echo ->setting_key . ' = . ->setting_value . PHP_EOL; }  

@@ -66,10 +66,10 @@ class AppServiceProvider extends ServiceProvider
 
                 // If brand_favicon_url is not set, use canonical local favicon or logo asset
                 if (empty($settings['brand_favicon_url'])) {
-                    if (file_exists(public_path('uploads/branding/favicon_1792147720.png'))) {
-                        $settings['brand_favicon_url'] = '/uploads/branding/favicon_1792147720.png';
-                    } elseif (file_exists(public_path('favicon.ico'))) {
+                    if (file_exists(public_path('favicon.ico')) && filesize(public_path('favicon.ico')) > 0) {
                         $settings['brand_favicon_url'] = '/favicon.ico';
+                    } elseif (file_exists(public_path('uploads/branding/favicon_32x32.png'))) {
+                        $settings['brand_favicon_url'] = '/uploads/branding/favicon_32x32.png';
                     } elseif (file_exists(public_path('images/site_logo.png'))) {
                         $settings['brand_favicon_url'] = '/images/site_logo.png';
                     }

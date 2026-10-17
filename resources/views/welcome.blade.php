@@ -4,7 +4,20 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ $site_settings['brand_name'] ?? config('app.name', 'AllThingsCambridge') }}</title>
+        @php
+            $favUrl = $site_settings['brand_favicon_url'] ?? '/favicon.ico';
+            $favExt = strtolower(pathinfo(parse_url($favUrl, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+            $favMime = match($favExt) {
+                'ico' => 'image/x-icon',
+                'svg' => 'image/svg+xml',
+                'jpg', 'jpeg' => 'image/jpeg',
+                default => 'image/png',
+            };
+            $favVersion = substr(md5($favUrl), 0, 8);
+        @endphp
+        <link rel="icon" type="{{ $favMime }}" href="{{ $favUrl }}?v={{ $favVersion }}">
+        <link rel="shortcut icon" href="{{ $favUrl }}?v={{ $favVersion }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

@@ -44,7 +44,7 @@ Route::get('/favicon.ico', function () {
     if (!empty($favUrl)) {
         $parsed = parse_url($favUrl, PHP_URL_PATH);
         $localPath = public_path(ltrim((string) $parsed, '/\\'));
-        if (file_exists($localPath) && is_readable($localPath)) {
+        if (file_exists($localPath) && is_readable($localPath) && filesize($localPath) > 0) {
             $ext = strtolower(pathinfo($localPath, PATHINFO_EXTENSION));
             $mime = match($ext) {
                 'ico' => 'image/x-icon',
@@ -55,11 +55,11 @@ Route::get('/favicon.ico', function () {
             return response()->file($localPath, ['Content-Type' => $mime, 'Cache-Control' => 'public, max-age=86400']);
         }
     }
-    if (file_exists(public_path('uploads/branding/favicon_1792147720.png'))) {
-        return response()->file(public_path('uploads/branding/favicon_1792147720.png'), ['Content-Type' => 'image/png', 'Cache-Control' => 'public, max-age=86400']);
-    }
-    if (file_exists(public_path('favicon.ico'))) {
+    if (file_exists(public_path('favicon.ico')) && filesize(public_path('favicon.ico')) > 0) {
         return response()->file(public_path('favicon.ico'), ['Content-Type' => 'image/x-icon', 'Cache-Control' => 'public, max-age=86400']);
+    }
+    if (file_exists(public_path('uploads/branding/favicon_32x32.png'))) {
+        return response()->file(public_path('uploads/branding/favicon_32x32.png'), ['Content-Type' => 'image/png', 'Cache-Control' => 'public, max-age=86400']);
     }
     if (file_exists(public_path('images/site_logo.png'))) {
         return response()->file(public_path('images/site_logo.png'), ['Content-Type' => 'image/png', 'Cache-Control' => 'public, max-age=86400']);

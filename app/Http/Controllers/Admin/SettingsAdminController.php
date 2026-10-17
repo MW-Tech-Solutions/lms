@@ -189,11 +189,52 @@ class SettingsAdminController extends Controller
             }
 
             $fav = $request->file('favicon_file');
-            $favFilename = 'favicon_' . time() . '.' . $fav->getClientOriginalExtension();
+            $favExt = strtolower($fav->getClientOriginalExtension());
+            $favFilename = 'favicon_' . time() . '.' . $favExt;
+            $fullFavPath = $favDir . '/' . $favFilename;
             $fav->move($favDir, $favFilename);
 
+            // If GD is available and file is an image (png, jpg, jpeg, webp), optimize/resize to lightweight favicon
+            if (function_exists('imagecreatetruecolor') && in_array($favExt, ['png', 'jpg', 'jpeg', 'webp'])) {
+                $srcImg = @imagecreatefromstring((string) file_get_contents($fullFavPath));
+                if ($srcImg) {
+                    $origW = imagesx($srcImg);
+                    $origH = imagesy($srcImg);
+
+                    // 48x48 high-DPI favicon
+                    $fav48 = imagecreatetruecolor(48, 48);
+                    imagealphablending($fav48, false);
+                    imagesavealpha($fav48, true);
+                    $trans48 = imagecolorallocatealpha($fav48, 255, 255, 255, 127);
+                    imagefilledrectangle($fav48, 0, 0, 48, 48, $trans48);
+                    imagecopyresampled($fav48, $srcImg, 0, 0, 0, 0, 48, 48, $origW, $origH);
+                    imagepng($fav48, $fullFavPath, 9);
+
+                    // 32x32 standard favicon
+                    $fav32 = imagecreatetruecolor(32, 32);
+                    imagealphablending($fav32, false);
+                    imagesavealpha($fav32, true);
+                    $trans32 = imagecolorallocatealpha($fav32, 255, 255, 255, 127);
+                    imagefilledrectangle($fav32, 0, 0, 32, 32, $trans32);
+                    imagecopyresampled($fav32, $srcImg, 0, 0, 0, 0, 32, 32, $origW, $origH);
+
+                    // Generate valid Windows ICO file with 32x32 PNG payload
+                    ob_start();
+                    imagepng($fav32, null, 9);
+                    $pngData = ob_get_clean();
+                    $pngSize = strlen((string) $pngData);
+
+                    $icoHeader = pack('vvv', 0, 1, 1);
+                    $icoDirEntry = pack('CCCCvvVV', 32, 32, 0, 0, 1, 32, $pngSize, 22);
+                    $icoContent = $icoHeader . $icoDirEntry . $pngData;
+
+                    file_put_contents(public_path('favicon.ico'), $icoContent);
+                }
+            } else {
+                @copy($fullFavPath, public_path('favicon.ico'));
+            }
+
             $settings['brand_favicon_url'] = '/uploads/branding/' . $favFilename;
-            @copy($favDir . '/' . $favFilename, public_path('favicon.ico'));
         }
 
         // 3b. Handle Hero Slides 1, 2, and 3 File Uploads

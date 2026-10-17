@@ -3,7 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SCORM Runtime - {{ $package->title }}</title>
+    @php
+        $favUrl = $site_settings['brand_favicon_url'] ?? '/favicon.ico';
+        $favExt = strtolower(pathinfo(parse_url($favUrl, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+        $favMime = match($favExt) {
+            'ico' => 'image/x-icon',
+            'svg' => 'image/svg+xml',
+            'jpg', 'jpeg' => 'image/jpeg',
+            default => 'image/png',
+        };
+        $favVersion = substr(md5($favUrl), 0, 8);
+    @endphp
+    <link rel="icon" type="{{ $favMime }}" href="{{ $favUrl }}?v={{ $favVersion }}">
+    <link rel="shortcut icon" href="{{ $favUrl }}?v={{ $favVersion }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
