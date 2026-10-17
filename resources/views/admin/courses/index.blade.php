@@ -194,8 +194,8 @@
     </div>
 
     <!-- Courses Table -->
-    <div class="lms-card p-4 shadow-sm mb-4">
-        <div class="table-responsive">
+    <div class="lms-card p-4 shadow-sm mb-4" style="min-height: 380px;">
+        <div class="table-responsive" style="min-height: 280px; padding-bottom: 70px;">
             <table class="table table-hover align-middle mb-0 w-100" style="table-layout: auto;">
                 <thead class="table-light text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">
                     <tr>
@@ -328,10 +328,10 @@
                                     </a>
 
                                     <div class="dropdown d-inline-block">
-                                        <button class="btn btn-sm btn-light border p-1 px-2" type="button" data-bs-toggle="dropdown" title="More Actions">
+                                        <button class="btn btn-sm btn-light border p-1 px-2" type="button" data-bs-toggle="dropdown" data-bs-strategy="fixed" title="More Actions">
                                             <i class="bi bi-three-dots-vertical"></i>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="z-index: 1060;">
                                             <li>
                                                 <a class="dropdown-item small" href="{{ route('courses.show', $course->slug) }}" target="_blank">
                                                     <i class="bi bi-box-arrow-up-right me-2 text-primary"></i> Public Page
