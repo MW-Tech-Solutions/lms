@@ -64,15 +64,15 @@
                             <i class="bi bi-person-fill fs-5"></i>
                         </div>
                         <div>
-                            <div class="small fw-bold text-dark">{{ $course->target_audience === 'CORPORATE' ? 'Corporate Compliance Board' : 'Senior Cloud Architect' }}</div>
-                            <div class="text-muted" style="font-size: 0.75rem;">Lead Instructor</div>
+                            <div class="small fw-bold text-dark">{{ $course->instructor_title }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">Lead Educator</div>
                         </div>
                     </div>
 
                     <div class="d-flex align-items-center gap-1 text-warning small fw-bold border-sm-start ps-sm-3 ps-md-4">
                         <i class="bi bi-star-fill"></i>
-                        <span class="text-dark">4.9</span>
-                        <span class="text-muted fw-normal">(1.4k Reviews)</span>
+                        <span class="text-dark">5.0</span>
+                        <span class="text-muted fw-normal">({{ $course->enrolled_count > 0 ? $course->enrolled_count . ' Enrolled' : 'Cambridge Verified' }})</span>
                     </div>
 
                     <div class="border-sm-start ps-sm-3 ps-md-4 small text-secondary">

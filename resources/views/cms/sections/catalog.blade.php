@@ -1,6 +1,10 @@
 @php
     $c = $section->content_json ?? [];
-    $courses = \App\Models\Course::with('category')->where('is_published', true)->orderBy('id', 'desc')->take(6)->get();
+    $courses = \App\Models\Course::with(['category', 'instructor', 'sections.modules', 'enrollments'])
+        ->where('is_published', true)
+        ->orderBy('id', 'desc')
+        ->take(6)
+        ->get();
 @endphp
 <section class="py-5 catalog-section-wrapper" id="featured-catalog" x-data="{ activeFilter: 'all' }">
     <div class="container py-3">
@@ -94,14 +98,14 @@
                                          style="width: 28px; height: 28px; background: var(--lms-accent);">
                                         <i class="bi bi-person-fill"></i>
                                     </div>
-                                    <span class="small fw-semibold text-secondary">
-                                        {{ $course->target_audience === 'CORPORATE' ? 'Chief Compliance Officer' : 'Senior Cloud Architect' }}
+                                    <span class="small fw-semibold text-secondary text-truncate" style="max-width: 170px;">
+                                        {{ $course->instructor_title }}
                                     </span>
                                 </div>
                                 <div class="d-flex align-items-center gap-1 text-warning small fw-bold">
                                     <i class="bi bi-star-fill"></i>
-                                    <span class="text-dark">4.9</span>
-                                    <span class="text-muted fw-normal">(1.4k)</span>
+                                    <span class="text-dark">5.0</span>
+                                    <span class="text-muted fw-normal">({{ $course->enrolled_count > 0 ? $course->enrolled_count : 'New' }})</span>
                                 </div>
                             </div>
 
@@ -112,12 +116,12 @@
                                 </a>
                             </h5>
 
-                            <!-- Course Meta Info -->
+                            <!-- Course Meta Info (Dynamic counts from system) -->
                             <div class="d-flex align-items-center justify-content-between text-muted small my-3 py-2 px-3 rounded-3" 
                                  style="background: var(--lms-bg-secondary);">
-                                <span><i class="bi bi-journal-text me-1 text-primary"></i> 24 Lessons</span>
-                                <span><i class="bi bi-clock me-1 text-primary"></i> 8h 45m</span>
-                                <span><i class="bi bi-people me-1 text-primary"></i> 1.8k Enrolled</span>
+                                <span><i class="bi bi-journal-text me-1 text-primary"></i> {{ $course->lessons_count }} {{ Str::plural('Lesson', $course->lessons_count) }}</span>
+                                <span><i class="bi bi-clock me-1 text-primary"></i> {{ $course->estimated_duration }}</span>
+                                <span><i class="bi bi-people me-1 text-primary"></i> {{ $course->formattedEnrolledCount() }} Enrolled</span>
                             </div>
 
                             <!-- Price & Action CTA -->

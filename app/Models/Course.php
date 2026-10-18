@@ -207,6 +207,88 @@ class Course extends Model
         return $this->hasMany(AttendanceSession::class);
     }
 
+    /**
+     * Get the total dynamic count of lessons/modules across all sections of this course.
+     */
+    public function getLessonsCountAttribute(): int
+    {
+        if ($this->relationLoaded('sections')) {
+            return $this->sections->sum(function ($section) {
+                return $section->relationLoaded('modules') ? $section->modules->count() : $section->modules()->count();
+            });
+        }
+
+        return (int) \App\Models\CourseModule::whereIn(
+            'section_id',
+            $this->sections()->pluck('id')
+        )->count();
+    }
+
+    /**
+     * Get the dynamic enrolled students/scholars count for this course.
+     */
+    public function getEnrolledCountAttribute(): int
+    {
+        if ($this->relationLoaded('enrollments')) {
+            return $this->enrollments->count();
+        }
+
+        return (int) $this->enrollments()->count();
+    }
+
+    /**
+     * Human formatted enrolled scholars (e.g. 1.2k or 45).
+     */
+    public function formattedEnrolledCount(): string
+    {
+        $count = $this->enrolled_count;
+        if ($count >= 1000) {
+            return round($count / 1000, 1) . 'k';
+        }
+        return (string) $count;
+    }
+
+    /**
+     * Get estimated duration computed dynamically based on modules and lessons.
+     */
+    public function getEstimatedDurationAttribute(): string
+    {
+        $lessons = $this->lessons_count;
+        if ($lessons === 0) {
+            return 'Self-Paced';
+        }
+
+        // Standard pedagogy estimate: ~25 mins per curriculum module / worked solution
+        $totalMinutes = $lessons * 25;
+        $hours = intdiv($totalMinutes, 60);
+        $mins = $totalMinutes % 60;
+
+        if ($hours === 0) {
+            return "{$mins}m";
+        }
+        if ($mins === 0) {
+            return "{$hours}h";
+        }
+
+        return "{$hours}h {$mins}m";
+    }
+
+    /**
+     * Get dynamic instructor name or professional pedagogical title.
+     */
+    public function getInstructorTitleAttribute(): string
+    {
+        if ($this->relationLoaded('instructor') && $this->instructor) {
+            return $this->instructor->name;
+        }
+
+        if ($this->target_audience === self::AUDIENCE_CORPORATE) {
+            return 'Corporate Compliance Board';
+        }
+
+        return 'Cambridge Senior Faculty';
+    }
+
     public function formattedPrice(): string
     {
         if ($this->price_cents === 0) {
