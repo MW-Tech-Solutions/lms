@@ -56,7 +56,96 @@
             </div>
         </div>
 
-        <!-- 1B. FAMILY & PARENT CONNECTION MODULE -->
+        <!-- 2. ACTIVE ENROLLED PROGRAMS (FIRST AFTER PROFILE BANNER) -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary);">
+                    Active Enrolled Programs
+                </h3>
+                <p class="text-secondary small mb-0">Continue your curriculum or access self-paced modules.</p>
+            </div>
+            <a href="{{ route('courses.index') }}" class="tj-btn-outline py-2 px-3 small">
+                <i class="bi bi-search me-1"></i>
+                <span>Explore Catalog</span>
+            </a>
+        </div>
+
+        <!-- ENROLLED COURSES CARDS GRID -->
+        <div class="row g-4 mb-5">
+            @forelse($enrollments as $enrollment)
+                <div class="col-md-6 col-lg-4">
+                    <div class="lms-card p-4 h-100 d-flex flex-column shadow-sm border position-relative" 
+                         style="background: var(--lms-surface-card); border-radius: 20px;">
+                        
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <span class="badge badge-purple-soft rounded-pill px-3 py-1 text-uppercase small fw-bold">
+                                {{ $enrollment->course->category?->name ?? 'Course' }}
+                            </span>
+                            @if($enrollment->status === 'COMPLETED')
+                                <span class="badge badge-compliance">COMPLETED</span>
+                            @elseif($enrollment->status === 'EXPIRED')
+                                <span class="badge badge-overdue">RECERTIFICATION EXPIRED</span>
+                            @else
+                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1 fw-bold">ACTIVE</span>
+                            @endif
+                        </div>
+
+                        <h4 class="fw-bold mb-2" style="font-family: var(--lms-font-heading);">
+                            <a href="{{ route('learning.player', ['course' => $enrollment->course->slug]) }}" class="text-decoration-none text-reset">
+                                {{ $enrollment->course->title }}
+                            </a>
+                        </h4>
+
+                        <!-- Recertification Due Badge -->
+                        @if($enrollment->expires_at)
+                            <div class="mb-3 p-2.5 rounded-3 small font-mono d-flex align-items-center gap-2 {{ $enrollment->isExpired() ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle text-warning' }}">
+                                <i class="bi bi-clock-history fs-6"></i>
+                                <div>
+                                    <div class="fw-bold" style="font-size: 0.72rem;">RECERTIFICATION DEADLINE</div>
+                                    <div style="font-size: 0.8rem;">{{ $enrollment->expires_at->format('M d, Y') }}</div>
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- Progress Bar Simulation -->
+                        <div class="my-3">
+                            <div class="d-flex justify-content-between small text-muted mb-1 font-mono">
+                                <span>Curriculum Progress</span>
+                                <span class="fw-bold text-body">{{ $enrollment->status === 'COMPLETED' ? '100%' : '65%' }}</span>
+                            </div>
+                            <div class="progress" style="height: 6px; border-radius: 999px;">
+                                <div class="progress-bar rounded-pill" 
+                                     style="width: {{ $enrollment->status === 'COMPLETED' ? '100%' : '65%' }}; background: linear-gradient(90deg, #723EC3, #2563EB);"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                            <span class="small text-muted font-mono" style="font-size: 0.75rem;">
+                                Enrolled: {{ $enrollment->enrolled_at ? $enrollment->enrolled_at->format('M d, Y') : 'Active' }}
+                            </span>
+                            <a href="{{ route('learning.player', ['course' => $enrollment->course->slug]) }}" class="tj-btn-primary py-2 px-3 small">
+                                <span>Resume</span>
+                                <span class="btn-icon"><i class="bi bi-play-fill ms-1"></i></span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="col-12 text-center py-5">
+                    <div class="lms-card p-5 mx-auto text-center" style="max-width: 500px; border-radius: 24px;">
+                        <i class="bi bi-journal-plus display-3 text-muted mb-3 d-block"></i>
+                        <h4 class="fw-bold">No active enrollments found</h4>
+                        <p class="text-secondary small">Explore our catalog of corporate compliance tracks and public accredited certifications.</p>
+                        <a href="{{ route('courses.index') }}" class="tj-btn-primary py-2.5 px-4 mx-auto mt-2">
+                            <span>Browse Course Catalog</span>
+                            <span class="btn-icon"><i class="bi bi-arrow-right ms-2"></i></span>
+                        </a>
+                    </div>
+                </div>
+            @endforelse
+        </div>
+
+        <!-- 3. FAMILY & PARENT CONNECTION MODULE -->
         <div class="lms-card p-4 p-md-4 rounded-4 mb-5 border shadow-sm" 
              style="background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%); border-radius: 24px; border-color: rgba(2, 132, 199, 0.2) !important;"
              x-data="{
@@ -187,98 +276,9 @@
             </div>
         </div>
 
-        <!-- 1C. STUDENT SCORE ENTRY & ESTHER MATH MATRIX TRACKER -->
+        <!-- 4. STUDENT SCORE ENTRY & ESTHER MATH MATRIX TRACKER -->
         <div class="mb-5">
             @include('cms.sections.dynamic_form')
-        </div>
-
-        <!-- 2. SECTION HEADER & ACTIONS -->
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
-            <div>
-                <h3 class="fw-bold mb-1" style="font-family: var(--lms-font-heading); color: var(--lms-text-primary);">
-                    Active Enrolled Programs
-                </h3>
-                <p class="text-secondary small mb-0">Continue your curriculum or access self-paced modules.</p>
-            </div>
-            <a href="{{ route('courses.index') }}" class="tj-btn-outline py-2 px-3 small">
-                <i class="bi bi-search me-1"></i>
-                <span>Explore Catalog</span>
-            </a>
-        </div>
-
-        <!-- 3. ENROLLED COURSES CARDS GRID -->
-        <div class="row g-4 mb-5">
-            @forelse($enrollments as $enrollment)
-                <div class="col-md-6 col-lg-4">
-                    <div class="lms-card p-4 h-100 d-flex flex-column shadow-sm border position-relative" 
-                         style="background: var(--lms-surface-card); border-radius: 20px;">
-                        
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <span class="badge badge-purple-soft rounded-pill px-3 py-1 text-uppercase small fw-bold">
-                                {{ $enrollment->course->category?->name ?? 'Course' }}
-                            </span>
-                            @if($enrollment->status === 'COMPLETED')
-                                <span class="badge badge-compliance">COMPLETED</span>
-                            @elseif($enrollment->status === 'EXPIRED')
-                                <span class="badge badge-overdue">RECERTIFICATION EXPIRED</span>
-                            @else
-                                <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2.5 py-1 fw-bold">ACTIVE</span>
-                            @endif
-                        </div>
-
-                        <h4 class="fw-bold mb-2" style="font-family: var(--lms-font-heading);">
-                            <a href="{{ route('learning.player', ['course' => $enrollment->course->slug]) }}" class="text-decoration-none text-reset">
-                                {{ $enrollment->course->title }}
-                            </a>
-                        </h4>
-
-                        <!-- Recertification Due Badge -->
-                        @if($enrollment->expires_at)
-                            <div class="mb-3 p-2.5 rounded-3 small font-mono d-flex align-items-center gap-2 {{ $enrollment->isExpired() ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle text-warning' }}">
-                                <i class="bi bi-clock-history fs-6"></i>
-                                <div>
-                                    <div class="fw-bold" style="font-size: 0.72rem;">RECERTIFICATION DEADLINE</div>
-                                    <div style="font-size: 0.8rem;">{{ $enrollment->expires_at->format('M d, Y') }}</div>
-                                </div>
-                            </div>
-                        @endif
-
-                        <!-- Progress Bar Simulation -->
-                        <div class="my-3">
-                            <div class="d-flex justify-content-between small text-muted mb-1 font-mono">
-                                <span>Curriculum Progress</span>
-                                <span class="fw-bold text-body">{{ $enrollment->status === 'COMPLETED' ? '100%' : '65%' }}</span>
-                            </div>
-                            <div class="progress" style="height: 6px; border-radius: 999px;">
-                                <div class="progress-bar rounded-pill" 
-                                     style="width: {{ $enrollment->status === 'COMPLETED' ? '100%' : '65%' }}; background: linear-gradient(90deg, #723EC3, #2563EB);"></div>
-                            </div>
-                        </div>
-
-                        <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
-                            <span class="small text-muted font-mono" style="font-size: 0.75rem;">
-                                Enrolled: {{ $enrollment->enrolled_at ? $enrollment->enrolled_at->format('M d, Y') : 'Active' }}
-                            </span>
-                            <a href="{{ route('learning.player', ['course' => $enrollment->course->slug]) }}" class="tj-btn-primary py-2 px-3 small">
-                                <span>Resume</span>
-                                <span class="btn-icon"><i class="bi bi-play-fill ms-1"></i></span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            @empty
-                <div class="col-12 text-center py-5">
-                    <div class="lms-card p-5 mx-auto text-center" style="max-width: 500px; border-radius: 24px;">
-                        <i class="bi bi-journal-plus display-3 text-muted mb-3 d-block"></i>
-                        <h4 class="fw-bold">No active enrollments found</h4>
-                        <p class="text-secondary small">Explore our catalog of corporate compliance tracks and public accredited certifications.</p>
-                        <a href="{{ route('courses.index') }}" class="tj-btn-primary py-2.5 px-4 mx-auto mt-2">
-                            <span>Browse Course Catalog</span>
-                            <span class="btn-icon"><i class="bi bi-arrow-right ms-2"></i></span>
-                        </a>
-                    </div>
-                </div>
-            @endforelse
         </div>
 
         <!-- 4. ACHIEVED CRYPTOGRAPHIC CERTIFICATES -->
