@@ -36,6 +36,12 @@ function learningPlayer() {
                         this.isVideoPlaying = true;
                     }).catch(err => {
                         console.warn('Playback error:', err);
+                        if (err && err.name === 'NotAllowedError') {
+                            video.muted = true;
+                            video.play().then(() => {
+                                this.isVideoPlaying = true;
+                            }).catch(e => console.error('Muted retry failed:', e));
+                        }
                     });
                 }
             } else {
@@ -410,70 +416,33 @@ document.addEventListener('alpine:init', () => {
                     <div class="viewport-box">
                         @switch($activeModule->module_type)
                             @case('VIDEO')
-                                @if($course->video_url)
-                                    <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm mb-4 bg-dark position-relative course-video-container" oncontextmenu="return false;">
-                                         @if($course->isVideoEmbed())
-                                             <iframe src="{{ $course->videoEmbedUrl() }}" 
-                                                     id="courseVideoIframe"
-                                                     title="{{ $course->title }}" 
-                                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                                                     allowfullscreen 
-                                                     class="w-100 h-100 border-0"></iframe>
-                                         @else
-                                             <video controls 
-                                                    id="courseVideoPlayer"
-                                                    controlsList="nodownload noplaybackrate" 
-                                                    disablePictureInPicture 
-                                                    oncontextmenu="return false;"
-                                                    class="w-100 h-100" 
-                                                    style="cursor: pointer;"
-                                                    poster="{{ $course->thumbnailUrl() }}"
-                                                    @play="onVideoPlay()"
-                                                    @pause="onVideoPause()"
-                                                    @timeupdate="onVideoTimeUpdate($event)"
-                                                    @ended="onVideoEnded()"
-                                                    @click="toggleVideoPlayback('courseVideoPlayer')">
-                                                 <source src="{{ $course->videoUrl() }}" type="video/mp4">
-                                                 Your browser does not support HTML5 video.
-                                             </video>
-                                             <!-- Central Floating Play Button Overlay -->
-                                             <div class="video-play-overlay position-absolute top-50 start-50 translate-middle d-flex align-items-center justify-content-center"
-                                                  x-show="!isVideoPlaying"
-                                                  x-transition:enter="transition ease-out duration-200"
-                                                  x-transition:enter-start="opacity-0 scale-90"
-                                                  x-transition:enter-end="opacity-100 scale-100"
-                                                  x-transition:leave="transition ease-in duration-150"
-                                                  x-transition:leave-start="opacity-100 scale-100"
-                                                  x-transition:leave-end="opacity-0 scale-90"
-                                                  @click.stop="toggleVideoPlayback('courseVideoPlayer')">
-                                                 <button type="button" 
-                                                         class="video-play-btn btn shadow-lg"
-                                                         aria-label="Play Video"
-                                                         title="Click to Play Video">
-                                                     <i class="bi bi-play-fill"></i>
-                                                 </button>
-                                             </div>
-                                         @endif
-                                     </div>
-                                 @else
-                                     <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm mb-4 bg-dark position-relative course-video-container" oncontextmenu="return false;">
+                                <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm mb-4 bg-dark position-relative course-video-container" oncontextmenu="return false;">
+                                     @if($course->isVideoEmbed())
+                                         <iframe src="{{ $course->videoEmbedUrl() }}" 
+                                                 id="courseVideoIframe"
+                                                 title="{{ $course->title }}" 
+                                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                                 allowfullscreen 
+                                                 class="w-100 h-100 border-0"></iframe>
+                                     @else
                                          <video controls 
-                                                id="courseVideoPlayerFallback"
+                                                id="courseVideoPlayer"
                                                 controlsList="nodownload noplaybackrate" 
                                                 disablePictureInPicture 
+                                                preload="metadata"
                                                 oncontextmenu="return false;"
                                                 class="w-100 h-100" 
                                                 style="cursor: pointer;"
-                                                poster="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200"
+                                                poster="{{ $course->thumbnailUrl() ?? 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200' }}"
                                                 @play="onVideoPlay()"
                                                 @pause="onVideoPause()"
                                                 @timeupdate="onVideoTimeUpdate($event)"
                                                 @ended="onVideoEnded()"
-                                                @click="toggleVideoPlayback('courseVideoPlayerFallback')">
-                                             <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+                                                @click="toggleVideoPlayback('courseVideoPlayer')">
+                                             <source src="{{ $course->videoUrl() ?? asset('videos/cambridge_lecture.mp4') }}" type="video/mp4">
                                              Your browser does not support HTML5 video.
                                          </video>
-                                         <!-- Fallback Central Floating Play Button Overlay -->
+                                         <!-- Central Floating Play Button Overlay -->
                                          <div class="video-play-overlay position-absolute top-50 start-50 translate-middle d-flex align-items-center justify-content-center"
                                               x-show="!isVideoPlaying"
                                               x-transition:enter="transition ease-out duration-200"
@@ -482,16 +451,17 @@ document.addEventListener('alpine:init', () => {
                                               x-transition:leave="transition ease-in duration-150"
                                               x-transition:leave-start="opacity-100 scale-100"
                                               x-transition:leave-end="opacity-0 scale-90"
-                                              @click.stop="toggleVideoPlayback('courseVideoPlayerFallback')">
+                                              @click.stop="toggleVideoPlayback('courseVideoPlayer')">
                                              <button type="button" 
                                                      class="video-play-btn btn shadow-lg"
                                                      aria-label="Play Video"
-                                                     title="Click to Play Video">
+                                                     title="Click to Play Video"
+                                                     @click.stop="toggleVideoPlayback('courseVideoPlayer')">
                                                  <i class="bi bi-play-fill"></i>
                                              </button>
                                          </div>
-                                     </div>
-                                 @endif
+                                     @endif
+                                </div>
                                 <!-- Video Watch Requirement Telemetry Bar (90% Completion Rule) -->
                                 <div class="p-3 rounded-4 border mb-4 shadow-xs" 
                                      :class="canMarkDone ? 'bg-success-subtle border-success-subtle' : 'bg-light border-secondary-subtle'">

@@ -122,7 +122,7 @@ class Course extends Model
     public function videoUrl(): ?string
     {
         if (!$this->video_url) {
-            return null;
+            return asset('videos/cambridge_lecture.mp4');
         }
 
         if (str_starts_with($this->video_url, 'http://') || str_starts_with($this->video_url, 'https://') || str_starts_with($this->video_url, '/')) {
