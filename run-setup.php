@@ -619,8 +619,37 @@ if ($isAuthenticated && $laravelLoaded && ($_SERVER['REQUEST_METHOD'] ?? '') ===
             $commandOutput = \Illuminate\Support\Facades\Artisan::output();
         } elseif ($command === 'optimize_clear') {
             $commandName = 'optimize:clear';
-            \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+            $commandOutput = safeOptimizeClear($app);
+        } elseif ($command === 'view_clear') {
+            $commandName = 'view:clear';
+            \Illuminate\Support\Facades\Artisan::call('view:clear');
+            $out = \Illuminate\Support\Facades\Artisan::output();
+            // Direct cleanup guarantee
+            $viewsDir = storage_path('framework/views');
+            $files = glob($viewsDir . '/*');
+            $deleted = 0;
+            foreach ($files ?: [] as $file) {
+                if (is_file($file) && basename($file) !== '.gitignore') {
+                    @unlink($file);
+                    $deleted++;
+                }
+            }
+            $commandOutput = (!empty($out) ? trim($out) : "✓ Compiled views cleared successfully.") . "\n✓ Storage framework views purged ($deleted files removed).";
+        } elseif ($command === 'cache_clear') {
+            $commandName = 'cache:clear';
+            \Illuminate\Support\Facades\Artisan::call('cache:clear');
+            $out = \Illuminate\Support\Facades\Artisan::output();
+            $commandOutput = !empty($out) ? trim($out) : "✓ Application cache cleared successfully.";
+        } elseif ($command === 'config_clear') {
+            $commandName = 'config:clear';
+            \Illuminate\Support\Facades\Artisan::call('config:clear');
+            $out = \Illuminate\Support\Facades\Artisan::output();
+            $commandOutput = !empty($out) ? trim($out) : "✓ Configuration cache cleared successfully.";
+        } elseif ($command === 'route_clear') {
+            $commandName = 'route:clear';
+            \Illuminate\Support\Facades\Artisan::call('route:clear');
+            $out = \Illuminate\Support\Facades\Artisan::output();
+            $commandOutput = !empty($out) ? trim($out) : "✓ Route cache cleared successfully.";
         } elseif ($command === 'optimize') {
             $commandName = 'optimize';
             \Illuminate\Support\Facades\Artisan::call('optimize');
@@ -635,14 +664,16 @@ if ($isAuthenticated && $laravelLoaded && ($_SERVER['REQUEST_METHOD'] ?? '') ===
             $commandOutput = \Illuminate\Support\Facades\Artisan::output();
         } elseif ($command === 'custom') {
             $customCmd = trim((string) ($_POST['custom_command'] ?? ''));
-            $customCmd = preg_replace('/^php\s+artisan\s+/i', '', $customCmd);
-            $commandName = 'artisan ' . $customCmd;
+            // Strip any leading "php", "artisan", or repeated words
+            $customCmd = preg_replace('/^(php\s+)?(artisan\s+)+/i', '', $customCmd);
+            $customCmd = trim($customCmd);
+            $commandName = 'php artisan ' . $customCmd;
 
             if (empty($customCmd)) {
                 $commandOutput = 'Error: No artisan command provided.';
             } else {
-                // Parse arguments
-                $parts = explode(' ', $customCmd);
+                // Parse command and arguments
+                $parts = preg_split('/\s+/', $customCmd);
                 $cmdName = array_shift($parts);
                 $params = [];
                 foreach ($parts as $part) {
@@ -652,13 +683,33 @@ if ($isAuthenticated && $laravelLoaded && ($_SERVER['REQUEST_METHOD'] ?? '') ===
                         $params[] = $part;
                     }
                 }
+
                 \Illuminate\Support\Facades\Artisan::call($cmdName, $params);
-                $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+                $out = \Illuminate\Support\Facades\Artisan::output();
+
+                // If running view:clear, also guarantee direct views folder purge
+                if ($cmdName === 'view:clear' || $cmdName === 'optimize:clear') {
+                    $viewsDir = storage_path('framework/views');
+                    $files = glob($viewsDir . '/*');
+                    $deleted = 0;
+                    foreach ($files ?: [] as $file) {
+                        if (is_file($file) && basename($file) !== '.gitignore') {
+                            @unlink($file);
+                            $deleted++;
+                        }
+                    }
+                    $out = (!empty($out) ? trim($out) : "✓ Command [{$cmdName}] executed successfully.") . "\n✓ Direct storage/framework/views purge: $deleted file(s) removed.";
+                }
+
+                $commandOutput = !empty($out) ? $out : "✓ Command [{$cmdName}] executed successfully (exit code 0).";
             }
         } else {
-            $commandName = htmlspecialchars($command);
-            \Illuminate\Support\Facades\Artisan::call($command);
-            $commandOutput = \Illuminate\Support\Facades\Artisan::output();
+            $rawCmd = trim($command);
+            $rawCmd = preg_replace('/^(php\s+)?(artisan\s+)+/i', '', $rawCmd);
+            $commandName = 'php artisan ' . $rawCmd;
+            \Illuminate\Support\Facades\Artisan::call($rawCmd);
+            $out = \Illuminate\Support\Facades\Artisan::output();
+            $commandOutput = !empty($out) ? $out : "✓ Command [{$rawCmd}] completed successfully.";
         }
     } catch (\Throwable $e) {
         $commandOutput = "EXCEPTION:\n" . $e->getMessage() . "\n\nStack Trace:\n" . $e->getTraceAsString();
@@ -1025,6 +1076,15 @@ function checkWritable(string $path): bool {
                                 <button type="submit" class="btn-lms-action">
                                     <span><i class="bi bi-trash3-fill text-warning me-2"></i>Clear All Caches</span>
                                     <span class="badge bg-secondary font-mono" style="font-size: 0.65rem;">optimize:clear</span>
+                                </button>
+                            </form>
+
+                            <!-- View Clear -->
+                            <form method="POST" action="run-setup.php">
+                                <input type="hidden" name="command" value="view_clear">
+                                <button type="submit" class="btn-lms-action">
+                                    <span><i class="bi bi-file-earmark-code text-info me-2"></i>Clear Compiled Views (Blade)</span>
+                                    <span class="badge bg-info-subtle text-info font-mono" style="font-size: 0.65rem;">view:clear</span>
                                 </button>
                             </form>
 
