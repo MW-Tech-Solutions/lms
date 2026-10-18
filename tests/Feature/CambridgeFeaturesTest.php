@@ -313,5 +313,23 @@ class CambridgeFeaturesTest extends TestCase
          $response->assertStatus(200);
          $response->assertSee($cert1->certificate_number);
          $response->assertSee($course->title);
+
+         // 4. Verify public authentication page renders
+         $verifyResponse = $this->get('/verify/' . $cert1->uuid);
+         $verifyResponse->assertStatus(200);
+         $verifyResponse->assertSee($cert1->certificate_number);
+         $verifyResponse->assertSee('Open in PDF Viewer');
+
+         // 5. Download parameter (?download=1) streams PDF inline for browser PDF viewer
+         $pdfStreamResponse = $this->get('/verify/' . $cert1->uuid . '?download=1');
+         $pdfStreamResponse->assertStatus(200);
+         $pdfStreamResponse->assertHeader('Content-Type', 'application/pdf');
+         $this->assertStringContainsString('inline', (string) $pdfStreamResponse->headers->get('Content-Disposition'));
+
+         // 6. Dedicated /verify/{uuid}/pdf route streams PDF directly
+         $directPdfResponse = $this->get('/verify/' . $cert1->uuid . '/pdf');
+         $directPdfResponse->assertStatus(200);
+         $directPdfResponse->assertHeader('Content-Type', 'application/pdf');
+         $this->assertStringContainsString('inline', (string) $directPdfResponse->headers->get('Content-Disposition'));
      }
 }

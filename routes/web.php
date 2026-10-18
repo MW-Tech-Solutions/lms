@@ -84,6 +84,7 @@ Route::get('/corporate-compliance', function () {
 })->name('corporate.compliance');
 
 Route::get('/verify/{uuid}', [CertificateController::class, 'verify'])->name('certificates.verify');
+Route::get('/verify/{uuid}/pdf', [CertificateController::class, 'pdf'])->name('certificates.pdf');
 
 // Public About & Contact Pages
 Route::get('/about', [\App\Http\Controllers\PageController::class, 'about'])->name('about');

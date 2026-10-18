@@ -80,13 +80,20 @@
                 </div>
             </div>
 
-            <!-- Action Buttons: Download PDF and View Program Details -->
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-                <a href="{{ route('certificates.verify', ['uuid' => $certificate->uuid, 'download' => 1]) }}" 
+            <!-- Action Buttons: Open in PDF Viewer & Direct Download -->
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 gap-md-3">
+                <a href="{{ route('certificates.pdf', ['uuid' => $certificate->uuid]) }}" 
+                   target="_blank"
                    class="btn btn-success px-4 py-2.5 rounded-pill shadow-sm fw-bold d-inline-flex align-items-center gap-2"
                    style="background: #10B981; border-color: #10B981;">
                     <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
-                    <span>Download Official Certificate PDF</span>
+                    <span>Open in PDF Viewer</span>
+                </a>
+                <a href="{{ route('certificates.pdf', ['uuid' => $certificate->uuid, 'attachment' => 1]) }}" 
+                   class="btn btn-outline-success px-3 py-2.5 rounded-pill shadow-xs fw-semibold d-inline-flex align-items-center gap-1.5"
+                   style="border-color: #10B981; color: #059669;">
+                    <i class="bi bi-download"></i>
+                    <span>Download File (.pdf)</span>
                 </a>
                 <a href="{{ route('courses.show', $certificate->course->slug) }}" class="btn btn-outline-secondary px-4 py-2.5 rounded-pill fw-semibold">
                     <i class="bi bi-journal-text me-1"></i> View Program Details

@@ -490,7 +490,38 @@
                         @if(!empty($qrBase64))
                             <img src="{{ $qrBase64 }}" alt="QR Code" width="66" height="66" class="qr-img">
                         @else
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={{ urlencode($verificationUrl) }}" alt="QR Code" width="66" height="66" class="qr-img">
+                            <div style="width: 66px; height: 66px; border: 2px solid #C5A059; background: #FFFFFF; display: inline-block; padding: 2px; border-radius: 4px; box-sizing: border-box;">
+                                <svg width="58" height="58" viewBox="0 0 100 100">
+                                    <rect width="100" height="100" fill="#FFFFFF"/>
+                                    <!-- QR Finder Patterns Top-Left -->
+                                    <rect x="5" y="5" width="28" height="28" fill="#0F172A"/>
+                                    <rect x="9" y="9" width="20" height="20" fill="#FFFFFF"/>
+                                    <rect x="13" y="13" width="12" height="12" fill="#0F172A"/>
+                                    <!-- QR Finder Patterns Top-Right -->
+                                    <rect x="67" y="5" width="28" height="28" fill="#0F172A"/>
+                                    <rect x="71" y="9" width="20" height="20" fill="#FFFFFF"/>
+                                    <rect x="75" y="13" width="12" height="12" fill="#0F172A"/>
+                                    <!-- QR Finder Patterns Bottom-Left -->
+                                    <rect x="5" y="67" width="28" height="28" fill="#0F172A"/>
+                                    <rect x="9" y="71" width="20" height="20" fill="#FFFFFF"/>
+                                    <rect x="13" y="75" width="12" height="12" fill="#0F172A"/>
+                                    <!-- Alignment & Timing Pattern Elements -->
+                                    <rect x="42" y="42" width="16" height="16" fill="#C5A059"/>
+                                    <rect x="45" y="45" width="10" height="10" fill="#FFFFFF"/>
+                                    <rect x="47" y="47" width="6" height="6" fill="#0F172A"/>
+                                    <rect x="36" y="8" width="6" height="6" fill="#0F172A"/>
+                                    <rect x="48" y="8" width="6" height="6" fill="#0F172A"/>
+                                    <rect x="58" y="16" width="6" height="6" fill="#0F172A"/>
+                                    <rect x="8" y="36" width="6" height="6" fill="#0F172A"/>
+                                    <rect x="18" y="46" width="6" height="6" fill="#0F172A"/>
+                                    <rect x="70" y="40" width="6" height="6" fill="#0F172A"/>
+                                    <rect x="82" y="50" width="6" height="6" fill="#0F172A"/>
+                                    <rect x="40" y="72" width="6" height="6" fill="#0F172A"/>
+                                    <rect x="52" y="82" width="6" height="6" fill="#0F172A"/>
+                                    <rect x="70" y="70" width="8" height="8" fill="#C5A059"/>
+                                    <rect x="82" y="82" width="8" height="8" fill="#0F172A"/>
+                                </svg>
+                            </div>
                         @endif
                         <div class="qr-label">Verify Certificate</div>
                     </td>

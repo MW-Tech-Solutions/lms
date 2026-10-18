@@ -328,8 +328,8 @@
                                                 <i class="bi bi-qr-code-scan me-1"></i>
                                                 <span>Verify</span>
                                             </a>
-                                            <a href="{{ route('certificates.verify', ['uuid' => $cert->uuid]) }}?download=1" class="btn btn-sm btn-light border py-1 px-2.5" title="Download PDF">
-                                                <i class="bi bi-download"></i>
+                                            <a href="{{ route('certificates.pdf', ['uuid' => $cert->uuid]) }}" target="_blank" class="btn btn-sm btn-light border py-1 px-2.5" title="Open in PDF Viewer">
+                                                <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
                                             </a>
                                         </div>
                                     </td>

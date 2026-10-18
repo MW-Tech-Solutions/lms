@@ -9,13 +9,15 @@ use App\Models\Course;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class CertificateGeneratorService
 {
     /**
-     * Issue an official cryptographic certificate with embedded verification QR code and PDF generation.
+     * Issue an official cryptographic certificate record and generate its PDF.
      * Prevents duplicate certificate generation per user and course.
      */
     public function generate(User $user, Course $course): Certificate
@@ -53,9 +55,37 @@ class CertificateGeneratorService
             $certificate->update(['certificate_number' => $certNumber]);
         }
 
+        $certificate->setRelation('user', $user);
+        $certificate->setRelation('course', $course);
+
+        // Render PDF and persist to disk
+        $this->getPdfBinary($certificate);
+
+        return $certificate;
+    }
+
+    /**
+     * Generate and return the raw PDF binary string for a certificate.
+     * Guaranteed to work in-memory even if disk write permissions are limited.
+     */
+    public function getPdfBinary(Certificate $certificate): string
+    {
+        $certificate->loadMissing(['user', 'course.category', 'course.tenant']);
+        $user = $certificate->user;
+        $course = $certificate->course;
+
+        $config = app()->bound(SiteConfigService::class) ? app(SiteConfigService::class) : null;
+        $prefix = $config ? (string) $config->get('certificate_prefix', 'ATC') : 'ATC';
+
+        if (empty($certificate->certificate_number)) {
+            $issuedDateObj = $certificate->issued_at ?? Carbon::now();
+            $certNumber = sprintf('%s-%s-%s', $prefix, $issuedDateObj->format('Y-md'), str_pad((string) $certificate->id, 3, '0', STR_PAD_LEFT));
+            $certificate->update(['certificate_number' => $certNumber]);
+        }
+
         $verificationUrl = url('/verify/' . $certificate->uuid);
 
-        // 2. Resolve High-Res Logo Base64
+        // 1. Resolve High-Res Logo Base64
         $logoBase64 = null;
         $logoCandidates = [];
         $settings = $config ? $config->all() : [];
@@ -88,7 +118,7 @@ class CertificateGeneratorService
             }
         }
 
-        // 3. Resolve Authorized Signature Base64
+        // 2. Resolve Authorized Signature Base64
         $signatureBase64 = null;
         $sigCandidates = [];
         if (!empty($settings['certificate_signature_url'])) {
@@ -117,7 +147,7 @@ class CertificateGeneratorService
             }
         }
 
-        // 4. Resolve Verification QR Code Base64
+        // 3. Resolve Verification QR Code Base64
         $qrBase64 = null;
         $qrDir = storage_path('app/public/certificates');
         if (!is_dir($qrDir)) {
@@ -132,15 +162,25 @@ class CertificateGeneratorService
             }
         } else {
             $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&format=png&margin=4&data=' . urlencode($verificationUrl);
-            $ctx = stream_context_create(['http' => ['timeout' => 3]]);
-            $qrData = @file_get_contents($qrApiUrl, false, $ctx);
-            if ($qrData && strlen($qrData) > 50) {
-                @file_put_contents($qrFilePath, $qrData);
-                $qrBase64 = 'data:image/png;base64,' . base64_encode($qrData);
+            try {
+                $response = Http::timeout(3)->get($qrApiUrl);
+                if ($response->successful() && strlen($response->body()) > 50) {
+                    $body = $response->body();
+                    @file_put_contents($qrFilePath, $body);
+                    $qrBase64 = 'data:image/png;base64,' . base64_encode($body);
+                }
+            } catch (\Throwable $e) {
+                // Secondary attempt via stream context
+                $ctx = stream_context_create(['http' => ['timeout' => 2]]);
+                $fallbackData = @file_get_contents($qrApiUrl, false, $ctx);
+                if ($fallbackData && strlen($fallbackData) > 50) {
+                    @file_put_contents($qrFilePath, $fallbackData);
+                    $qrBase64 = 'data:image/png;base64,' . base64_encode($fallbackData);
+                }
             }
         }
 
-        // 5. Render Landscape PDF via Blade
+        // 4. Render Landscape PDF via Blade DomPDF
         $pdf = Pdf::loadView('certificates.pdf', [
             'certificate' => $certificate,
             'user' => $user,
@@ -149,18 +189,27 @@ class CertificateGeneratorService
             'qrBase64' => $qrBase64,
             'logoBase64' => $logoBase64,
             'signatureBase64' => $signatureBase64,
-            'issuedDate' => ($certificate->issued_at ?? $issuedAt)->format('F d, Y'),
+            'issuedDate' => ($certificate->issued_at ?? Carbon::now())->format('F d, Y'),
             'expiresDate' => $certificate->expires_at ? $certificate->expires_at->format('F d, Y') : null,
             'site_settings' => $settings,
         ])->setPaper('a4', 'landscape');
 
-        $relativePdfPath = sprintf('certificates/%s.pdf', $certificate->uuid);
-        Storage::disk('public')->put($relativePdfPath, $pdf->output());
+        $binary = $pdf->output();
 
-        $certificate->update([
-            'pdf_url' => Storage::url($relativePdfPath),
-        ]);
+        // 5. Cache on disk if storage is available
+        try {
+            $relativePdfPath = sprintf('certificates/%s.pdf', $certificate->uuid);
+            Storage::disk('public')->put($relativePdfPath, $binary);
 
-        return $certificate;
+            if (empty($certificate->pdf_url)) {
+                $certificate->update([
+                    'pdf_url' => Storage::url($relativePdfPath),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Could not write certificate PDF to public storage disk: ' . $e->getMessage());
+        }
+
+        return $binary;
     }
 }

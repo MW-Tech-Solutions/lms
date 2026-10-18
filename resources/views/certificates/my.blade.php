@@ -139,9 +139,9 @@
                                     <span>Verify Credential</span>
                                 </a>
 
-                                <a href="{{ route('certificates.verify', ['uuid' => $cert->uuid]) }}?download=1" class="tj-btn-primary py-2 px-3 small">
-                                    <i class="bi bi-download me-1"></i>
-                                    <span>Download PDF</span>
+                                <a href="{{ route('certificates.pdf', ['uuid' => $cert->uuid]) }}" target="_blank" class="tj-btn-primary py-2 px-3 small">
+                                    <i class="bi bi-file-earmark-pdf-fill me-1"></i>
+                                    <span>View / Download PDF</span>
                                 </a>
                             </div>
 

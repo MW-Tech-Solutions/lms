@@ -23,26 +23,65 @@ class CertificateController extends Controller
             ->where('uuid', $uuid)
             ->firstOrFail();
 
-        // If download requested, serve or generate the PDF
-        if ($request->has('download')) {
-            $relativePdfPath = sprintf('certificates/%s.pdf', $certificate->uuid);
+        // If download, pdf, or view requested: stream directly in browser PDF viewer
+        if ($request->has('download') || $request->has('pdf') || $request->has('view')) {
+            /** @var CertificateGeneratorService $service */
+            $service = app(CertificateGeneratorService::class);
+            $downloadFilename = sprintf('certificate-%s.pdf', $certificate->certificate_number ?: $certificate->uuid);
 
-            // Generate or regenerate with the updated landscape template, QR code, and certificate number
             try {
-                /** @var CertificateGeneratorService $service */
-                $service = app(CertificateGeneratorService::class);
-                $certificate = $service->generate($certificate->user, $certificate->course);
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Certificate generation failed on download: ' . $e->getMessage());
-            }
+                $pdfBinary = $service->getPdfBinary($certificate);
+                $disposition = $request->boolean('attachment') ? 'attachment' : 'inline';
 
-            if (Storage::disk('public')->exists($relativePdfPath)) {
-                $downloadFilename = sprintf('certificate-%s.pdf', $certificate->certificate_number ?: $certificate->uuid);
-                return Storage::disk('public')->download($relativePdfPath, $downloadFilename);
+                return response($pdfBinary, 200, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => sprintf('%s; filename="%s"', $disposition, $downloadFilename),
+                    'Content-Length' => strlen($pdfBinary),
+                    'Cache-Control' => 'private, max-age=3600, must-revalidate',
+                    'Pragma' => 'public',
+                ]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Certificate PDF generation error: ' . $e->getMessage(), [
+                    'uuid' => $certificate->uuid,
+                    'trace' => $e->getTraceAsString(),
+                ]);
+
+                $relativePdfPath = sprintf('certificates/%s.pdf', $certificate->uuid);
+                if (Storage::disk('public')->exists($relativePdfPath)) {
+                    $disposition = $request->boolean('attachment') ? 'attachment' : 'inline';
+                    return response(Storage::disk('public')->get($relativePdfPath), 200, [
+                        'Content-Type' => 'application/pdf',
+                        'Content-Disposition' => sprintf('%s; filename="%s"', $disposition, $downloadFilename),
+                    ]);
+                }
             }
         }
 
         return view('certificates.verify', compact('certificate'));
+    }
+
+    /**
+     * Dedicated direct PDF stream endpoint (/verify/{uuid}/pdf).
+     */
+    public function pdf(string $uuid, Request $request): Response
+    {
+        $certificate = Certificate::with(['user', 'course.category', 'course.tenant'])
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+
+        /** @var CertificateGeneratorService $service */
+        $service = app(CertificateGeneratorService::class);
+        $downloadFilename = sprintf('certificate-%s.pdf', $certificate->certificate_number ?: $certificate->uuid);
+        $pdfBinary = $service->getPdfBinary($certificate);
+        $disposition = $request->boolean('attachment') ? 'attachment' : 'inline';
+
+        return response($pdfBinary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => sprintf('%s; filename="%s"', $disposition, $downloadFilename),
+            'Content-Length' => strlen($pdfBinary),
+            'Cache-Control' => 'private, max-age=3600, must-revalidate',
+            'Pragma' => 'public',
+        ]);
     }
 
     /**
