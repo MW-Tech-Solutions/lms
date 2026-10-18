@@ -411,7 +411,8 @@
 
 
 
-        <!-- Simple & Welcoming: Family & Kids Study Confidence Modules -->
+        @if(!request()->routeIs('my-learning'))
+        <!-- Simple & Welcoming: Family & Kids Study Confidence Modules (Public Demonstration Only) -->
         <div class="row g-4 mb-4">
             <!-- Left Card: Family & Parent Connection -->
             <div class="col-lg-6">
@@ -560,6 +561,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Cambridge Resource Request Redesigned Section -->
         <div class="mt-5 p-4 p-md-5 rounded-4 shadow-lg position-relative overflow-hidden" 
