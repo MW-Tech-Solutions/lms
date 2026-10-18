@@ -132,6 +132,7 @@ class LearningController extends Controller
     {
         $validated = $request->validate([
             'module_id' => ['required', 'integer', 'exists:course_modules,id'],
+            'watch_percentage' => ['nullable', 'numeric'],
         ]);
 
         $user = Auth::user();
@@ -140,6 +141,19 @@ class LearningController extends Controller
 
         $sessionKey = "course_{$course->id}_completed_modules";
         $completed = session()->get($sessionKey, []);
+
+        // Strict 90% video watch verification
+        if ($module->module_type === CourseModule::TYPE_VIDEO && !in_array($module->id, $completed, true)) {
+            $watchPct = isset($validated['watch_percentage']) ? (float) $validated['watch_percentage'] : 0.0;
+            if ($watchPct < 90.0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You must watch at least 90% of the instructional video to complete this module.',
+                    'required_percentage' => 90,
+                    'current_percentage' => $watchPct,
+                ], 422);
+            }
+        }
 
         if (!in_array($module->id, $completed, true)) {
             $completed[] = $module->id;

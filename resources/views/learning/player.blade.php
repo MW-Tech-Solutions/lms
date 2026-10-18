@@ -10,7 +10,43 @@
          currentModuleType: '{{ $activeModule ? $activeModule->module_type : 'LESSON' }}',
          completedModules: {{ json_encode($completedModuleIds ?? []) }},
          scormCmiStatus: 'not attempted',
+         videoWatchPercent: {{ ($activeModule && in_array($activeModule->id, $completedModuleIds ?? [], true)) ? 100 : 0 }},
+         get canMarkDone() {
+             if (this.completedModules.includes(this.currentModuleId)) {
+                 return true;
+             }
+             if (this.currentModuleType !== 'VIDEO') {
+                 return true;
+             }
+             return this.videoWatchPercent >= 90;
+         },
+         onVideoTimeUpdate(e) {
+             const v = e.target;
+             if (v && v.duration && v.duration > 0) {
+                 const pct = Math.min(100, Math.floor((v.currentTime / v.duration) * 100));
+                 if (pct > this.videoWatchPercent) {
+                     this.videoWatchPercent = pct;
+                 }
+             }
+         },
+         onVideoEnded() {
+             this.videoWatchPercent = 100;
+         },
          markCompleted(moduleId) {
+             if (this.currentModuleType === 'VIDEO' && !this.canMarkDone) {
+                 if (typeof Swal !== 'undefined') {
+                     Swal.fire({
+                         icon: 'warning',
+                         title: 'Video Incomplete (90% Required)',
+                         text: 'Please watch at least 90% of the instructional video to complete this module. Currently watched: ' + this.videoWatchPercent + '%',
+                         confirmButtonColor: '#723EC3'
+                     });
+                 } else {
+                     alert('Please watch at least 90% of the instructional video to complete this module. Currently watched: ' + this.videoWatchPercent + '%');
+                 }
+                 return;
+             }
+
              if (!this.completedModules.includes(moduleId)) {
                  this.completedModules.push(moduleId);
              }
@@ -20,11 +56,16 @@
                      'Content-Type': 'application/json',
                      'X-CSRF-TOKEN': '{{ csrf_token() }}'
                  },
-                 body: JSON.stringify({ module_id: moduleId })
+                 body: JSON.stringify({
+                     module_id: moduleId,
+                     watch_percentage: this.videoWatchPercent
+                 })
              }).then(r => r.json()).then(data => {
                  if (data.all_completed) {
                      window.location.reload();
                  }
+             }).catch(err => {
+                 console.error('Module completion error', err);
              });
          }
      }">
@@ -170,11 +211,18 @@
 
                     @if($activeModule)
                         <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-sm" 
-                                    :class="completedModules.includes(currentModuleId) ? 'btn-success' : 'btn-outline-success'"
+                            <button class="btn btn-sm transition-all" 
+                                    :class="completedModules.includes(currentModuleId) 
+                                            ? 'btn-success' 
+                                            : (canMarkDone ? 'btn-outline-success shadow-xs' : 'btn-outline-secondary opacity-75')"
+                                    :disabled="!canMarkDone && !completedModules.includes(currentModuleId)"
                                     @click="markCompleted(currentModuleId)">
-                                <i class="bi" :class="completedModules.includes(currentModuleId) ? 'bi-check2-circle' : 'bi-circle'"></i>
-                                <span x-text="completedModules.includes(currentModuleId) ? '{{ $site_settings['label_completed'] ?? 'Completed' }}' : '{{ $site_settings['label_mark_done'] ?? 'Mark as Done' }}'"></span>
+                                <i class="bi" :class="completedModules.includes(currentModuleId) 
+                                                       ? 'bi-check2-circle' 
+                                                       : (canMarkDone ? 'bi-check-circle' : 'bi-lock-fill')"></i>
+                                <span x-text="completedModules.includes(currentModuleId) 
+                                              ? '{{ $site_settings['label_completed'] ?? 'Completed' }}' 
+                                              : (canMarkDone ? '{{ $site_settings['label_mark_done'] ?? 'Mark as Done' }}' : ('Watch 90% (' + videoWatchPercent + '%)'))"></span>
                             </button>
                         </div>
                     @endif
@@ -206,17 +254,21 @@
                                     <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm mb-4 bg-dark position-relative course-video-container" oncontextmenu="return false;">
                                          @if($course->isVideoEmbed())
                                              <iframe src="{{ $course->videoEmbedUrl() }}" 
+                                                     id="courseVideoIframe"
                                                      title="{{ $course->title }}" 
                                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
                                                      allowfullscreen 
                                                      class="w-100 h-100 border-0"></iframe>
                                          @else
                                              <video controls 
+                                                    id="courseVideoPlayer"
                                                     controlsList="nodownload noplaybackrate" 
                                                     disablePictureInPicture 
                                                     oncontextmenu="return false;"
                                                     class="w-100 h-100" 
-                                                    poster="{{ $course->thumbnailUrl() }}">
+                                                    poster="{{ $course->thumbnailUrl() }}"
+                                                    @timeupdate="onVideoTimeUpdate($event)"
+                                                    @ended="onVideoEnded()">
                                                  <source src="{{ $course->videoUrl() }}" type="video/mp4">
                                                  Your browser does not support HTML5 video.
                                              </video>
@@ -235,6 +287,29 @@
                                          </video>
                                      </div>
                                  @endif
+                                <!-- Video Watch Requirement Telemetry Bar (90% Completion Rule) -->
+                                <div class="p-3 rounded-4 border mb-4 shadow-xs" 
+                                     :class="canMarkDone ? 'bg-success-subtle border-success-subtle' : 'bg-light border-secondary-subtle'">
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi" :class="canMarkDone ? 'bi-check-circle-fill text-success fs-5' : 'bi-shield-lock-fill text-primary fs-5'"></i>
+                                            <div>
+                                                <strong class="d-block small text-dark" x-text="canMarkDone ? 'Completion Unlocked! (90% Watched)' : 'Instructional Video: 90% Watch Requirement'"></strong>
+                                                <span class="text-secondary" style="font-size: 0.75rem;" 
+                                                      x-text="canMarkDone ? 'You have satisfied the 90% watch requirement. The Mark as Done button is now unlocked.' : 'Watch at least 90% of the video to unlock completion.'"></span>
+                                            </div>
+                                        </div>
+                                        <span class="badge px-3 py-1.5 rounded-pill font-mono small" 
+                                              :class="canMarkDone ? 'bg-success text-white' : 'bg-dark text-white'"
+                                              x-text="videoWatchPercent + '% / 90% Required'"></span>
+                                    </div>
+                                    <div class="progress" style="height: 6px; border-radius: 999px; background: rgba(0,0,0,0.08);">
+                                        <div class="progress-bar rounded-pill transition-all" 
+                                             :class="canMarkDone ? 'bg-success' : 'bg-primary'"
+                                             :style="'width: ' + Math.min(100, videoWatchPercent) + '%;'"></div>
+                                    </div>
+                                </div>
+
                                 <h4 class="fw-bold mb-2">{{ $course->title }}: Video Lecture</h4>
                                 <p class="text-secondary">Watch this required instructional module to advance to compliance verification.</p>
                                 @break
@@ -675,8 +750,11 @@
                     <i class="bi bi-house me-1"></i> Dashboard
                 </a>
                 @if($activeModule)
-                    <button class="btn btn-accent" @click="markCompleted(currentModuleId)">
-                        Next Activity <i class="bi bi-arrow-right ms-1"></i>
+                    <button class="btn btn-accent transition-all" 
+                            :disabled="!canMarkDone && !completedModules.includes(currentModuleId)"
+                            @click="markCompleted(currentModuleId)">
+                        <span x-text="canMarkDone || completedModules.includes(currentModuleId) ? 'Next Activity' : ('Watch 90% (' + videoWatchPercent + '%)')"></span>
+                        <i class="bi" :class="canMarkDone || completedModules.includes(currentModuleId) ? 'bi-arrow-right ms-1' : 'bi-lock-fill ms-1'"></i>
                     </button>
                 @endif
             </div>
@@ -783,6 +861,73 @@
         video.setAttribute('disablePictureInPicture', 'true');
         video.oncontextmenu = function() { return false; };
     });
+
+    // 5. YouTube Iframe API & postMessage telemetry for 90% watch rule
+    window.addEventListener('message', function(event) {
+        try {
+            let data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+            if (data && data.info && typeof data.info.currentTime === 'number' && typeof data.info.duration === 'number' && data.info.duration > 0) {
+                const pct = Math.min(100, Math.floor((data.info.currentTime / data.info.duration) * 100));
+                const playerEl = document.querySelector('[x-data]');
+                if (playerEl && playerEl._x_dataStack && playerEl._x_dataStack[0]) {
+                    const alpine = playerEl._x_dataStack[0];
+                    if (pct > alpine.videoWatchPercent) {
+                        alpine.videoWatchPercent = pct;
+                    }
+                }
+            }
+        } catch(e) {}
+    });
+
+    function pingYouTubeIframe() {
+        const iframe = document.getElementById('courseVideoIframe') || document.querySelector('.course-video-container iframe');
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1 }), '*');
+        }
+
+        if (window.YT && window.YT.Player && iframe && !iframe._ytAttached) {
+            try {
+                iframe._ytAttached = true;
+                new YT.Player(iframe, {
+                    events: {
+                        'onStateChange': function(event) {
+                            if (event.data === 1) { // Playing
+                                const poll = setInterval(() => {
+                                    try {
+                                        const dur = event.target.getDuration();
+                                        const cur = event.target.getCurrentTime();
+                                        if (dur > 0) {
+                                            const pct = Math.min(100, Math.floor((cur / dur) * 100));
+                                            const playerEl = document.querySelector('[x-data]');
+                                            if (playerEl && playerEl._x_dataStack && playerEl._x_dataStack[0]) {
+                                                const alpine = playerEl._x_dataStack[0];
+                                                if (pct > alpine.videoWatchPercent) {
+                                                    alpine.videoWatchPercent = pct;
+                                                }
+                                            }
+                                        }
+                                    } catch(err) {
+                                        clearInterval(poll);
+                                    }
+                                }, 1000);
+                            }
+                        }
+                    }
+                });
+            } catch(e) {}
+        }
+    }
+
+    if (!window.YT) {
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const first = document.getElementsByTagName('script')[0];
+        if (first && first.parentNode) {
+            first.parentNode.insertBefore(tag, first);
+        }
+    }
+
+    setInterval(pingYouTubeIframe, 2000);
 })();
 </script>
 @endpush
