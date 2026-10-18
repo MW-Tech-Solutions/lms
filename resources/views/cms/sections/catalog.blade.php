@@ -132,11 +132,15 @@
                                             <span class="fs-4 fw-bold font-mono text-nowrap" style="color: var(--lms-accent);">
                                                 {{ $course->formattedPrice() }}
                                             </span>
-                                            <span class="text-decoration-line-through text-muted small text-nowrap">$69.00</span>
+                                            @if(!empty($course->proposed_price_cents) && $course->proposed_price_cents > $course->price_cents)
+                                                <span class="text-decoration-line-through text-muted small text-nowrap">
+                                                    {{ strtoupper($course->currency ?? 'GBP') === 'GBP' ? '£' : '$' }}{{ number_format($course->proposed_price_cents / 100, 2) }}
+                                                </span>
+                                            @endif
                                         </div>
                                     @else
                                         <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 fw-bold">
-                                            Included in Corporate Plan
+                                            {{ $course->target_audience === 'CORPORATE' ? 'Included in Corporate Plan' : 'Free Study Access' }}
                                         </span>
                                     @endif
                                 </div>
