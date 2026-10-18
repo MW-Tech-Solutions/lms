@@ -80,7 +80,7 @@
                 </div>
             </div>
 
-            <!-- Action Buttons: Open in PDF Viewer & Direct Download -->
+            <!-- Action Buttons: Open in PDF Viewer, Download & Direct Print/View -->
             <div class="d-flex flex-wrap justify-content-center align-items-center gap-2 gap-md-3">
                 <a href="{{ route('certificates.pdf', ['uuid' => $certificate->uuid]) }}" 
                    target="_blank"
@@ -94,6 +94,12 @@
                    style="border-color: #10B981; color: #059669;">
                     <i class="bi bi-download"></i>
                     <span>Download File (.pdf)</span>
+                </a>
+                <a href="{{ route('certificates.view', ['uuid' => $certificate->uuid]) }}" 
+                   target="_blank"
+                   class="btn btn-outline-primary px-3 py-2.5 rounded-pill shadow-xs fw-semibold d-inline-flex align-items-center gap-1.5">
+                    <i class="bi bi-printer"></i>
+                    <span>Print / High-Res HTML</span>
                 </a>
                 <a href="{{ route('courses.show', $certificate->course->slug) }}" class="btn btn-outline-secondary px-4 py-2.5 rounded-pill fw-semibold">
                     <i class="bi bi-journal-text me-1"></i> View Program Details

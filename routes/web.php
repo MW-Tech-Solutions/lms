@@ -85,6 +85,7 @@ Route::get('/corporate-compliance', function () {
 
 Route::get('/verify/{uuid}', [CertificateController::class, 'verify'])->name('certificates.verify');
 Route::get('/verify/{uuid}/pdf', [CertificateController::class, 'pdf'])->name('certificates.pdf');
+Route::get('/verify/{uuid}/view', [CertificateController::class, 'viewCertificate'])->name('certificates.view');
 
 // Public About & Contact Pages
 Route::get('/about', [\App\Http\Controllers\PageController::class, 'about'])->name('about');
@@ -146,6 +147,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/learn/{course}', [LearningController::class, 'player'])->name('learning.player');
     Route::post('/learn/module-complete', [LearningController::class, 'markModuleComplete'])->name('learning.module-complete');
     Route::post('/courses/{course}/enroll', [CourseController::class, 'enroll'])->name('enrollment.store');
+    Route::get('/courses/{course}/enroll/success', [CourseController::class, 'enrollSuccess'])->name('courses.enroll.success');
     Route::post('/assignments/submit', [LearningController::class, 'submitAssignment'])->name('assignments.submit');
 
     Route::get('/quiz/{quiz}/take', [QuizController::class, 'take'])->name('quiz.take');

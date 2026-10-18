@@ -405,5 +405,46 @@ class CambridgeFeaturesTest extends TestCase
          $directPdfResponse->assertStatus(200);
          $directPdfResponse->assertHeader('Content-Type', 'application/pdf');
          $this->assertStringContainsString('inline', (string) $directPdfResponse->headers->get('Content-Disposition'));
+
+         // 7. Verify pure-PHP PDF fallback engine generates valid PDF 1.4 binary
+         $purePhpPdf = $certService->buildPurePhpCertificatePdf($cert1, $this->student, $course, url('/verify/' . $cert1->uuid));
+         $this->assertStringStartsWith('%PDF-1.4', $purePhpPdf);
+         $this->assertStringContainsString('%%EOF', $purePhpPdf);
+         $this->assertStringContainsString($cert1->certificate_number, $purePhpPdf);
+         $this->assertStringContainsString($this->student->name, $purePhpPdf);
+
+         // 8. Dedicated /verify/{uuid}/view route renders high-res printable HTML
+         $viewResponse = $this->get('/verify/' . $cert1->uuid . '/view');
+         $viewResponse->assertStatus(200);
+         $viewResponse->assertSee($cert1->certificate_number);
+         $viewResponse->assertSee($this->student->name);
+         $viewResponse->assertSee('Print / Save as PDF');
+
+         // 9. Paid course enrollment routes through Stripe & enrollSuccess activates enrollment
+         $paidCourse = Course::firstOrCreate(
+             ['slug' => 'test-paid-cambridge-course'],
+             [
+                 'category_id' => $this->aLevelCategory->id,
+                 'title' => 'Test Paid Cambridge Course',
+                 'price_cents' => 4500,
+                 'currency' => 'GBP',
+                 'is_published' => true,
+             ]
+         );
+
+         $successResponse = $this->actingAs($this->student)->get(
+             route('courses.enroll.success', ['course' => $paidCourse->id]) . '?session_id=cs_test_mock_session_123'
+         );
+         $successResponse->assertRedirect(route('learning.player', ['course' => $paidCourse->slug]));
+         $this->assertDatabaseHas('orders', [
+             'user_id' => $this->student->id,
+             'payment_gateway' => 'STRIPE',
+             'status' => 'COMPLETED',
+         ]);
+         $this->assertDatabaseHas('enrollments', [
+             'user_id' => $this->student->id,
+             'course_id' => $paidCourse->id,
+             'status' => 'ACTIVE',
+         ]);
      }
 }

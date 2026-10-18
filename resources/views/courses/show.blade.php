@@ -378,23 +378,28 @@
                         <form action="{{ route('enrollment.store', ['course' => $course->id]) }}" method="POST">
                             @csrf
                             @if($course->price_cents > 0)
-                                <div class="mb-3">
-                                    <label class="form-label small fw-semibold text-secondary">Select Payment Gateway</label>
-                                    <div class="d-flex gap-2">
-                                        <label class="btn btn-outline-primary btn-sm flex-grow-1 rounded-pill">
-                                            <input type="radio" name="payment_gateway" value="STRIPE" checked>
-                                            <i class="bi bi-credit-card me-1"></i> Stripe
-                                        </label>
-                                        <label class="btn btn-outline-primary btn-sm flex-grow-1 rounded-pill">
-                                            <input type="radio" name="payment_gateway" value="PAYPAL">
-                                            <i class="bi bi-paypal me-1"></i> PayPal
-                                        </label>
+                                <input type="hidden" name="payment_gateway" value="STRIPE">
+                                <div class="p-3 mb-3 rounded-3 bg-light border border-primary-subtle text-start">
+                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                        <div class="d-flex align-items-center gap-1.5 text-primary fw-bold small">
+                                            <i class="bi bi-shield-check fs-5"></i> Secure Checkout
+                                        </div>
+                                        <span class="badge bg-primary text-white font-mono" style="font-size: 0.68rem; letter-spacing: 0.5px;">STRIPE PAYMENT</span>
+                                    </div>
+                                    <div class="text-secondary small mb-2" style="font-size: 0.78rem; line-height: 1.35;">
+                                        Compulsory encrypted processing via official Stripe gateway. Accepts Visa, Mastercard, American Express, Apple Pay, and Google Pay.
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 text-muted" style="font-size: 0.95rem;">
+                                        <i class="bi bi-credit-card-2-front-fill text-dark" title="Cards"></i>
+                                        <i class="bi bi-apple text-dark" title="Apple Pay"></i>
+                                        <i class="bi bi-google text-dark" title="Google Pay"></i>
+                                        <span class="ms-auto font-mono fw-bold text-dark fs-6">{{ $course->formattedPrice() }}</span>
                                     </div>
                                 </div>
                             @endif
 
                             <button type="submit" class="tj-btn-primary w-100 py-3 justify-content-center shadow">
-                                <i class="bi bi-check-circle me-2"></i> {{ $course->price_cents > 0 ? 'Pay & Instant Enroll' : 'Claim Free Enrollment' }}
+                                <i class="bi bi-lock-fill me-2"></i> {{ $course->price_cents > 0 ? ('Pay ' . $course->formattedPrice() . ' via Stripe') : 'Claim Free Enrollment' }}
                             </button>
                         </form>
                     @endif

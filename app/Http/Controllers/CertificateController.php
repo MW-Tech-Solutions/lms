@@ -72,7 +72,14 @@ class CertificateController extends Controller
         /** @var CertificateGeneratorService $service */
         $service = app(CertificateGeneratorService::class);
         $downloadFilename = sprintf('certificate-%s.pdf', $certificate->certificate_number ?: $certificate->uuid);
-        $pdfBinary = $service->getPdfBinary($certificate);
+
+        try {
+            $pdfBinary = $service->getPdfBinary($certificate);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('getPdfBinary failed in controller, using pure PHP fallback: ' . $e->getMessage());
+            $pdfBinary = $service->buildPurePhpCertificatePdf($certificate, $certificate->user, $certificate->course, url('/verify/' . $certificate->uuid));
+        }
+
         $disposition = $request->boolean('attachment') ? 'attachment' : 'inline';
 
         return response($pdfBinary, 200, [
@@ -81,6 +88,33 @@ class CertificateController extends Controller
             'Content-Length' => strlen($pdfBinary),
             'Cache-Control' => 'private, max-age=3600, must-revalidate',
             'Pragma' => 'public',
+        ]);
+    }
+
+    /**
+     * Dedicated direct HTML view route with print dialog support (/verify/{uuid}/view).
+     */
+    public function viewCertificate(string $uuid): View
+    {
+        $certificate = Certificate::with(['user', 'course.category', 'course.tenant'])
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+
+        $config = app()->bound(\App\Services\SiteConfigService::class) ? app(\App\Services\SiteConfigService::class) : null;
+        $settings = $config ? $config->all() : [];
+
+        return view('certificates.pdf', [
+            'certificate' => $certificate,
+            'user' => $certificate->user,
+            'course' => $certificate->course,
+            'verificationUrl' => url('/verify/' . $certificate->uuid),
+            'qrBase64' => null,
+            'logoBase64' => null,
+            'signatureBase64' => null,
+            'issuedDate' => ($certificate->issued_at ?? \Carbon\Carbon::now())->format('F d, Y'),
+            'expiresDate' => $certificate->expires_at ? $certificate->expires_at->format('F d, Y') : null,
+            'site_settings' => $settings,
+            'isHtmlView' => true,
         ]);
     }
 

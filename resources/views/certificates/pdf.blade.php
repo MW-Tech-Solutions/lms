@@ -541,5 +541,21 @@
         </div>
 
     </div>
+
+    @if($isHtmlView ?? false)
+        <div class="no-print" style="position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; gap: 8px;">
+            <button onclick="window.print()" style="background: #10B981; color: white; border: none; padding: 10px 18px; border-radius: 9999px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-family: sans-serif; font-size: 14px;">
+                Print / Save as PDF
+            </button>
+            <a href="{{ route('certificates.verify', ['uuid' => $certificate->uuid]) }}" style="background: #334155; color: white; text-decoration: none; padding: 10px 18px; border-radius: 9999px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); font-family: sans-serif; font-size: 14px;">
+                Back to Verification
+            </a>
+        </div>
+        <style>
+            @media print {
+                .no-print { display: none !important; }
+            }
+        </style>
+    @endif
 </body>
 </html>
