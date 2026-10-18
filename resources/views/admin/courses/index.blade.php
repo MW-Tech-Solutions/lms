@@ -591,8 +591,8 @@
                                     @endif
                                     <div class="row g-2">
                                         <div class="col-md-6">
-                                            <label class="form-label small text-muted">Upload Video File (MP4, WebM)</label>
-                                            <input type="file" name="video_file" class="form-control form-control-sm" accept="video/mp4,video/webm,video/ogg">
+                                            <label class="form-label small text-muted">Upload Video File (All Video Formats: MP4, MOV, MKV, AVI, WebM, etc. - up to 500MB)</label>
+                                            <input type="file" name="video_file" class="form-control form-control-sm" accept="video/*,.mp4,.mov,.avi,.mkv,.wmv,.flv,.webm,.m4v,.3gp,.mpeg,.mpg,.ts">
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label small text-muted">Or Video Link (URL)</label>
@@ -789,8 +789,8 @@
                                     </template>
                                     <div class="row g-2">
                                         <div class="col-md-6">
-                                            <label class="form-label small text-muted">Upload Replacement Video</label>
-                                            <input type="file" name="video_file" class="form-control form-control-sm" accept="video/mp4,video/webm">
+                                            <label class="form-label small text-muted">Upload Replacement Video (All Video Formats)</label>
+                                            <input type="file" name="video_file" class="form-control form-control-sm" accept="video/*,.mp4,.mov,.avi,.mkv,.wmv,.flv,.webm,.m4v,.3gp,.mpeg,.mpg,.ts">
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label small text-muted">Or Video Link URL</label>
@@ -1029,8 +1029,9 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024; // 5 MB
-    const MAX_MEDIA_BYTES = 50 * 1024 * 1024;    // 50 MB
+    const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;    // 5 MB
+    const MAX_VIDEO_BYTES = 512 * 1024 * 1024;       // 512 MB
+    const MAX_MATERIAL_BYTES = 100 * 1024 * 1024;    // 100 MB
 
     function validateFileInput(input, maxBytes, friendlyName) {
         if (!input || !input.files || input.files.length === 0) return true;
@@ -1043,7 +1044,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 title: 'File Too Large',
                 html: `<div class="text-start">
                     <p class="mb-2">The selected <strong>${friendlyName}</strong> is <strong>${sizeMb} MB</strong>, which exceeds the maximum allowed size of <strong>${limitMb} MB</strong>.</p>
-                    <p class="text-muted small mb-0">Please choose an image under ${limitMb} MB or compress the file before uploading.</p>
+                    <p class="text-muted small mb-0">Please choose a file under ${limitMb} MB or compress the file before uploading.</p>
                 </div>`,
                 confirmButtonColor: '#723EC3'
             });
@@ -1062,13 +1063,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('input[type="file"][name="video_file"]').forEach(function(input) {
         input.addEventListener('change', function() {
-            validateFileInput(this, MAX_MEDIA_BYTES, 'Lecture Video');
+            validateFileInput(this, MAX_VIDEO_BYTES, 'Lecture Video');
         });
     });
 
     document.querySelectorAll('input[type="file"][name="material_file"]').forEach(function(input) {
         input.addEventListener('change', function() {
-            validateFileInput(this, MAX_MEDIA_BYTES, 'Course Study Material');
+            validateFileInput(this, MAX_MATERIAL_BYTES, 'Course Study Material');
         });
     });
 

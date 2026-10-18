@@ -163,6 +163,7 @@ Route::middleware('auth')->group(function () {
     // Subscriptions & Assessment Level Passes (£)
     Route::get('/p/pricing', [\App\Http\Controllers\SubscriptionController::class, 'index'])->name('pricing');
     Route::post('/subscription/checkout/{plan}', [\App\Http\Controllers\SubscriptionController::class, 'checkout'])->name('subscription.checkout');
+    Route::get('/subscription/success', [\App\Http\Controllers\SubscriptionController::class, 'success'])->name('subscription.success');
 
     // Parent & Guardian Portal
     Route::get('/parent/dashboard', [\App\Http\Controllers\ParentPortalController::class, 'index'])->name('parent.dashboard');

@@ -869,7 +869,87 @@
                 </div>
             </div>
 
-            <!-- SECTION 7: FOOTER & COMPLIANCE STATEMENTS -->
+            <!-- SECTION 7: STRIPE PAYMENT GATEWAY CONFIGURATION -->
+            <div class="col-12">
+                <div class="lms-card p-4 shadow-sm">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-3 mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-1">
+                                <i class="bi bi-credit-card-2-front-fill text-primary me-2"></i>Stripe Payment Gateway &amp; Billing API Credentials
+                            </h5>
+                            <div class="text-secondary small">
+                                Live payment processing credentials for student subscriptions, exam past papers, and Cambridge courses.
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-1.5 font-mono small d-flex align-items-center gap-1">
+                                <i class="bi bi-shield-lock-fill"></i> Stripe Verified Active
+                            </span>
+                            <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-1.5 font-mono small">
+                                Test Mode
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <label class="form-label small fw-bold">Stripe Publishable Key (Client-Side)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted font-mono"><i class="bi bi-key-fill"></i></span>
+                                <input type="text" 
+                                       name="settings[stripe_key]" 
+                                       id="stripePublishableKeyInput"
+                                       class="form-control font-mono form-control-sm" 
+                                       value="{{ $site_settings['stripe_key'] ?? config('services.stripe.key') }}" 
+                                       placeholder="pk_test_...">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('stripePublishableKeyInput').value); Swal.fire({toast:true, position:'top-end', icon:'success', title:'Publishable Key copied', showConfirmButton:false, timer:1500});">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                            <span class="text-muted" style="font-size: 0.72rem;">Safe for client-side embedding. Initialized by Stripe Elements &amp; frontend checkout components.</span>
+                        </div>
+
+                        <div class="col-lg-6" x-data="{ showSecret: false }">
+                            <label class="form-label small fw-bold">Stripe Secret Key (Server-Side)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted font-mono"><i class="bi bi-lock-fill"></i></span>
+                                <input :type="showSecret ? 'text' : 'password'" 
+                                       name="settings[stripe_secret]" 
+                                       id="stripeSecretKeyInput"
+                                       class="form-control font-mono form-control-sm" 
+                                       value="{{ $site_settings['stripe_secret'] ?? config('services.stripe.secret') }}" 
+                                       placeholder="sk_test_...">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" @click="showSecret = !showSecret">
+                                    <i :class="showSecret ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                                </button>
+                            </div>
+                            <span class="text-muted" style="font-size: 0.72rem;">Kept strictly confidential on server. Authenticates hosted Checkout Sessions and subscription renewals.</span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Default Billing Currency</label>
+                            <select name="settings[stripe_currency]" class="form-select form-select-sm font-mono">
+                                <option value="GBP" {{ ($site_settings['stripe_currency'] ?? 'GBP') === 'GBP' ? 'selected' : '' }}>GBP (£) - British Pound Sterling</option>
+                                <option value="USD" {{ ($site_settings['stripe_currency'] ?? 'GBP') === 'USD' ? 'selected' : '' }}>USD ($) - US Dollar</option>
+                                <option value="EUR" {{ ($site_settings['stripe_currency'] ?? 'GBP') === 'EUR' ? 'selected' : '' }}>EUR (€) - Euro</option>
+                            </select>
+                            <span class="text-muted" style="font-size: 0.72rem;">Primary settlement currency for student checkout orders.</span>
+                        </div>
+
+                        <div class="col-md-8">
+                            <label class="form-label small fw-bold">Stripe Webhook Signing Secret (Optional)</label>
+                            <input type="text" 
+                                   name="settings[stripe_webhook_secret]" 
+                                   class="form-control font-mono form-control-sm" 
+                                   value="{{ $site_settings['stripe_webhook_secret'] ?? config('services.stripe.webhook_secret') }}" 
+                                   placeholder="whsec_...">
+                            <span class="text-muted" style="font-size: 0.72rem;">Endpoint: <code>{{ url('/stripe/webhook') }}</code>. Used for asynchronous automated recurring subscription renewals.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 8: FOOTER & COMPLIANCE STATEMENTS -->
             <div class="col-12">
                 <div class="lms-card p-4 shadow-sm">
                     <h5 class="fw-bold mb-3 border-bottom pb-2">

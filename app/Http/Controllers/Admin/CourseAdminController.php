@@ -126,7 +126,39 @@ class CourseAdminController extends Controller
             'thumbnail_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp,svg', 'max:5120'],
             'thumbnail_url' => ['nullable', 'string', 'max:500'],
             'preserved_thumbnail_file' => ['nullable', 'string'],
-            'video_file' => ['nullable', 'file', 'mimes:mp4,mov,ogg,qt,webm', 'max:51200'], // Up to 50MB
+            'video_file' => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if (!$value || !($value instanceof \Illuminate\Http\UploadedFile)) {
+                        return;
+                    }
+                    if (!$value->isValid()) {
+                        $err = $value->getError();
+                        $msg = match ($err) {
+                            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'The uploaded video file exceeds the maximum allowed file size. Please choose a video under 500MB, compress it, or link it via URL.',
+                            UPLOAD_ERR_PARTIAL => 'The video upload was interrupted before completion. Please retry on a stable connection.',
+                            default => 'The video file upload was interrupted (' . $value->getErrorMessage() . ').',
+                        };
+                        $fail($msg);
+                        return;
+                    }
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    $mime = strtolower((string) $value->getMimeType());
+                    $allowedExtensions = [
+                        'mp4', 'mov', 'avi', 'mkv', 'wmv', 'flv', 'webm', 'm4v', '3gp',
+                        'mpeg', 'mpg', 'ts', 'm2ts', 'mts', 'vob', 'ogv', 'asf', 'divx',
+                        'f4v', 'h264', 'hevc', 'rm', 'rmvb'
+                    ];
+                    $isValidVideo = in_array($ext, $allowedExtensions, true)
+                        || str_starts_with($mime, 'video/')
+                        || in_array($mime, ['application/octet-stream', 'application/x-matroska', 'application/vnd.apple.mpegurl'], true);
+
+                    if (!$isValidVideo) {
+                        $fail('The video file must be a valid video format (accepted formats: MP4, MOV, AVI, MKV, WMV, FLV, WEBM, M4V, 3GP, etc.).');
+                    }
+                },
+                'max:512000', // Support up to 500MB
+            ],
             'video_url' => ['nullable', 'string', 'max:500'],
             'preserved_video_file' => ['nullable', 'string'],
             'material_file' => ['nullable', 'file', 'mimes:pdf,doc,docx,ppt,pptx,zip,txt', 'max:51200'],
@@ -147,6 +179,9 @@ class CourseAdminController extends Controller
                     UPLOAD_ERR_CANT_WRITE => 'Server error: failed to write uploaded thumbnail file to disk on hosting.',
                     default => 'The thumbnail file could not be uploaded (' . $thumbUpload->getErrorMessage() . '). Please verify file format and size.',
                 };
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['message' => $errMsg, 'errors' => ['thumbnail_file' => [$errMsg]]], 422);
+                }
                 return back()->withInput()->withErrors(['thumbnail_file' => $errMsg]);
             }
         }
@@ -154,18 +189,26 @@ class CourseAdminController extends Controller
         if ($request->hasFile('video_file') && !$request->file('video_file')->isValid()) {
             $videoUpload = $request->file('video_file');
             $errMsg = match ($videoUpload->getError()) {
-                UPLOAD_ERR_INI_SIZE => 'The uploaded video file exceeds the server\'s upload_max_filesize limit configured on this hosting server. For large video lectures, please paste the video URL or compress the video.',
+                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'The uploaded video file exceeds the server upload limit. Please select a video under 500MB, compress the video, or paste an external streaming link (YouTube/Vimeo/CDN).',
+                UPLOAD_ERR_PARTIAL => 'The video upload was interrupted before completion. Please retry on a stable connection.',
                 default => 'The video file failed to upload (' . $videoUpload->getErrorMessage() . ').',
             };
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['message' => $errMsg, 'errors' => ['video_file' => [$errMsg]]], 422);
+            }
             return back()->withInput()->withErrors(['video_file' => $errMsg]);
         }
 
         if ($request->hasFile('material_file') && !$request->file('material_file')->isValid()) {
             $matUpload = $request->file('material_file');
             $errMsg = match ($matUpload->getError()) {
-                UPLOAD_ERR_INI_SIZE => 'The attached material file exceeds the server\'s upload_max_filesize limit configured on this hosting server. Please compress or link the material.',
+                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'The attached material file exceeds the server\'s upload_max_filesize limit configured on this hosting server. Please compress or link the material.',
+                UPLOAD_ERR_PARTIAL => 'The material file upload was interrupted before completion. Please retry.',
                 default => 'The material file failed to upload (' . $matUpload->getErrorMessage() . ').',
             };
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['message' => $errMsg, 'errors' => ['material_file' => [$errMsg]]], 422);
+            }
             return back()->withInput()->withErrors(['material_file' => $errMsg]);
         }
 
@@ -321,7 +364,39 @@ class CourseAdminController extends Controller
             'public_preview_content' => ['nullable', 'string'],
             'thumbnail_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp,svg', 'max:5120'],
             'thumbnail_url' => ['nullable', 'string', 'max:500'],
-            'video_file' => ['nullable', 'file', 'mimes:mp4,mov,ogg,qt,webm', 'max:51200'],
+            'video_file' => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if (!$value instanceof \Illuminate\Http\UploadedFile) {
+                        return;
+                    }
+                    if (!$value->isValid()) {
+                        $errCode = $value->getError();
+                        $msg = match ($errCode) {
+                            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'The uploaded video file exceeds the server upload limit. Please select a video under 500MB or compress it.',
+                            UPLOAD_ERR_PARTIAL => 'The video upload was interrupted before completion. Please retry on a stable connection.',
+                            default => 'The video file upload was interrupted (' . $value->getErrorMessage() . ').',
+                        };
+                        $fail($msg);
+                        return;
+                    }
+                    $ext = strtolower($value->getClientOriginalExtension());
+                    $mime = strtolower((string) $value->getMimeType());
+                    $allowedExtensions = [
+                        'mp4', 'mov', 'avi', 'mkv', 'wmv', 'flv', 'webm', 'm4v', '3gp',
+                        'mpeg', 'mpg', 'ts', 'm2ts', 'mts', 'vob', 'ogv', 'asf', 'divx',
+                        'f4v', 'h264', 'hevc', 'rm', 'rmvb'
+                    ];
+                    $isValidVideo = in_array($ext, $allowedExtensions, true)
+                        || str_starts_with($mime, 'video/')
+                        || in_array($mime, ['application/octet-stream', 'application/x-matroska', 'application/vnd.apple.mpegurl'], true);
+
+                    if (!$isValidVideo) {
+                        $fail('The video file must be a valid video format (accepted formats: MP4, MOV, AVI, MKV, WMV, FLV, WEBM, M4V, 3GP, etc.).');
+                    }
+                },
+                'max:512000', // Support up to 500MB
+            ],
             'video_url' => ['nullable', 'string', 'max:500'],
             'material_file' => ['nullable', 'file', 'mimes:pdf,doc,docx,ppt,pptx,zip,txt', 'max:51200'],
             'material_notes' => ['nullable', 'string'],
@@ -334,24 +409,35 @@ class CourseAdminController extends Controller
                 UPLOAD_ERR_INI_SIZE => 'The uploaded thumbnail file exceeds the server\'s upload_max_filesize limit configured on this hosting server. Please select an image under 5MB or compress it.',
                 default => 'The thumbnail file failed to upload (' . $request->file('thumbnail_file')->getErrorMessage() . ').',
             };
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['message' => $errMsg, 'errors' => ['thumbnail_file' => [$errMsg]]], 422);
+            }
             return back()->withInput()->withErrors(['thumbnail_file' => $errMsg]);
         }
 
         if ($request->hasFile('video_file') && !$request->file('video_file')->isValid()) {
             $videoUpload = $request->file('video_file');
             $errMsg = match ($videoUpload->getError()) {
-                UPLOAD_ERR_INI_SIZE => 'The uploaded video file exceeds the server\'s upload_max_filesize limit configured on this hosting server. Please paste a video URL or compress the video.',
+                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'The uploaded video file exceeds the server upload limit. Please select a video under 500MB, compress the video, or paste an external streaming link (YouTube/Vimeo/CDN).',
+                UPLOAD_ERR_PARTIAL => 'The video upload was interrupted before completion. Please retry on a stable connection.',
                 default => 'The video file failed to upload (' . $videoUpload->getErrorMessage() . ').',
             };
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['message' => $errMsg, 'errors' => ['video_file' => [$errMsg]]], 422);
+            }
             return back()->withInput()->withErrors(['video_file' => $errMsg]);
         }
 
         if ($request->hasFile('material_file') && !$request->file('material_file')->isValid()) {
             $matUpload = $request->file('material_file');
             $errMsg = match ($matUpload->getError()) {
-                UPLOAD_ERR_INI_SIZE => 'The attached material file exceeds the server\'s upload_max_filesize limit configured on this hosting server. Please compress or link the material.',
+                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'The attached material file exceeds the server\'s upload_max_filesize limit configured on this hosting server. Please compress or link the material.',
+                UPLOAD_ERR_PARTIAL => 'The material file upload was interrupted before completion. Please retry.',
                 default => 'The material file failed to upload (' . $matUpload->getErrorMessage() . ').',
             };
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['message' => $errMsg, 'errors' => ['material_file' => [$errMsg]]], 422);
+            }
             return back()->withInput()->withErrors(['material_file' => $errMsg]);
         }
 
