@@ -11,6 +11,10 @@
          completedModules: {{ json_encode($completedModuleIds ?? []) }},
          scormCmiStatus: 'not attempted',
          videoWatchPercent: {{ ($activeModule && in_array($activeModule->id, $completedModuleIds ?? [], true)) ? 100 : 0 }},
+         reflectionChoice: '{{ $activeReflection?->reflection_choice ?? 'UNDERSTOOD' }}',
+         studentComment: '{{ addslashes($activeReflection?->student_comment ?? '') }}',
+         savedReflection: '{{ $activeReflection?->reflection_choice ?? '' }}',
+         isSubmittingReflection: false,
          get canMarkDone() {
              if (this.completedModules.includes(this.currentModuleId)) {
                  return true;
@@ -32,13 +36,13 @@
          onVideoEnded() {
              this.videoWatchPercent = 100;
          },
-         markCompleted(moduleId) {
+         openReflectionModal(moduleId) {
              if (this.currentModuleType === 'VIDEO' && !this.canMarkDone) {
                  if (typeof Swal !== 'undefined') {
                      Swal.fire({
                          icon: 'warning',
                          title: 'Video Incomplete (90% Required)',
-                         text: 'Please watch at least 90% of the instructional video to complete this module. Currently watched: ' + this.videoWatchPercent + '%',
+                         text: 'Please watch at least 90% of the instructional video to unlock module completion. Currently watched: ' + this.videoWatchPercent + '%',
                          confirmButtonColor: '#723EC3'
                      });
                  } else {
@@ -46,10 +50,23 @@
                  }
                  return;
              }
-
-             if (!this.completedModules.includes(moduleId)) {
-                 this.completedModules.push(moduleId);
+             const modalEl = document.getElementById('reflectionModal');
+             if (modalEl && typeof bootstrap !== 'undefined') {
+                 const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                 bsModal.show();
+             } else {
+                 this.markCompleted(moduleId);
              }
+         },
+         markCompleted(moduleId, explicitChoice = null) {
+             if (this.currentModuleType === 'VIDEO' && !this.canMarkDone) {
+                 this.openReflectionModal(moduleId);
+                 return;
+             }
+
+             const choice = explicitChoice || this.reflectionChoice || 'UNDERSTOOD';
+             this.isSubmittingReflection = true;
+
              fetch('{{ route('learning.module-complete') }}', {
                  method: 'POST',
                  headers: {
@@ -58,13 +75,57 @@
                  },
                  body: JSON.stringify({
                      module_id: moduleId,
-                     watch_percentage: this.videoWatchPercent
+                     watch_percentage: this.videoWatchPercent,
+                     reflection_choice: choice,
+                     student_comment: this.studentComment
                  })
              }).then(r => r.json()).then(data => {
-                 if (data.all_completed) {
-                     window.location.reload();
+                 this.isSubmittingReflection = false;
+                 if (data.success) {
+                     if (!this.completedModules.includes(moduleId)) {
+                         this.completedModules.push(moduleId);
+                     }
+                     this.savedReflection = choice;
+
+                     const modalEl = document.getElementById('reflectionModal');
+                     if (modalEl && typeof bootstrap !== 'undefined') {
+                         const bsModal = bootstrap.Modal.getInstance(modalEl);
+                         if (bsModal) bsModal.hide();
+                     }
+
+                     if (typeof Swal !== 'undefined') {
+                         Swal.fire({
+                             icon: 'success',
+                             title: 'Lesson Completed!',
+                             html: `<div class="text-start">
+                                 <p class="mb-2 font-semibold">${data.message || 'Progress saved successfully.'}</p>
+                                 ${data.xp_awarded > 0 ? '<div class="badge bg-primary text-white p-2 mb-2 font-mono"><i class="bi bi-star-fill text-warning me-1"></i> +' + data.xp_awarded + ' XP Added!</div>' : ''}
+                                 ${data.certificate_unlocked ? '<div class="alert alert-success py-2 px-3 small mt-2"><i class="bi bi-award-fill me-1"></i> Official Certificate has been unlocked!</div>' : ''}
+                             </div>`,
+                             confirmButtonColor: '#723EC3',
+                             timer: 3000
+                         }).then(() => {
+                             if (data.all_completed || data.certificate_unlocked) {
+                                 window.location.reload();
+                             }
+                         });
+                     } else {
+                         if (data.all_completed) {
+                             window.location.reload();
+                         }
+                     }
+                 } else {
+                     if (typeof Swal !== 'undefined') {
+                         Swal.fire({
+                             icon: 'error',
+                             title: 'Unable to Complete',
+                             text: data.message || 'Validation error.',
+                             confirmButtonColor: '#723EC3'
+                         });
+                     }
                  }
              }).catch(err => {
+                 this.isSubmittingReflection = false;
                  console.error('Module completion error', err);
              });
          }
@@ -216,7 +277,7 @@
                                             ? 'btn-success' 
                                             : (canMarkDone ? 'btn-outline-success shadow-xs' : 'btn-outline-secondary opacity-75')"
                                     :disabled="!canMarkDone && !completedModules.includes(currentModuleId)"
-                                    @click="markCompleted(currentModuleId)">
+                                    @click="openReflectionModal(currentModuleId)">
                                 <i class="bi" :class="completedModules.includes(currentModuleId) 
                                                        ? 'bi-check2-circle' 
                                                        : (canMarkDone ? 'bi-check-circle' : 'bi-lock-fill')"></i>
@@ -366,6 +427,71 @@
                                         <div class="progress-bar rounded-pill transition-all" 
                                              :class="canMarkDone ? 'bg-success' : 'bg-primary'"
                                              :style="'width: ' + Math.min(100, videoWatchPercent) + '%;'"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Post-Video Completion & Learning Reflection Card -->
+                                <div class="card border rounded-4 shadow-xs p-3.5 mb-4" 
+                                     style="background: var(--lms-surface-card, #FFFFFF);"
+                                     x-show="currentModuleType === 'VIDEO'">
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom pb-2 mb-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-patch-question-fill text-primary fs-5"></i>
+                                            <div>
+                                                <strong class="d-block small text-dark">Lesson Comprehension &amp; Reflection</strong>
+                                                <span class="text-muted" style="font-size: 0.75rem;">Select your understanding option to mark this lesson as done.</span>
+                                            </div>
+                                        </div>
+                                        <template x-if="completedModules.includes(currentModuleId)">
+                                            <span class="badge bg-success-subtle text-success rounded-pill px-3 py-1 font-mono small d-flex align-items-center gap-1">
+                                                <i class="bi bi-check2-circle"></i> Completed
+                                            </span>
+                                        </template>
+                                    </div>
+
+                                    <!-- Active/Saved Reflection Badge if already saved -->
+                                    <template x-if="savedReflection">
+                                        <div class="alert py-2 px-3 rounded-3 small mb-3 d-flex align-items-center justify-content-between"
+                                             :class="{
+                                                 'alert-success': savedReflection === 'UNDERSTOOD',
+                                                 'alert-warning': savedReflection === 'NEED_RETURN',
+                                                 'alert-danger': savedReflection === 'NOT_UNDERSTOOD'
+                                             }">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi" :class="{
+                                                    'bi-check-circle-fill text-success': savedReflection === 'UNDERSTOOD',
+                                                    'bi-arrow-clockwise text-warning': savedReflection === 'NEED_RETURN',
+                                                    'bi-flag-fill text-danger': savedReflection === 'NOT_UNDERSTOOD'
+                                                }"></i>
+                                                <span>
+                                                    Your Saved Status: 
+                                                    <strong x-text="savedReflection === 'UNDERSTOOD' ? 'Done &amp; Understood (+50 XP)' : (savedReflection === 'NEED_RETURN' ? 'Done, Need to Review Later' : 'Done, Not Understood (Teacher Flagged)')"></strong>
+                                                </span>
+                                            </div>
+                                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none fw-semibold" @click="openReflectionModal(currentModuleId)">
+                                                Change
+                                            </button>
+                                        </div>
+                                    </template>
+
+                                    <div class="row g-2 align-items-center">
+                                        <div class="col-md-7">
+                                            <label class="form-label small fw-semibold text-secondary mb-1">How well did you understand this video lecture?</label>
+                                            <select class="form-select form-select-sm fw-semibold" x-model="reflectionChoice" id="inlineReflectionChoiceSelect">
+                                                <option value="UNDERSTOOD">🟢 Done &amp; Understood (Mastered topic &bull; +50 XP Bonus)</option>
+                                                <option value="NEED_RETURN">🟡 Done, but Need to Review Later (Queue for exam revision)</option>
+                                                <option value="NOT_UNDERSTOOD">🔴 Done, but Not Understood (Flag teacher for assistance)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-5 d-flex align-items-end">
+                                            <button type="button" 
+                                                    class="btn btn-primary btn-sm w-100 rounded-3 fw-bold d-flex align-items-center justify-content-center gap-1.5 py-2 shadow-xs"
+                                                    :disabled="!canMarkDone && !completedModules.includes(currentModuleId)"
+                                                    @click="markCompleted(currentModuleId, reflectionChoice)">
+                                                <i class="bi bi-check2-circle"></i>
+                                                <span x-text="completedModules.includes(currentModuleId) ? 'Update Learning Reflection' : (canMarkDone ? 'Confirm &amp; Mark as Done' : ('Watch 90% (' + videoWatchPercent + '%)'))"></span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -826,11 +952,114 @@
                 @if($activeModule)
                     <button class="btn btn-accent transition-all" 
                             :disabled="!canMarkDone && !completedModules.includes(currentModuleId)"
-                            @click="markCompleted(currentModuleId)">
-                        <span x-text="canMarkDone || completedModules.includes(currentModuleId) ? 'Next Activity' : ('Watch 90% (' + videoWatchPercent + '%)')"></span>
-                        <i class="bi" :class="canMarkDone || completedModules.includes(currentModuleId) ? 'bi-arrow-right ms-1' : 'bi-lock-fill ms-1'"></i>
+                            @click="openReflectionModal(currentModuleId)">
+                        <span x-text="canMarkDone || completedModules.includes(currentModuleId) ? 'Next Activity / Mark Done' : ('Watch 90% (' + videoWatchPercent + '%)')"></span>
+                        <i class="bi" :class="canMarkDone || completedModules.includes(currentModuleId) ? 'bi-check2-circle ms-1' : 'bi-lock-fill ms-1'"></i>
                     </button>
                 @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Learning Reflection & Understanding Options Modal -->
+    <div class="modal fade" id="reflectionModal" tabindex="-1" aria-labelledby="reflectionModalLabel" aria-hidden="true" x-cloak>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <div class="d-flex align-items-center gap-2.5">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary-subtle text-primary shadow-xs" style="width: 42px; height: 42px;">
+                            <i class="bi bi-patch-question-fill fs-5"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0 text-dark" id="reflectionModalLabel">Mark as Done &bull; Lesson Reflection</h5>
+                            <span class="text-muted small" style="font-size: 0.78rem;">Select your comprehension status for this lesson</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body p-4">
+                    <!-- Select Dropdown Option -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark mb-1">Comprehension Options</label>
+                        <select class="form-select form-select-lg rounded-3 fw-semibold" x-model="reflectionChoice" id="modalReflectionSelect">
+                            <option value="UNDERSTOOD">🟢 Done &amp; Understood (+50 XP Bonus)</option>
+                            <option value="NEED_RETURN">🟡 Done, but Need to Review Later (Add to Revision Queue)</option>
+                            <option value="NOT_UNDERSTOOD">🔴 Done, but Not Understood (Flag for Teacher Assistance)</option>
+                        </select>
+                    </div>
+
+                    <!-- Visual Clickable Radio Cards -->
+                    <div class="d-flex flex-column gap-2 mb-3">
+                        <!-- Option 1: UNDERSTOOD -->
+                        <div class="p-3 rounded-3 border transition-all cursor-pointer"
+                             style="cursor: pointer;"
+                             :class="reflectionChoice === 'UNDERSTOOD' ? 'border-success bg-success-subtle shadow-xs' : 'border-light-subtle bg-light'"
+                             @click="reflectionChoice = 'UNDERSTOOD'">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold small text-dark d-flex align-items-center gap-1.5">
+                                    <i class="bi bi-check-circle-fill text-success"></i> Done &amp; Understood
+                                </span>
+                                <span class="badge bg-success text-white rounded-pill font-mono" style="font-size: 0.68rem;">+50 XP BONUS</span>
+                            </div>
+                            <p class="text-secondary small mb-0" style="font-size: 0.75rem; line-height: 1.35;">
+                                I fully comprehended the syllabus content and feel confident solving questions on this topic.
+                            </p>
+                        </div>
+
+                        <!-- Option 2: NEED_RETURN -->
+                        <div class="p-3 rounded-3 border transition-all cursor-pointer"
+                             style="cursor: pointer;"
+                             :class="reflectionChoice === 'NEED_RETURN' ? 'border-warning bg-warning-subtle shadow-xs' : 'border-light-subtle bg-light'"
+                             @click="reflectionChoice = 'NEED_RETURN'">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold small text-dark d-flex align-items-center gap-1.5">
+                                    <i class="bi bi-arrow-repeat text-warning"></i> Done, but Need Review Later
+                                </span>
+                                <span class="badge bg-warning text-dark rounded-pill font-mono" style="font-size: 0.68rem;">REVISION QUEUE</span>
+                            </div>
+                            <p class="text-secondary small mb-0" style="font-size: 0.75rem; line-height: 1.35;">
+                                I followed the lecture, but need additional revision or practice questions before examination.
+                            </p>
+                        </div>
+
+                        <!-- Option 3: NOT_UNDERSTOOD -->
+                        <div class="p-3 rounded-3 border transition-all cursor-pointer"
+                             style="cursor: pointer;"
+                             :class="reflectionChoice === 'NOT_UNDERSTOOD' ? 'border-danger bg-danger-subtle shadow-xs' : 'border-light-subtle bg-light'"
+                             @click="reflectionChoice = 'NOT_UNDERSTOOD'">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold small text-dark d-flex align-items-center gap-1.5">
+                                    <i class="bi bi-flag-fill text-danger"></i> Done, but Not Understood
+                                </span>
+                                <span class="badge bg-danger text-white rounded-pill font-mono" style="font-size: 0.68rem;">TEACHER FLAGGED</span>
+                            </div>
+                            <p class="text-secondary small mb-0" style="font-size: 0.75rem; line-height: 1.35;">
+                                I completed watching, but struggled with key concepts. Send an academic assistance flag to my instructor.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Optional Student Comment / Question -->
+                    <div>
+                        <label class="form-label small fw-semibold text-secondary mb-1">Student Notes or Question for Tutor (Optional)</label>
+                        <textarea class="form-control form-control-sm rounded-3" 
+                                  rows="2" 
+                                  x-model="studentComment" 
+                                  placeholder="Describe any particular formulas, proofs, or steps you found challenging..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 pt-0 pb-4 px-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" 
+                            class="btn btn-success btn-sm px-4 rounded-pill fw-bold shadow-sm d-flex align-items-center gap-1.5"
+                            :disabled="isSubmittingReflection"
+                            @click="markCompleted(currentModuleId, reflectionChoice)">
+                        <span x-show="!isSubmittingReflection"><i class="bi bi-check-lg me-1"></i> Confirm &amp; Mark Done</span>
+                        <span x-show="isSubmittingReflection" class="spinner-border spinner-border-sm me-1" role="status"></span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

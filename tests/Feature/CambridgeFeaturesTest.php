@@ -193,6 +193,80 @@ class CambridgeFeaturesTest extends TestCase
              'success' => true,
              'xp_awarded' => 0,
          ]);
+
+         // 4. Test player module completion endpoint with reflection choices & watch threshold
+         $section = $this->course->sections()->firstOrCreate(
+             ['title' => 'Core Mechanics Section'],
+             ['sort_order' => 1]
+         );
+         $module = \App\Models\CourseModule::firstOrCreate(
+             [
+                 'section_id' => $section->id,
+                 'module_type' => \App\Models\CourseModule::TYPE_VIDEO,
+             ],
+             [
+                 'sort_order' => 1,
+                 'is_mandatory' => true,
+             ]
+         );
+
+         // 4a. Below 90% watch threshold is rejected
+         $rejectWatchResponse = $this->actingAs($this->student)->postJson('/learn/module-complete', [
+             'module_id' => $module->id,
+             'watch_percentage' => 75.0,
+             'reflection_choice' => 'UNDERSTOOD',
+         ]);
+         $rejectWatchResponse->assertStatus(422);
+         $rejectWatchResponse->assertJson(['success' => false]);
+
+         // 4b. Marking module complete with NOT_UNDERSTOOD flags for teacher assistance
+         $notUnderstoodResponse = $this->actingAs($this->student)->postJson('/learn/module-complete', [
+             'module_id' => $module->id,
+             'watch_percentage' => 95.0,
+             'reflection_choice' => 'NOT_UNDERSTOOD',
+             'student_comment' => 'Need help on trigonometric substitution steps',
+         ]);
+         $notUnderstoodResponse->assertStatus(200);
+         $notUnderstoodResponse->assertJson([
+             'success' => true,
+             'reflection_choice' => 'NOT_UNDERSTOOD',
+             'is_flagged_for_teacher' => true,
+         ]);
+
+         $this->assertDatabaseHas('learning_reflections', [
+             'user_id' => $this->student->id,
+             'module_id' => $module->id,
+             'reflection_choice' => 'NOT_UNDERSTOOD',
+             'is_flagged_for_teacher' => 1,
+             'student_comment' => 'Need help on trigonometric substitution steps',
+         ]);
+
+         // 4c. Marking module complete with UNDERSTOOD awards 50 XP
+         $understoodResponse = $this->actingAs($this->student)->postJson('/learn/module-complete', [
+             'module_id' => $module->id,
+             'watch_percentage' => 98.0,
+             'reflection_choice' => 'UNDERSTOOD',
+         ]);
+         $understoodResponse->assertStatus(200);
+         $understoodResponse->assertJson([
+             'success' => true,
+             'reflection_choice' => 'UNDERSTOOD',
+             'is_flagged_for_teacher' => false,
+             'xp_awarded' => 50,
+         ]);
+
+         $this->assertDatabaseHas('learning_reflections', [
+             'user_id' => $this->student->id,
+             'module_id' => $module->id,
+             'reflection_choice' => 'UNDERSTOOD',
+             'is_flagged_for_teacher' => 0,
+         ]);
+
+         $this->assertDatabaseHas('user_xp_ledger', [
+             'user_id' => $this->student->id,
+             'xp_amount' => 50,
+             'activity_type' => 'REFLECTION_UNDERSTOOD',
+         ]);
      }
 
      /**

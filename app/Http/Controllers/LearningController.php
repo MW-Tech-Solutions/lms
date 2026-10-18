@@ -185,9 +185,18 @@ class LearningController extends Controller
             }) ?? $allModules->first();
         }
 
+        $activeReflection = null;
+        if ($activeModule) {
+            $activeReflection = \App\Models\LearningReflection::where('user_id', $user->id)
+                ->where('module_id', $activeModule->id)
+                ->latest()
+                ->first();
+        }
+
         return view('learning.player', compact(
             'course',
             'activeModule',
+            'activeReflection',
             'totalModulesCount',
             'completedModuleIds',
             'isAllCompleted',
@@ -204,13 +213,15 @@ class LearningController extends Controller
     }
 
     /**
-     * AJAX endpoint to mark module complete and trigger certificate generation upon final completion.
+     * AJAX endpoint to mark module complete with reflection choices (Done & Understood, Need to Return, Not Understood).
      */
     public function markModuleComplete(Request $request, CertificateGeneratorService $certService): JsonResponse
     {
         $validated = $request->validate([
             'module_id' => ['required', 'integer', 'exists:course_modules,id'],
             'watch_percentage' => ['nullable', 'numeric'],
+            'reflection_choice' => ['nullable', 'string', 'in:UNDERSTOOD,NEED_RETURN,NOT_UNDERSTOOD'],
+            'student_comment' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $user = Auth::user();
@@ -220,9 +231,10 @@ class LearningController extends Controller
         $sessionKey = "course_{$course->id}_completed_modules";
         $completed = session()->get($sessionKey, []);
 
+        $watchPct = isset($validated['watch_percentage']) ? (float) $validated['watch_percentage'] : 100.0;
+
         // Strict 90% video watch verification
         if ($module->module_type === CourseModule::TYPE_VIDEO && !in_array($module->id, $completed, true)) {
-            $watchPct = isset($validated['watch_percentage']) ? (float) $validated['watch_percentage'] : 0.0;
             if ($watchPct < 90.0) {
                 return response()->json([
                     'success' => false,
@@ -230,6 +242,47 @@ class LearningController extends Controller
                     'required_percentage' => 90,
                     'current_percentage' => $watchPct,
                 ], 422);
+            }
+        }
+
+        // Record or update Learning Reflection choice if provided
+        $xpAwarded = 0;
+        $choice = $validated['reflection_choice'] ?? 'UNDERSTOOD';
+        if (!empty($choice)) {
+            $isFlagged = ($choice === \App\Models\LearningReflection::CHOICE_NOT_UNDERSTOOD);
+
+            \App\Models\LearningReflection::updateOrCreate(
+                [
+                    'user_id' => $user->id,
+                    'course_id' => $course->id,
+                    'module_id' => $module->id,
+                ],
+                [
+                    'reflection_choice' => $choice,
+                    'watch_percentage' => $watchPct,
+                    'is_flagged_for_teacher' => $isFlagged,
+                    'student_comment' => $validated['student_comment'] ?? null,
+                ]
+            );
+
+            if ($choice === \App\Models\LearningReflection::CHOICE_UNDERSTOOD) {
+                $idempotencyKey = 'reflection_' . $user->id . '_' . $module->id;
+                $existingXp = \Illuminate\Support\Facades\DB::table('user_xp_ledger')
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->first();
+
+                if (!$existingXp) {
+                    \Illuminate\Support\Facades\DB::table('user_xp_ledger')->insert([
+                        'user_id' => $user->id,
+                        'xp_amount' => 50,
+                        'activity_type' => 'REFLECTION_UNDERSTOOD',
+                        'idempotency_key' => $idempotencyKey,
+                        'description' => sprintf('Completed and mastered lesson: %s', $module->section?->title ?? 'Module'),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $xpAwarded = 50;
+                }
             }
         }
 
@@ -282,11 +335,22 @@ class LearningController extends Controller
             $certUnlocked = true;
         }
 
+        $choiceFeedback = match ($choice) {
+            'UNDERSTOOD' => 'Lesson completed & understood! +50 XP awarded to your learning profile.',
+            'NEED_RETURN' => 'Lesson marked done and added to your personal revision queue for later review.',
+            'NOT_UNDERSTOOD' => 'Lesson marked done. Flagged for teacher assistance on your dashboard.',
+            default => 'Module marked as completed.',
+        };
+
         return response()->json([
             'success' => true,
             'completed_count' => count($completed),
             'all_completed' => $isInstructionalDone && $hasActiveQuiz && $hasPassedQuiz,
             'certificate_unlocked' => $certUnlocked,
+            'reflection_choice' => $choice,
+            'is_flagged_for_teacher' => ($choice === \App\Models\LearningReflection::CHOICE_NOT_UNDERSTOOD),
+            'xp_awarded' => $xpAwarded,
+            'message' => $choiceFeedback,
         ]);
     }
 
