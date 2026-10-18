@@ -368,9 +368,10 @@
                             </div>
                         </div>
                         <div class="form-check form-switch fs-5">
-                            <input type="hidden" name="settings[topbar_enabled]" :value="topbarEnabled">
+                            <input type="hidden" name="settings[topbar_enabled]" value="0">
                             <input class="form-check-input" type="checkbox" role="switch" id="topbarSwitch" 
-                                   :checked="topbarEnabled === '1'"
+                                   name="settings[topbar_enabled]" value="1"
+                                   {{ (!isset($site_settings['topbar_enabled']) || in_array((string)$site_settings['topbar_enabled'], ['1', 'true', 'on', 'yes'], true)) ? 'checked' : '' }}
                                    @change="topbarEnabled = $event.target.checked ? '1' : '0'">
                             <label class="form-check-label fs-6 fw-bold" for="topbarSwitch" x-text="topbarEnabled === '1' ? 'Banner Active' : 'Banner Disabled'"></label>
                         </div>
@@ -415,32 +416,32 @@
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label small fw-semibold">Pill Badge Label</label>
-                            <input type="text" name="settings[topbar_badge_text]" class="form-control" x-model="badgeText" placeholder="SPECIAL EVENT">
+                            <input type="text" name="settings[topbar_badge_text]" class="form-control" x-model="badgeText" value="{{ $site_settings['topbar_badge_text'] ?? 'SPECIAL EVENT' }}" placeholder="SPECIAL EVENT">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">Announcement / Offer Headline</label>
-                            <input type="text" name="settings[topbar_promo_text]" class="form-control" x-model="promoText" placeholder="Get 50% Off Annual Enterprise Compliance & Accredited Certifications">
+                            <input type="text" name="settings[topbar_promo_text]" class="form-control" x-model="promoText" value="{{ $site_settings['topbar_promo_text'] ?? 'Get 50% Off Annual Enterprise Compliance & Accredited Certifications' }}" placeholder="Get 50% Off Annual Enterprise Compliance & Accredited Certifications">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label small fw-semibold">CTA Button Label</label>
-                            <input type="text" name="settings[topbar_btn_text]" class="form-control" x-model="btnText" placeholder="Claim Offer">
+                            <input type="text" name="settings[topbar_btn_text]" class="form-control" x-model="btnText" value="{{ $site_settings['topbar_btn_text'] ?? 'Claim Offer' }}" placeholder="Claim Offer">
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">CTA Button Link Destination (URL)</label>
-                            <input type="text" name="settings[topbar_btn_url]" class="form-control font-mono" x-model="btnUrl" placeholder="/p/pricing">
+                            <input type="text" name="settings[topbar_btn_url]" class="form-control font-mono" x-model="btnUrl" value="{{ $site_settings['topbar_btn_url'] ?? '/p/pricing' }}" placeholder="/p/pricing">
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label small fw-semibold">Countdown Clock Duration (Days / Hours / Mins / Secs)</label>
                             <div class="input-group font-mono">
-                                <input type="number" name="settings[topbar_countdown_days]" class="form-control text-center" x-model="days" min="0" max="99" placeholder="04">
+                                <input type="number" name="settings[topbar_countdown_days]" class="form-control text-center" x-model="days" value="{{ $site_settings['topbar_countdown_days'] ?? '04' }}" min="0" max="99" placeholder="04">
                                 <span class="input-group-text">Days</span>
-                                <input type="number" name="settings[topbar_countdown_hours]" class="form-control text-center" x-model="hours" min="0" max="23" placeholder="18">
+                                <input type="number" name="settings[topbar_countdown_hours]" class="form-control text-center" x-model="hours" value="{{ $site_settings['topbar_countdown_hours'] ?? '18' }}" min="0" max="23" placeholder="18">
                                 <span class="input-group-text">Hrs</span>
-                                <input type="number" name="settings[topbar_countdown_minutes]" class="form-control text-center" x-model="minutes" min="0" max="59" placeholder="35">
+                                <input type="number" name="settings[topbar_countdown_minutes]" class="form-control text-center" x-model="minutes" value="{{ $site_settings['topbar_countdown_minutes'] ?? '35' }}" min="0" max="59" placeholder="35">
                                 <span class="input-group-text">Min</span>
-                                <input type="number" name="settings[topbar_countdown_seconds]" class="form-control text-center" x-model="seconds" min="0" max="59" placeholder="30">
+                                <input type="number" name="settings[topbar_countdown_seconds]" class="form-control text-center" x-model="seconds" value="{{ $site_settings['topbar_countdown_seconds'] ?? '30' }}" min="0" max="59" placeholder="30">
                                 <span class="input-group-text">Sec</span>
                             </div>
                         </div>

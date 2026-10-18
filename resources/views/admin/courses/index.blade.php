@@ -984,6 +984,45 @@
             </div>
         </div>
     @endforeach
+
+    <!-- 4. COURSE ASSET & CREATION UPLOAD PROGRESS MODAL -->
+    <div class="modal fade" id="courseCreationProgressModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" style="z-index: 1080; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 520px;">
+            <div class="modal-content border-0 rounded-4 shadow-2xl p-4 text-center" style="background: var(--lms-card-bg, #FFFFFF);">
+                <!-- Animated Spinner & Pulse -->
+                <div class="mb-3 d-inline-flex align-items-center justify-content-center mx-auto rounded-circle position-relative" style="width: 80px; height: 80px; background: rgba(114, 62, 195, 0.1);">
+                    <div id="courseProgressSpinner" class="spinner-border text-primary position-absolute" style="width: 80px; height: 80px; border-width: 3px;" role="status"></div>
+                    <i id="courseProgressIcon" class="bi bi-cloud-arrow-up-fill text-primary fs-2"></i>
+                </div>
+
+                <h4 class="fw-bold mb-1" id="courseProgressTitle" style="color: #0F172A;">Building Course Curriculum</h4>
+                <div class="text-muted small mb-3" id="courseProgressSubtitle">Uploading media assets &amp; generating syllabus structure...</div>
+
+                <!-- Big Percentage Display -->
+                <div class="display-5 fw-bold font-mono mb-2" id="courseProgressPercent" style="color: #723EC3;">0%</div>
+
+                <!-- Progress Bar -->
+                <div class="progress mb-3 rounded-pill" style="height: 14px; background: #E2E8F0; overflow: hidden;">
+                    <div id="courseProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%; background: linear-gradient(90deg, #723EC3, #0284C7); transition: width 0.25s ease;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+
+                <!-- Milestone Box -->
+                <div class="p-2.5 rounded-3 mb-3 text-start small font-mono border" style="background: rgba(248, 250, 252, 0.8); border-color: rgba(226, 232, 240, 0.8) !important;">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="text-muted" style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Live Progress Stage</span>
+                        <span id="courseProgressBytes" class="text-secondary fw-semibold" style="font-size: 0.72rem;">0 MB / 0 MB</span>
+                    </div>
+                    <div id="courseProgressStage" class="fw-bold text-dark text-truncate" style="font-size: 0.82rem;">
+                        Preparing upload stream...
+                    </div>
+                </div>
+
+                <div class="text-muted small" style="font-size: 0.75rem;">
+                    <i class="bi bi-shield-lock-fill text-success me-1"></i> Please keep this window open while files are uploading and syllabus is being processed.
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
 
@@ -1033,7 +1072,156 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Validate on form submission
+    function submitCourseFormWithProgress(form, modeTitle) {
+        const modalEl = document.getElementById('courseCreationProgressModal');
+        let bsModal = bootstrap.Modal.getInstance(modalEl);
+        if (!bsModal) {
+            bsModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+        }
+
+        const titleEl = document.getElementById('courseProgressTitle');
+        const subtitleEl = document.getElementById('courseProgressSubtitle');
+        const percentEl = document.getElementById('courseProgressPercent');
+        const barEl = document.getElementById('courseProgressBar');
+        const bytesEl = document.getElementById('courseProgressBytes');
+        const stageEl = document.getElementById('courseProgressStage');
+        const iconEl = document.getElementById('courseProgressIcon');
+        const spinnerEl = document.getElementById('courseProgressSpinner');
+
+        titleEl.textContent = modeTitle || 'Creating Cambridge Course';
+        subtitleEl.textContent = 'Uploading media assets & generating syllabus structure...';
+        percentEl.textContent = '0%';
+        barEl.style.width = '0%';
+        bytesEl.textContent = 'Calculating...';
+        stageEl.textContent = 'Initiating upload stream...';
+        iconEl.className = 'bi bi-cloud-arrow-up-fill text-primary fs-2';
+        spinnerEl.style.display = 'inline-block';
+
+        bsModal.show();
+
+        const formData = new FormData(form);
+        const xhr = new XMLHttpRequest();
+        let simInterval = null;
+
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable && e.total > 0) {
+                const rawPercent = (e.loaded / e.total);
+                const displayPercent = Math.min(80, Math.round(rawPercent * 80));
+                barEl.style.width = displayPercent + '%';
+                percentEl.textContent = displayPercent + '%';
+
+                const loadedMb = (e.loaded / (1024 * 1024)).toFixed(1);
+                const totalMb = (e.total / (1024 * 1024)).toFixed(1);
+                bytesEl.textContent = loadedMb + ' MB / ' + totalMb + ' MB';
+
+                if (rawPercent < 0.35) {
+                    stageEl.textContent = 'Uploading media files (video lecture & materials)...';
+                } else if (rawPercent < 0.75) {
+                    stageEl.textContent = 'Writing assets to secure storage & processing syllabus...';
+                } else {
+                    stageEl.textContent = 'Verifying curriculum metadata & signatures...';
+                }
+            }
+        });
+
+        xhr.upload.addEventListener('load', function() {
+            let sim = 82;
+            barEl.style.width = sim + '%';
+            percentEl.textContent = sim + '%';
+            stageEl.textContent = 'Extracting curriculum framework & generating module hierarchy...';
+
+            simInterval = setInterval(function() {
+                if (sim < 96) {
+                    sim += 2;
+                    barEl.style.width = sim + '%';
+                    percentEl.textContent = sim + '%';
+                    if (sim >= 90 && sim < 94) {
+                        stageEl.textContent = 'Configuring grade boundaries and pass thresholds...';
+                    } else if (sim >= 94) {
+                        stageEl.textContent = 'Finalizing course indexing & publishing...';
+                    }
+                }
+            }, 500);
+        });
+
+        xhr.addEventListener('load', function() {
+            if (simInterval) clearInterval(simInterval);
+
+            if (xhr.status >= 200 && xhr.status < 400) {
+                barEl.style.width = '100%';
+                percentEl.textContent = '100%';
+                stageEl.textContent = 'Course saved successfully! Redirecting...';
+                iconEl.className = 'bi bi-check-circle-fill text-success fs-2';
+                spinnerEl.style.display = 'none';
+
+                let redirectUrl = '{{ route('admin.courses.index') }}';
+                try {
+                    const res = JSON.parse(xhr.responseText);
+                    if (res.redirect) redirectUrl = res.redirect;
+                } catch (err) {
+                    if (xhr.responseURL) redirectUrl = xhr.responseURL;
+                }
+
+                setTimeout(function() {
+                    window.location.href = redirectUrl;
+                }, 600);
+            } else if (xhr.status === 422) {
+                bsModal.hide();
+                try {
+                    const res = JSON.parse(xhr.responseText);
+                    let errorHtml = '<div class="text-start"><ul class="text-danger small mb-0 ps-3">';
+                    if (res.errors) {
+                        Object.values(res.errors).forEach(function(arr) {
+                            arr.forEach(function(msg) {
+                                errorHtml += '<li>' + msg + '</li>';
+                            });
+                        });
+                    } else if (res.message) {
+                        errorHtml += '<li>' + res.message + '</li>';
+                    }
+                    errorHtml += '</ul></div>';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Error',
+                        html: errorHtml,
+                        confirmButtonColor: '#723EC3'
+                    });
+                } catch (e) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Submission Error',
+                        text: 'Please review your input fields and try again.',
+                        confirmButtonColor: '#723EC3'
+                    });
+                }
+            } else {
+                bsModal.hide();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error Saving Course',
+                    text: 'An unexpected server error occurred (' + xhr.status + '). Please try again.',
+                    confirmButtonColor: '#723EC3'
+                });
+            }
+        });
+
+        xhr.addEventListener('error', function() {
+            if (simInterval) clearInterval(simInterval);
+            bsModal.hide();
+            Swal.fire({
+                icon: 'error',
+                title: 'Network Error',
+                text: 'Upload connection interrupted. Please check your internet connection and retry.',
+                confirmButtonColor: '#723EC3'
+            });
+        });
+
+        xhr.open(form.method || 'POST', form.action);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.send(formData);
+    }
+
+    // Validate and submit with progress
     const createForm = document.querySelector('#createCourseModal form');
     if (createForm) {
         createForm.addEventListener('submit', function(e) {
@@ -1052,6 +1240,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 e.preventDefault();
                 return false;
             }
+
+            e.preventDefault();
+            submitCourseFormWithProgress(createForm, 'Creating Cambridge Course');
         });
     }
 
@@ -1073,6 +1264,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 e.preventDefault();
                 return false;
             }
+
+            e.preventDefault();
+            submitCourseFormWithProgress(editForm, 'Updating Course & Materials');
         });
     }
 });

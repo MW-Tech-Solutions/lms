@@ -1,72 +1,96 @@
 @extends('layouts.app')
 
-@section('title', 'Public Credential Verification - ' . $certificate->uuid)
+@section('title', 'Official Credential Verification - ' . ($certificate->certificate_number ?? $certificate->uuid))
 
 @section('content')
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8 col-md-10">
-            <div class="lms-card p-4 p-md-5 shadow-lg border-2 {{ $certificate->isValid() ? 'border-success' : 'border-danger' }} text-center position-relative">
-                <div class="mb-4">
-                    @if($certificate->isValid())
-                        <div class="display-3 text-success mb-2"><i class="bi bi-patch-check-fill"></i></div>
-                        <h2 class="fw-bold text-success">Official Credential Verified</h2>
-                        <div class="badge bg-success-subtle text-success fs-6 font-mono px-3 py-1">CRYPTOGRAPHICALLY AUTHENTICATED</div>
-                    @else
-                        <div class="display-3 text-danger mb-2"><i class="bi bi-exclamation-octagon-fill"></i></div>
-                        <h2 class="fw-bold text-danger">Recertification Required (Expired)</h2>
-                        <div class="badge bg-danger-subtle text-danger fs-6 font-mono px-3 py-1">EXPIRED COMPLIANCE STATUS</div>
-                    @endif
-                </div>
+@php
+    $issuingSchool = $certificate->course->tenant?->name 
+        ?? $site_settings['certificate_school_name'] 
+        ?? $site_settings['brand_name'] 
+        ?? config('app.name', 'AllThingsCambridge');
 
-                <div class="bg-body-tertiary p-4 rounded-3 text-start mb-4">
-                    <div class="row g-3">
-                        <div class="col-sm-6">
-                            <span class="small text-muted text-uppercase fw-semibold d-block">Awarded To</span>
-                            <span class="fw-bold fs-5">{{ $certificate->user->name }}</span>
-                            @if($certificate->user->employee_id)
-                                <span class="d-block small text-muted font-mono">Employee ID: {{ $certificate->user->employee_id }}</span>
-                            @endif
-                        </div>
-                        <div class="col-sm-6">
-                            <span class="small text-muted text-uppercase fw-semibold d-block">Issuing Authority</span>
-                            <span class="fw-bold fs-5">{{ $site_settings['brand_name'] ?? 'Enterprise Academy & Compliance' }}</span>
-                        </div>
-                        <div class="col-12 border-top pt-2">
-                            <span class="small text-muted text-uppercase fw-semibold d-block">Demonstrated Competency Track</span>
-                            <span class="fw-bold fs-4 text-primary">{{ $certificate->course->title }}</span>
-                        </div>
-                        <div class="col-sm-6 border-top pt-2">
-                            <span class="small text-muted text-uppercase fw-semibold d-block">Issued Date</span>
-                            <span class="font-mono fw-semibold">{{ $certificate->issued_at->format('F d, Y') }}</span>
-                        </div>
-                        <div class="col-sm-6 border-top pt-2">
-                            <span class="small text-muted text-uppercase fw-semibold d-block">Recertification Deadline</span>
-                            <span class="font-mono fw-semibold {{ $certificate->isValid() ? 'text-secondary' : 'text-danger fw-bold' }}">
-                                {{ $certificate->expires_at ? $certificate->expires_at->format('F d, Y') : 'Permanent Accreditation' }}
-                            </span>
-                        </div>
-                        <div class="col-sm-6 border-top pt-2">
-                            <span class="small text-muted text-uppercase fw-semibold d-block">Official Certificate ID</span>
-                            <span class="font-mono fw-bold text-dark fs-6">{{ $certificate->certificate_number }}</span>
-                        </div>
-                        <div class="col-sm-6 border-top pt-2 font-mono small text-muted">
-                            <span class="small text-muted text-uppercase fw-semibold d-block">Record UUID</span>
-                            <span class="text-secondary text-truncate d-block">{{ $certificate->uuid }}</span>
-                        </div>
+    if (empty($issuingSchool) || str_contains(strtolower($issuingSchool), 'enterprise academy')) {
+        $issuingSchool = 'AllThingsCambridge';
+    }
+@endphp
+<div class="container py-4 py-md-5">
+    <div style="max-width: 680px; margin: 0 auto;">
+        <div class="lms-card p-4 p-md-5 shadow-sm border rounded-4 text-center position-relative" style="background: var(--lms-card-bg, #FFFFFF);">
+            <!-- Verification Status Header -->
+            <div class="mb-4">
+                @if($certificate->isValid())
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-xs" 
+                         style="width: 72px; height: 72px; background: rgba(16, 185, 129, 0.12); color: #10B981; font-size: 2.4rem;">
+                        <i class="bi bi-patch-check-fill"></i>
+                    </div>
+                    <h2 class="fw-bold mb-2" style="color: #0F172A; letter-spacing: -0.5px; font-size: 1.75rem;">Official Credential Verified</h2>
+                    <span class="badge rounded-pill font-mono px-3 py-1.5 fw-semibold" 
+                          style="background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 0.78rem; letter-spacing: 0.8px;">
+                        <i class="bi bi-shield-check me-1"></i> CRYPTOGRAPHICALLY AUTHENTICATED
+                    </span>
+                @else
+                    <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3 shadow-xs" 
+                         style="width: 72px; height: 72px; background: rgba(239, 68, 68, 0.12); color: #EF4444; font-size: 2.4rem;">
+                        <i class="bi bi-exclamation-octagon-fill"></i>
+                    </div>
+                    <h2 class="fw-bold mb-2 text-danger" style="letter-spacing: -0.5px; font-size: 1.75rem;">Recertification Required (Expired)</h2>
+                    <span class="badge rounded-pill font-mono px-3 py-1.5 fw-semibold" 
+                          style="background: rgba(239, 68, 68, 0.12); color: #DC2626; font-size: 0.78rem; letter-spacing: 0.8px;">
+                        <i class="bi bi-clock-history me-1"></i> EXPIRED COMPLIANCE STATUS
+                    </span>
+                @endif
+            </div>
+
+            <!-- Credential Details Grid Card -->
+            <div class="p-3 p-md-4 rounded-3 text-start mb-4 border" style="background: rgba(248, 250, 252, 0.85); border-color: rgba(226, 232, 240, 0.8) !important;">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <span class="small text-muted text-uppercase fw-semibold d-block" style="font-size: 0.72rem; letter-spacing: 0.5px;">Awarded To</span>
+                        <span class="fw-bold fs-5 text-dark">{{ $certificate->user->name }}</span>
+                        @if($certificate->user->employee_id)
+                            <span class="d-block small text-muted font-mono" style="font-size: 0.75rem;">ID: {{ $certificate->user->employee_id }}</span>
+                        @endif
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="small text-muted text-uppercase fw-semibold d-block" style="font-size: 0.72rem; letter-spacing: 0.5px;">Issuing Authority</span>
+                        <span class="fw-bold fs-5 text-dark">{{ $issuingSchool }}</span>
+                    </div>
+                    <div class="col-12 border-top pt-3">
+                        <span class="small text-muted text-uppercase fw-semibold d-block" style="font-size: 0.72rem; letter-spacing: 0.5px;">Demonstrated Competency Track</span>
+                        <span class="fw-bold fs-5" style="color: #0284C7;">{{ $certificate->course->title }}</span>
+                    </div>
+                    <div class="col-sm-6 border-top pt-3">
+                        <span class="small text-muted text-uppercase fw-semibold d-block" style="font-size: 0.72rem; letter-spacing: 0.5px;">Issued Date</span>
+                        <span class="font-mono fw-semibold text-dark">{{ $certificate->issued_at->format('F d, Y') }}</span>
+                    </div>
+                    <div class="col-sm-6 border-top pt-3">
+                        <span class="small text-muted text-uppercase fw-semibold d-block" style="font-size: 0.72rem; letter-spacing: 0.5px;">Recertification Deadline</span>
+                        <span class="font-mono fw-semibold {{ $certificate->isValid() ? 'text-secondary' : 'text-danger fw-bold' }}">
+                            {{ $certificate->expires_at ? $certificate->expires_at->format('F d, Y') : 'Permanent Accreditation' }}
+                        </span>
+                    </div>
+                    <div class="col-sm-6 border-top pt-3">
+                        <span class="small text-muted text-uppercase fw-semibold d-block" style="font-size: 0.72rem; letter-spacing: 0.5px;">Official Certificate ID</span>
+                        <span class="font-mono fw-bold text-dark fs-6">{{ $certificate->certificate_number ?? $certificate->uuid }}</span>
+                    </div>
+                    <div class="col-sm-6 border-top pt-3 font-mono small text-muted">
+                        <span class="small text-muted text-uppercase fw-semibold d-block" style="font-size: 0.72rem; letter-spacing: 0.5px;">Record UUID</span>
+                        <span class="text-secondary text-truncate d-block font-mono" style="font-size: 0.78rem;">{{ $certificate->uuid }}</span>
                     </div>
                 </div>
+            </div>
 
-                <div class="d-flex flex-wrap justify-content-center gap-3">
-                    @if($certificate->pdf_url)
-                        <a href="{{ $certificate->pdf_url }}" target="_blank" class="btn btn-accent px-4 py-2">
-                            <i class="bi bi-file-earmark-pdf me-1"></i> Download Official Certificate PDF
-                        </a>
-                    @endif
-                    <a href="{{ route('courses.show', $certificate->course->slug) }}" class="btn btn-outline-secondary px-4 py-2">
-                        View Program Details
-                    </a>
-                </div>
+            <!-- Action Buttons: Download PDF and View Program Details -->
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+                <a href="{{ route('certificates.verify', ['uuid' => $certificate->uuid, 'download' => 1]) }}" 
+                   class="btn btn-success px-4 py-2.5 rounded-pill shadow-sm fw-bold d-inline-flex align-items-center gap-2"
+                   style="background: #10B981; border-color: #10B981;">
+                    <i class="bi bi-file-earmark-pdf-fill fs-5"></i>
+                    <span>Download Official Certificate PDF</span>
+                </a>
+                <a href="{{ route('courses.show', $certificate->course->slug) }}" class="btn btn-outline-secondary px-4 py-2.5 rounded-pill fw-semibold">
+                    <i class="bi bi-journal-text me-1"></i> View Program Details
+                </a>
             </div>
         </div>
     </div>

@@ -5,7 +5,10 @@
     <title>Certificate of Completion - {{ $certificate->certificate_number ?? $certificate->uuid }}</title>
     @php
         $settings = $site_settings ?? (app()->bound(\App\Services\SiteConfigService::class) ? app(\App\Services\SiteConfigService::class)->all() : []);
-        $brandName = $settings['brand_name'] ?? 'AllThingsCambridge';
+        $brandName = $certificate->course->tenant?->name ?? $settings['certificate_school_name'] ?? $settings['brand_name'] ?? 'AllThingsCambridge';
+        if (empty($brandName) || str_contains(strtolower($brandName), 'enterprise academy')) {
+            $brandName = 'AllThingsCambridge';
+        }
         $websiteUrl = $settings['certificate_website_url'] ?? 'www.allthingscambridge.com';
         $tagline1 = $settings['certificate_tagline_1'] ?? 'Better Learning';
         $tagline2 = $settings['certificate_tagline_2'] ?? 'Brighter Future';

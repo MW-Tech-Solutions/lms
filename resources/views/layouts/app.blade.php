@@ -1,9 +1,12 @@
 <!DOCTYPE html>
+@php
+    $topbarActive = !in_array((string)($site_settings['topbar_enabled'] ?? '1'), ['0', 'false', 'off', 'no'], true);
+@endphp
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" 
       x-data="{ 
           darkMode: localStorage.getItem('lms_theme') === 'dark',
           isScrolled: false,
-          showTopbar: {{ ($site_settings['topbar_enabled'] ?? '0') === '1' ? 'true' : 'false' }},
+          showTopbar: {{ $topbarActive ? 'true' : 'false' }},
           showBackToTop: false,
           mobileMenuOpen: false,
           searchModalOpen: false,
@@ -325,30 +328,31 @@
 
     <!-- SITE HEADER WRAPPER (STICKY UNIFIED CONTAINER) -->
     <header class="site-header-wrapper" id="siteHeader">
-        @if(($site_settings['topbar_enabled'] ?? '0') === '1')
+        @if($topbarActive)
         <!-- 1. EDUNEX PROMO & COUNTDOWN TOPBAR (DYNAMIC FROM ADMIN SETTINGS) -->
-        <div class="edunex-topbar" x-show="showTopbar" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" x-cloak style="overflow-x: hidden;">
+        <div class="edunex-topbar" x-show="showTopbar" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" style="overflow-x: hidden;">
             <div class="container d-flex align-items-center justify-content-between gap-1 gap-sm-2 flex-nowrap px-2 px-sm-3">
                 <div class="d-flex align-items-center gap-1 gap-md-3 min-w-0">
                     <div class="countdown-wrap flex-shrink-0">
-                        <span class="countdown-box d-none d-sm-inline-block" x-text="countdown.days + 'd'">{{ str_pad((string)($site_settings['topbar_countdown_days'] ?? '2'), 2, '0', STR_PAD_LEFT) }}d</span>
+                        <span class="countdown-box d-none d-sm-inline-block" x-text="countdown.days + 'd'">{{ str_pad((string)($site_settings['topbar_countdown_days'] ?? '04'), 2, '0', STR_PAD_LEFT) }}d</span>
                         <span class="text-white-50 d-none d-sm-inline-block">:</span>
-                        <span class="countdown-box" x-text="countdown.hours + 'h'">{{ str_pad((string)($site_settings['topbar_countdown_hours'] ?? '12'), 2, '0', STR_PAD_LEFT) }}h</span>
+                        <span class="countdown-box" x-text="countdown.hours + 'h'">{{ str_pad((string)($site_settings['topbar_countdown_hours'] ?? '18'), 2, '0', STR_PAD_LEFT) }}h</span>
                         <span class="text-white-50">:</span>
-                        <span class="countdown-box" x-text="countdown.minutes + 'm'">{{ str_pad((string)($site_settings['topbar_countdown_minutes'] ?? '44'), 2, '0', STR_PAD_LEFT) }}m</span>
+                        <span class="countdown-box" x-text="countdown.minutes + 'm'">{{ str_pad((string)($site_settings['topbar_countdown_minutes'] ?? '35'), 2, '0', STR_PAD_LEFT) }}m</span>
                         <span class="text-white-50">:</span>
-                        <span class="countdown-box" x-text="countdown.seconds + 's'">{{ str_pad((string)($site_settings['topbar_countdown_seconds'] ?? '57'), 2, '0', STR_PAD_LEFT) }}s</span>
+                        <span class="countdown-box" x-text="countdown.seconds + 's'">{{ str_pad((string)($site_settings['topbar_countdown_seconds'] ?? '30'), 2, '0', STR_PAD_LEFT) }}s</span>
                     </div>
-                    <div class="d-none d-md-flex align-items-center gap-2 small text-truncate">
+                    <div class="d-flex align-items-center gap-2 small text-truncate">
                         <span class="badge bg-warning text-dark fw-bold px-2 flex-shrink-0">
-                            <i class="bi bi-fire me-1"></i> {{ $site_settings['topbar_badge_text'] ?? 'CAMBRIDGE EXAM COUNTDOWN' }}
+                            <i class="bi bi-fire me-1"></i> {{ $site_settings['topbar_badge_text'] ?? 'SPECIAL EVENT' }}
                         </span>
-                        <span class="text-truncate">{{ $site_settings['topbar_promo_text'] ?? 'May/June 2026 Cambridge Series Countdown: Revise with Topical Past Papers & Worked Solutions' }}</span>
+                        <span class="text-truncate d-none d-md-inline">{{ $site_settings['topbar_promo_text'] ?? 'Get 50% Off Annual Enterprise Compliance & Accredited Certifications' }}</span>
+                        <span class="text-truncate d-inline d-md-none fw-semibold">{{ \Illuminate\Support\Str::limit($site_settings['topbar_promo_text'] ?? 'Get 50% Off Annual Certifications', 35) }}</span>
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-1 gap-md-3 flex-shrink-0 ms-auto">
-                    <a href="{{ $site_settings['topbar_btn_url'] ?? route('courses.index') }}" class="topbar-claim-btn text-nowrap">
-                        <span>{{ $site_settings['topbar_btn_text'] ?? 'Get Certified' }}</span>
+                    <a href="{{ $site_settings['topbar_btn_url'] ?? '/p/pricing' }}" class="topbar-claim-btn text-nowrap">
+                        <span>{{ $site_settings['topbar_btn_text'] ?? 'Claim Offer' }}</span>
                         <i class="bi bi-arrow-right"></i>
                     </a>
                     <button type="button" class="topbar-close-btn flex-shrink-0" @click="showTopbar = false" title="Dismiss">

@@ -283,6 +283,15 @@ class CourseAdminController extends Controller
             ? sprintf('Course "%s" submitted successfully and queued for Academic Board moderation. It will become live to the public once approved by an administrator.', $course->title)
             : sprintf('Course "%s" created under selected level with uploaded video & materials.', $course->title);
 
+        if ($request->ajax() || $request->wantsJson()) {
+            session()->flash('success', $successMsg);
+            return response()->json([
+                'success' => true,
+                'message' => $successMsg,
+                'redirect' => route('admin.courses.index'),
+            ]);
+        }
+
         return redirect()->route('admin.courses.index')->with('success', $successMsg);
     }
 
@@ -422,7 +431,18 @@ class CourseAdminController extends Controller
 
         $course->update($data);
 
-        return redirect()->route('admin.courses.index')->with('success', sprintf('Course "%s" and materials updated successfully.', $course->title));
+        $updateMsg = sprintf('Course "%s" and materials updated successfully.', $course->title);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            session()->flash('success', $updateMsg);
+            return response()->json([
+                'success' => true,
+                'message' => $updateMsg,
+                'redirect' => route('admin.courses.index'),
+            ]);
+        }
+
+        return redirect()->route('admin.courses.index')->with('success', $updateMsg);
     }
 
     public function destroy(Course $course): RedirectResponse

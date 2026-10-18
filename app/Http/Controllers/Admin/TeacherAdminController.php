@@ -100,30 +100,17 @@ class TeacherAdminController extends Controller
         } elseif ($newStatus === 'REJECTED') {
             $user->is_active = false;
             $user->rejection_reason = $validated['rejection_reason'] ?? 'Registration credentials or syllabus alignment was not compliant with platform requirements.';
-
-            // Dispatch formal non-compliance rejection notification email with authenticated redirect link
-            $directAuthLink = route('login', ['redirect' => route('home')]);
-            try {
-                \Illuminate\Support\Facades\Mail::send(
-                    'emails.compliance_notice',
-                    [
-                        'recipientName' => $user->name,
-                        'heading' => 'Registration Compliance Review Notice',
-                        'introText' => 'Your instructor/educator account registration could not be approved at this time following academic compliance review.',
-                        'reasonText' => $user->rejection_reason,
-                        'actionUrl' => $directAuthLink,
-                        'actionText' => 'Access Account & Update Profile',
-                        'subject' => 'Registration Compliance Review & Rejection Notice',
-                    ],
-                    function ($m) use ($user) {
-                        $m->to($user->email)->subject('Registration Compliance Review & Rejection Notice');
-                    }
-                );
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Teacher rejection email delivery failed: ' . $e->getMessage());
-            }
+        } elseif ($newStatus === 'UNAPPROVED') {
+            $user->is_active = false;
+            $user->rejection_reason = $validated['rejection_reason'] ?? null;
+        } else {
+            // PENDING
+            $user->rejection_reason = null;
         }
         $user->save();
+
+        // Dispatch status update email to teacher
+        $this->sendTeacherStatusEmail($user, $newStatus, $user->rejection_reason);
 
         AuditService::log('TEACHER_APPROVAL_STATUS_CHANGED', $user, null, [
             'old_status' => $oldStatus,
@@ -187,6 +174,9 @@ class TeacherAdminController extends Controller
             'approval_status' => $validated['approval_status'],
             'created_by' => auth()->user()->name ?? 'Administrator',
         ]);
+
+        // If registered with APPROVED or specific status, dispatch email
+        $this->sendTeacherStatusEmail($user, $validated['approval_status']);
 
         return back()->with('success', sprintf('Teacher %s registered successfully with status: %s.', $user->name, $validated['approval_status']));
     }
@@ -309,5 +299,69 @@ class TeacherAdminController extends Controller
         ]);
 
         return back()->with('info', sprintf('Level request for "%s" has been rejected.', $category?->name ?? 'Level'));
+    }
+
+    /**
+     * Dispatch notification email to teacher on status approval or modification.
+     */
+    private function sendTeacherStatusEmail(User $user, string $status, ?string $reason = null): void
+    {
+        $payload = match ($status) {
+            'APPROVED' => [
+                'subject' => 'Educator Account Approved - AllThingsCambridge',
+                'heading' => 'Welcome to the Faculty! Your Account is Approved',
+                'introText' => 'Congratulations! Your instructor account has been officially approved by the Academic Administration Board.',
+                'reasonText' => 'Your teaching privileges are now active. You have full access to author Cambridge curriculum courses, upload lecture videos, attach topical past papers, and conduct learner assessments.',
+                'actionUrl' => route('login', ['redirect' => route('admin.dashboard')]),
+                'actionText' => 'Launch Educator Portal',
+                'statusType' => 'APPROVED',
+            ],
+            'REJECTED' => [
+                'subject' => 'Registration Compliance Review & Rejection Notice',
+                'heading' => 'Registration Compliance Review Notice',
+                'introText' => 'Your instructor/educator account registration could not be approved at this time following academic compliance review.',
+                'reasonText' => $reason ?? 'Registration credentials or syllabus alignment was not compliant with platform requirements.',
+                'actionUrl' => route('login', ['redirect' => route('home')]),
+                'actionText' => 'Access Account & Update Profile',
+                'statusType' => 'REJECTED',
+            ],
+            'PENDING' => [
+                'subject' => 'Account Status Update: Under Review - AllThingsCambridge',
+                'heading' => 'Account Placed Under Academic Review',
+                'introText' => 'Your instructor account status has been updated to PENDING while the Academic Administration Board verifies your submitted credentials and teaching methodology.',
+                'reasonText' => $reason ?? 'Our academic quality team is evaluating your documentation. You will receive an email confirmation once review is concluded.',
+                'actionUrl' => route('login'),
+                'actionText' => 'View Application Status',
+                'statusType' => 'PENDING',
+            ],
+            'UNAPPROVED' => [
+                'subject' => 'Account Status Notice: Unapproved - AllThingsCambridge',
+                'heading' => 'Account Status Notice: Unapproved',
+                'introText' => 'Your instructor account status has been marked as UNAPPROVED by an administrator.',
+                'reasonText' => $reason ?? 'Teaching authoring privileges are paused. Please reach out to Academic Administration or update your profile qualifications.',
+                'actionUrl' => route('login'),
+                'actionText' => 'Access Account',
+                'statusType' => 'UNAPPROVED',
+            ],
+            default => null,
+        };
+
+        if (!$payload) {
+            return;
+        }
+
+        try {
+            \Illuminate\Support\Facades\Mail::send(
+                'emails.compliance_notice',
+                array_merge([
+                    'recipientName' => $user->name,
+                ], $payload),
+                function ($m) use ($user, $payload) {
+                    $m->to($user->email)->subject($payload['subject']);
+                }
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Teacher status notification email delivery failed for ' . $user->email . ': ' . $e->getMessage());
+        }
     }
 }

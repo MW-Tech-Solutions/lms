@@ -26,27 +26,19 @@ class CertificateController extends Controller
         // If download requested, serve or generate the PDF
         if ($request->has('download')) {
             $relativePdfPath = sprintf('certificates/%s.pdf', $certificate->uuid);
-            if (Storage::disk('public')->exists($relativePdfPath)) {
-                return Storage::disk('public')->download(
-                    $relativePdfPath,
-                    sprintf('certificate-%s.pdf', $certificate->uuid)
-                );
-            }
 
-            // Generate on demand if missing
+            // Generate or regenerate with the updated landscape template, QR code, and certificate number
             try {
                 /** @var CertificateGeneratorService $service */
                 $service = app(CertificateGeneratorService::class);
-                $service->generate($certificate->user, $certificate->course);
-
-                if (Storage::disk('public')->exists($relativePdfPath)) {
-                    return Storage::disk('public')->download(
-                        $relativePdfPath,
-                        sprintf('certificate-%s.pdf', $certificate->uuid)
-                    );
-                }
+                $certificate = $service->generate($certificate->user, $certificate->course);
             } catch (\Throwable $e) {
-                // If PDF generator encounters any issue, fall through to view
+                \Illuminate\Support\Facades\Log::warning('Certificate generation failed on download: ' . $e->getMessage());
+            }
+
+            if (Storage::disk('public')->exists($relativePdfPath)) {
+                $downloadFilename = sprintf('certificate-%s.pdf', $certificate->certificate_number ?: $certificate->uuid);
+                return Storage::disk('public')->download($relativePdfPath, $downloadFilename);
             }
         }
 
