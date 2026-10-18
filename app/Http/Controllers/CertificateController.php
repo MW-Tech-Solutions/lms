@@ -103,11 +103,28 @@ class CertificateController extends Controller
         $config = app()->bound(\App\Services\SiteConfigService::class) ? app(\App\Services\SiteConfigService::class) : null;
         $settings = $config ? $config->all() : [];
 
+        /** @var CertificateGeneratorService $service */
+        $service = app(CertificateGeneratorService::class);
+        $verificationUrl = url('/verify/' . $certificate->uuid);
+
+        $compositeBinary = $service->generateCertificateCompositeImage(
+            $certificate,
+            $certificate->user,
+            $certificate->course,
+            $verificationUrl,
+            $settings
+        );
+
+        $certificateImageBase64 = $compositeBinary
+            ? 'data:image/jpeg;base64,' . base64_encode($compositeBinary)
+            : null;
+
         return view('certificates.pdf', [
             'certificate' => $certificate,
             'user' => $certificate->user,
             'course' => $certificate->course,
-            'verificationUrl' => url('/verify/' . $certificate->uuid),
+            'verificationUrl' => $verificationUrl,
+            'certificateImageBase64' => $certificateImageBase64,
             'qrBase64' => null,
             'logoBase64' => null,
             'signatureBase64' => null,

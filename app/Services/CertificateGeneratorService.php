@@ -180,34 +180,8 @@ class CertificateGeneratorService
             }
         }
 
-        // 4. Render Landscape PDF via DomPDF (if ext-dom available) or fallback to pure-PHP PDF engine
-        $binary = null;
-        if (class_exists(\DOMImplementation::class) && extension_loaded('dom')) {
-            try {
-                $pdf = Pdf::loadView('certificates.pdf', [
-                    'certificate' => $certificate,
-                    'user' => $user,
-                    'course' => $course,
-                    'verificationUrl' => $verificationUrl,
-                    'qrBase64' => $qrBase64,
-                    'logoBase64' => $logoBase64,
-                    'signatureBase64' => $signatureBase64,
-                    'issuedDate' => ($certificate->issued_at ?? Carbon::now())->format('F d, Y'),
-                    'expiresDate' => $certificate->expires_at ? $certificate->expires_at->format('F d, Y') : null,
-                    'site_settings' => $settings,
-                ])->setPaper('a4', 'landscape');
-
-                $binary = $pdf->output();
-            } catch (\Throwable $e) {
-                Log::warning('DomPDF generation failed, falling back to pure-PHP PDF renderer: ' . $e->getMessage());
-                $binary = null;
-            }
-        }
-
-        // If DomPDF was unavailable (e.g. DOMImplementation missing on server) or threw an error
-        if (empty($binary)) {
-            $binary = $this->buildPurePhpCertificatePdf($certificate, $user, $course, $verificationUrl, $settings);
-        }
+        // 4. Generate high-fidelity certificate PDF binary matching attached design
+        $binary = $this->buildPurePhpCertificatePdf($certificate, $user, $course, $verificationUrl, $settings);
 
         // 5. Cache on disk if storage is available
         try {
@@ -227,8 +201,146 @@ class CertificateGeneratorService
     }
 
     /**
+     * Generate dynamic composite certificate JPEG image matching the attached design.
+     * Renders cursive calligraphy recipient name, emerald course title, date, ID,
+     * and dynamic scannable QR code directly onto the base certificate template.
+     */
+    public function generateCertificateCompositeImage(
+        Certificate $certificate,
+        User $user,
+        Course $course,
+        string $verificationUrl,
+        array $settings = []
+    ): ?string {
+        if (!function_exists('imagecreatefromjpeg')) {
+            return null;
+        }
+
+        $templatePath = public_path('images/certificate_template_base.jpg');
+        if (!file_exists($templatePath) || filesize($templatePath) < 5000) {
+            return null;
+        }
+
+        $im = @imagecreatefromjpeg($templatePath);
+        if (!$im) {
+            return null;
+        }
+
+        $studentName = trim($user->name ?? 'Cambridge Scholar');
+        $courseTitle = trim($course->title ?? 'Cambridge Examination Curriculum');
+        $certNumber = $certificate->certificate_number ?? ('ATC-' . ($certificate->issued_at ?? Carbon::now())->format('Y-md') . '-' . str_pad((string) $certificate->id, 3, '0', STR_PAD_LEFT));
+        $issuedDate = ($certificate->issued_at ?? Carbon::now())->format('F d, Y');
+
+        $fontScript = public_path('fonts/GreatVibes-Regular.ttf');
+        $fontSans = public_path('fonts/Montserrat-Bold.ttf');
+
+        // Colors matching attached certificate design
+        $darkGreen = imagecolorallocate($im, 6, 78, 59);     // #064E3B for cursive student name
+        $lineGreen = imagecolorallocate($im, 4, 120, 87);    // #047857 for underline
+        $courseGreen = imagecolorallocate($im, 5, 150, 105); // #059669 for course title
+        $darkSlate = imagecolorallocate($im, 15, 23, 42);    // #0F172A for metadata (Date, ID)
+
+        // 1. Draw Recipient Name (Calligraphic Cursive)
+        if (file_exists($fontScript) && function_exists('imagettfbbox')) {
+            $nameFontSize = 40;
+            $bbox = imagettfbbox($nameFontSize, 0, $fontScript, $studentName);
+            $nameWidth = abs($bbox[4] - $bbox[0]);
+            if ($nameWidth > 580) {
+                $nameFontSize = max(20, (int) (40 * (580 / $nameWidth)));
+                $bbox = imagettfbbox($nameFontSize, 0, $fontScript, $studentName);
+                $nameWidth = abs($bbox[4] - $bbox[0]);
+            }
+            $nameX = (int) ((942 - $nameWidth) / 2);
+            $nameY = 328;
+            imagettftext($im, $nameFontSize, 0, $nameX, $nameY, $darkGreen, $fontScript, $studentName);
+
+            // Centered horizontal green underline
+            $lineWidth = min(560, max(380, (int) ($nameWidth * 1.15)));
+            $lineX1 = (int) ((942 - $lineWidth) / 2);
+            $lineX2 = $lineX1 + $lineWidth;
+            imagesetthickness($im, 2);
+            imageline($im, $lineX1, 344, $lineX2, 344, $lineGreen);
+        } else {
+            // GD built-in font fallback
+            $nameWidth = strlen($studentName) * 9;
+            $nameX = max(60, (int) ((942 - $nameWidth) / 2));
+            imagestring($im, 5, $nameX, 315, $studentName, $darkGreen);
+        }
+
+        // 2. Draw Course Title (Bold Emerald Green)
+        if (file_exists($fontSans) && function_exists('imagettfbbox')) {
+            $courseFontSize = 18;
+            $cBox = imagettfbbox($courseFontSize, 0, $fontSans, $courseTitle);
+            $courseWidth = abs($cBox[4] - $cBox[0]);
+            if ($courseWidth > 580) {
+                $courseFontSize = max(11, (int) (18 * (580 / $courseWidth)));
+                $cBox = imagettfbbox($courseFontSize, 0, $fontSans, $courseTitle);
+                $courseWidth = abs($cBox[4] - $cBox[0]);
+            }
+            $courseX = (int) ((942 - $courseWidth) / 2);
+            $courseY = 404;
+            imagettftext($im, $courseFontSize, 0, $courseX, $courseY, $courseGreen, $fontSans, $courseTitle);
+        } else {
+            $courseWidth = strlen($courseTitle) * 9;
+            $courseX = max(60, (int) ((942 - $courseWidth) / 2));
+            imagestring($im, 5, $courseX, 392, $courseTitle, $courseGreen);
+        }
+
+        // 3. Draw Completion Date
+        if (file_exists($fontSans)) {
+            imagettftext($im, 10, 0, 137, 540, $darkSlate, $fontSans, $issuedDate);
+        } else {
+            imagestring($im, 3, 137, 532, $issuedDate, $darkSlate);
+        }
+
+        // 4. Draw Certificate ID
+        if (file_exists($fontSans)) {
+            imagettftext($im, 10, 0, 480, 540, $darkSlate, $fontSans, $certNumber);
+        } else {
+            imagestring($im, 3, 480, 532, $certNumber, $darkSlate);
+        }
+
+        // 5. Draw Dynamic QR Code
+        $qrDir = storage_path('app/public/certificates');
+        if (!is_dir($qrDir)) {
+            @mkdir($qrDir, 0755, true);
+        }
+        $qrFilePath = $qrDir . '/qr_' . $certificate->uuid . '.png';
+        $qrRaw = null;
+
+        if (file_exists($qrFilePath) && filesize($qrFilePath) > 50) {
+            $qrRaw = @file_get_contents($qrFilePath);
+        } else {
+            $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=0&data=' . urlencode($verificationUrl);
+            try {
+                $resp = Http::timeout(3)->get($qrApiUrl);
+                if ($resp->successful() && strlen($resp->body()) > 50) {
+                    $qrRaw = $resp->body();
+                    @file_put_contents($qrFilePath, $qrRaw);
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        if ($qrRaw && function_exists('imagecreatefromstring')) {
+            $qrIm = @imagecreatefromstring($qrRaw);
+            if ($qrIm) {
+                imagecopyresampled($im, $qrIm, 817, 476, 0, 0, 60, 60, imagesx($qrIm), imagesy($qrIm));
+                @imagedestroy($qrIm);
+            }
+        }
+
+        ob_start();
+        imagejpeg($im, null, 96);
+        $compositeData = ob_get_clean();
+        @imagedestroy($im);
+
+        return $compositeData ?: null;
+    }
+
+    /**
      * High-fidelity pure-PHP PDF generator (specification-compliant PDF 1.4 binary).
-     * Operates completely in-memory without requiring ext-dom, ext-xml, or Masterminds\HTML5.
+     * Embeds the exact Cambridge certificate template image and renders dynamic typography,
+     * dates, IDs, and scannable QR codes without requiring ext-dom, ext-xml, or Masterminds\HTML5.
      */
     public function buildPurePhpCertificatePdf(
         Certificate $certificate,
@@ -247,122 +359,114 @@ class CertificateGeneratorService
         $categoryName = $course->category?->name ?? 'Cambridge Academic Level';
         $certNumber = $certificate->certificate_number ?? ('ATC-' . ($certificate->issued_at ?? Carbon::now())->format('Y-md') . '-' . str_pad((string) $certificate->id, 3, '0', STR_PAD_LEFT));
         $issuedDate = ($certificate->issued_at ?? Carbon::now())->format('F d, Y');
-        $expiryText = $certificate->expires_at ? ('Expires: ' . $certificate->expires_at->format('F d, Y')) : 'Permanent Accreditation';
 
         $escape = function (string $text): string {
             $clean = @iconv('UTF-8', 'Windows-1252//TRANSLIT', $text) ?: $text;
             return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $clean);
         };
 
-        // Stream commands buffer
+        // 1. Resolve composite certificate image (with exact fonts and dynamic fields)
+        $bgJpgData = $this->generateCertificateCompositeImage($certificate, $user, $course, $verificationUrl, $settings);
+        if (empty($bgJpgData)) {
+            $templatePath = public_path('images/certificate_template_base.jpg');
+            $bgJpgData = (file_exists($templatePath) && filesize($templatePath) > 5000)
+                ? @file_get_contents($templatePath)
+                : null;
+        }
+
+        // 2. Page stream commands
         $s = '';
 
-        // 1. Background fill: Crisp White
-        $s .= "1 1 1 rg 0 0 841.89 595.28 re f\n";
+        if (!empty($bgJpgData)) {
+            // Draw exact template background across full A4 landscape page
+            $s .= "q 841.89 0 0 595.28 0 0 cm /Im1 Do Q\n";
 
-        // 2. Navy Outer Frame (border: 3.5pt)
-        $s .= "0.06 0.16 0.36 RG 3.5 w 20 20 801.89 555.28 re S\n";
+            // Searchable / accessible PDF text operators overlay
+            $escapedName = $escape($studentName);
+            $nameLen = strlen($escapedName);
+            $nameFontSize = $nameLen > 30 ? 21 : ($nameLen > 22 ? 23 : 26);
+            $nameWidth = $nameLen * ($nameFontSize * 0.58);
+            $nameX = max(60.0, (841.89 - $nameWidth) / 2);
+            $s .= "BT /F4 {$nameFontSize} Tf 0.047 0.29 0.20 rg {$nameX} 320 Td ({$escapedName}) Tj ET\n";
 
-        // 3. Gold Inner Frame (border: 1.5pt)
-        $s .= "0.77 0.63 0.35 RG 1.5 w 28 28 785.89 539.28 re S\n";
+            $escapedCourse = $escape($courseTitle);
+            $courseLen = strlen($escapedCourse);
+            $courseFontSize = $courseLen > 45 ? 14 : ($courseLen > 32 ? 16 : 18);
+            $courseWidth = $courseLen * ($courseFontSize * 0.58);
+            $courseX = max(60.0, (841.89 - $courseWidth) / 2);
+            $s .= "BT /F2 {$courseFontSize} Tf 0.02 0.55 0.38 rg {$courseX} 244 Td ({$escapedCourse}) Tj ET\n";
 
-        // 4. Gold Corner Accents (9x9pt squares)
-        $s .= "0.77 0.63 0.35 rg 24 562 9 9 re f\n";
-        $s .= "0.77 0.63 0.35 rg 809 562 9 9 re f\n";
-        $s .= "0.77 0.63 0.35 rg 24 24 9 9 re f\n";
-        $s .= "0.77 0.63 0.35 rg 809 24 9 9 re f\n";
+            $escapedDate = $escape($issuedDate);
+            $s .= "BT /F2 10 Tf 0.06 0.09 0.16 rg 127 115.5 Td ({$escapedDate}) Tj ET\n";
 
-        // 5. Top Header Navy Banner
-        $s .= "0.06 0.16 0.36 rg 40 495 761.89 62 re f\n";
-        // Gold accent line under banner
-        $s .= "0.77 0.63 0.35 RG 2 w 40 495 761.89 0 re S\n";
+            $escapedCertNum = $escape($certNumber);
+            $s .= "BT /F2 10 Tf 0.06 0.09 0.16 rg 447 115.5 Td ({$escapedCertNum}) Tj ET\n";
+        } else {
+            // High-fidelity vector fallback if background template image is missing
+            $s .= "1 1 1 rg 0 0 841.89 595.28 re f\n";
+            $s .= "0.06 0.16 0.36 RG 3.5 w 20 20 801.89 555.28 re S\n";
+            $s .= "0.77 0.63 0.35 RG 1.5 w 28 28 785.89 539.28 re S\n";
+            $s .= "0.77 0.63 0.35 rg 24 562 9 9 re f\n";
+            $s .= "0.77 0.63 0.35 rg 809 562 9 9 re f\n";
+            $s .= "0.77 0.63 0.35 rg 24 24 9 9 re f\n";
+            $s .= "0.77 0.63 0.35 rg 809 24 9 9 re f\n";
+            $s .= "0.06 0.16 0.36 rg 40 495 761.89 62 re f\n";
+            $s .= "0.77 0.63 0.35 RG 2 w 40 495 761.89 0 re S\n";
 
-        // 6. Header Typography
-        $brandText = strtoupper($escape($brandName));
-        $brandWidth = strlen($brandText) * 13.0;
-        $brandX = max(50.0, (841.89 - $brandWidth) / 2);
-        $s .= "BT /F2 22 Tf 1 1 1 rg {$brandX} 531 Td ({$brandText}) Tj ET\n";
+            $brandText = strtoupper($escape($brandName));
+            $brandWidth = strlen($brandText) * 13.0;
+            $brandX = max(50.0, (841.89 - $brandWidth) / 2);
+            $s .= "BT /F2 22 Tf 1 1 1 rg {$brandX} 531 Td ({$brandText}) Tj ET\n";
 
-        $subText = "ACCREDITED CAMBRIDGE CURRICULUM & EXAMINATION BOARD ACCREDITATION";
-        $subWidth = strlen($subText) * 5.4;
-        $subX = max(50.0, (841.89 - $subWidth) / 2);
-        $s .= "BT /F1 9.5 Tf 0.77 0.63 0.35 rg {$subX} 510 Td ({$subText}) Tj ET\n";
+            $subText = "ACCREDITED CAMBRIDGE CURRICULUM & EXAMINATION BOARD ACCREDITATION";
+            $subWidth = strlen($subText) * 5.4;
+            $subX = max(50.0, (841.89 - $subWidth) / 2);
+            $s .= "BT /F1 9.5 Tf 0.77 0.63 0.35 rg {$subX} 510 Td ({$subText}) Tj ET\n";
 
-        // 7. Conferred Text
-        $awardTitle = "OFFICIAL CERTIFICATE OF COMPLETION";
-        $awardTitleWidth = strlen($awardTitle) * 7.0;
-        $awardTitleX = max(50.0, (841.89 - $awardTitleWidth) / 2);
-        $s .= "BT /F2 12 Tf 0.06 0.16 0.36 rg {$awardTitleX} 464 Td ({$awardTitle}) Tj ET\n";
+            $awardTitle = "OFFICIAL CERTIFICATE OF COMPLETION";
+            $awardTitleWidth = strlen($awardTitle) * 7.0;
+            $awardTitleX = max(50.0, (841.89 - $awardTitleWidth) / 2);
+            $s .= "BT /F2 12 Tf 0.06 0.16 0.36 rg {$awardTitleX} 464 Td ({$awardTitle}) Tj ET\n";
 
-        $conferredText = "THIS IS PROUDLY CONFERRED UPON";
-        $conferredWidth = strlen($conferredText) * 5.5;
-        $conferredX = max(50.0, (841.89 - $conferredWidth) / 2);
-        $s .= "BT /F1 10 Tf 0.40 0.45 0.50 rg {$conferredX} 446 Td ({$conferredText}) Tj ET\n";
+            $conferredText = "THIS IS PROUDLY CONFERRED UPON";
+            $conferredWidth = strlen($conferredText) * 5.5;
+            $conferredX = max(50.0, (841.89 - $conferredWidth) / 2);
+            $s .= "BT /F1 10 Tf 0.40 0.45 0.50 rg {$conferredX} 446 Td ({$conferredText}) Tj ET\n";
 
-        // Gold divider lines flanking student name
-        $s .= "0.77 0.63 0.35 RG 1 w 140 435 561.89 0 re S\n";
+            $s .= "0.77 0.63 0.35 RG 1 w 140 435 561.89 0 re S\n";
 
-        // Student Name (Deep Navy, Times-Bold 30pt)
-        $nameText = $escape($studentName);
-        $nameWidth = strlen($nameText) * 16.5;
-        $nameX = max(50.0, (841.89 - $nameWidth) / 2);
-        $s .= "BT /F4 30 Tf 0.06 0.16 0.36 rg {$nameX} 402 Td ({$nameText}) Tj ET\n";
+            $escapedName = $escape($studentName);
+            $nameWidth = strlen($escapedName) * 16.5;
+            $nameX = max(50.0, (841.89 - $nameWidth) / 2);
+            $s .= "BT /F4 30 Tf 0.06 0.16 0.36 rg {$nameX} 402 Td ({$escapedName}) Tj ET\n";
 
-        $s .= "0.77 0.63 0.35 RG 1 w 140 392 561.89 0 re S\n";
+            $s .= "0.77 0.63 0.35 RG 1 w 140 392 561.89 0 re S\n";
 
-        // Accomplishment Statement
-        $forText = "for successfully demonstrating academic excellence and fulfilling all assessment standards for";
-        $forWidth = strlen($forText) * 5.8;
-        $forX = max(50.0, (841.89 - $forWidth) / 2);
-        $s .= "BT /F3 11.5 Tf 0.25 0.25 0.25 rg {$forX} 366 Td ({$forText}) Tj ET\n";
+            $forText = "for successfully demonstrating academic excellence and fulfilling all assessment standards for";
+            $forWidth = strlen($forText) * 5.8;
+            $forX = max(50.0, (841.89 - $forWidth) / 2);
+            $s .= "BT /F3 11.5 Tf 0.25 0.25 0.25 rg {$forX} 366 Td ({$forText}) Tj ET\n";
 
-        // Course Title (Royal Blue, Helvetica-Bold 18pt)
-        $cTitleText = $escape($courseTitle);
-        $cTitleWidth = strlen($cTitleText) * 10.8;
-        $cTitleX = max(50.0, (841.89 - $cTitleWidth) / 2);
-        $s .= "BT /F2 18 Tf 0.01 0.52 0.78 rg {$cTitleX} 336 Td ({$cTitleText}) Tj ET\n";
+            $escapedCourse = $escape($courseTitle);
+            $courseWidth = strlen($escapedCourse) * 10.8;
+            $courseX = max(60.0, (841.89 - $courseWidth) / 2);
+            $s .= "BT /F2 18 Tf 0.01 0.52 0.78 rg {$courseX} 336 Td ({$escapedCourse}) Tj ET\n";
 
-        // Category / Board Tag
-        $catText = $escape($categoryName . " - Cambridge International Curriculum Standards");
-        $catWidth = strlen($catText) * 5.6;
-        $catX = max(50.0, (841.89 - $catWidth) / 2);
-        $s .= "BT /F1 10.5 Tf 0.45 0.45 0.45 rg {$catX} 314 Td ({$catText}) Tj ET\n";
+            $s .= "0.77 0.63 0.35 RG 1 w 55 190 731.89 0 re S\n";
+            $s .= "0.77 0.63 0.35 RG 2 w 65 100 0 75 re S\n";
+            $s .= "BT /F2 8 Tf 0.45 0.45 0.45 rg 76 163 Td (OFFICIAL CERTIFICATE ID:) Tj ET\n";
+            $escapedCertNum = $escape($certNumber);
+            $s .= "BT /F2 12.5 Tf 0.06 0.16 0.36 rg 76 147 Td ({$escapedCertNum}) Tj ET\n";
+            $s .= "BT /F2 8 Tf 0.45 0.45 0.45 rg 76 128 Td (DATE OF CONFERMENT:) Tj ET\n";
+            $escapedDate = $escape($issuedDate);
+            $s .= "BT /F1 10 Tf 0.20 0.20 0.20 rg 76 114 Td ({$escapedDate}) Tj ET\n";
 
-        // 8. Lower Details Section (Y = 85 to 185)
-        $s .= "0.77 0.63 0.35 RG 1 w 55 190 731.89 0 re S\n";
-
-        // Left Column: Credential Identification
-        $s .= "0.77 0.63 0.35 RG 2 w 65 100 0 75 re S\n";
-        $s .= "BT /F2 8 Tf 0.45 0.45 0.45 rg 76 163 Td (OFFICIAL CERTIFICATE ID:) Tj ET\n";
-        $escapedCertNum = $escape($certNumber);
-        $s .= "BT /F2 12.5 Tf 0.06 0.16 0.36 rg 76 147 Td ({$escapedCertNum}) Tj ET\n";
-        $s .= "BT /F2 8 Tf 0.45 0.45 0.45 rg 76 128 Td (DATE OF CONFERMENT:) Tj ET\n";
-        $s .= "BT /F1 10 Tf 0.20 0.20 0.20 rg 76 114 Td ({$issuedDate}) Tj ET\n";
-        $escapedExpiry = $escape($expiryText);
-        $s .= "BT /F2 8.5 Tf 0.10 0.55 0.25 rg 76 99 Td ({$escapedExpiry}) Tj ET\n";
-
-        // Center Seal / Authenticity Mark
-        $s .= "0.77 0.63 0.35 RG 1.5 w 380 100 82 75 re S\n";
-        $s .= "0.06 0.16 0.36 rg 384 104 74 67 re f\n";
-        $s .= "BT /F2 7.5 Tf 0.77 0.63 0.35 rg 393 148 Td (CAMBRIDGE) Tj ET\n";
-        $s .= "BT /F2 8 Tf 1 1 1 rg 391 134 Td (AUTHENTIC) Tj ET\n";
-        $s .= "BT /F1 6.5 Tf 0.77 0.63 0.35 rg 390 121 Td (VERIFIED & VALID) Tj ET\n";
-
-        // Right Column: Signatory Authority & Verification
-        $s .= "0.77 0.63 0.35 RG 2 w 530 100 0 75 re S\n";
-        $s .= "BT /F2 8 Tf 0.45 0.45 0.45 rg 542 163 Td (AUTHORIZED ACADEMIC AUTHORITY:) Tj ET\n";
-        $s .= "BT /F4 11.5 Tf 0.06 0.16 0.36 rg 542 147 Td (Head of Cambridge Academic Review) Tj ET\n";
-        $s .= "BT /F2 8 Tf 0.45 0.45 0.45 rg 542 128 Td (ONLINE VERIFICATION URL:) Tj ET\n";
-        $escapedUrl = $escape($verificationUrl);
-        $s .= "BT /F1 8.5 Tf 0.01 0.52 0.78 rg 542 114 Td ({$escapedUrl}) Tj ET\n";
-        $s .= "BT /F1 7.5 Tf 0.45 0.45 0.45 rg 542 100 Td (Scan or visit URL to confirm cryptographic validity) Tj ET\n";
-
-        // 9. Footer Bar
-        $s .= "0.85 0.85 0.85 RG 0.5 w 55 68 731.89 0 re S\n";
-        $footerText = $escape($brandName . " - Official Academic Examination Portal - Record UUID: " . $certificate->uuid);
-        $footerWidth = strlen($footerText) * 4.4;
-        $footerX = max(50.0, (841.89 - $footerWidth) / 2);
-        $s .= "BT /F1 8 Tf 0.55 0.55 0.55 rg {$footerX} 52 Td ({$footerText}) Tj ET\n";
+            $s .= "0.85 0.85 0.85 RG 0.5 w 55 68 731.89 0 re S\n";
+            $footerText = $escape($brandName . " - Official Academic Examination Portal - Record UUID: " . $certificate->uuid);
+            $footerWidth = strlen($footerText) * 4.4;
+            $footerX = max(50.0, (841.89 - $footerWidth) / 2);
+            $s .= "BT /F1 8 Tf 0.55 0.55 0.55 rg {$footerX} 52 Td ({$footerText}) Tj ET\n";
+        }
 
         // Build PDF 1.4 Object Structure with correct byte offsets
         $streamLen = strlen($s);
@@ -370,29 +474,44 @@ class CertificateGeneratorService
         $objects = [];
         $objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
         $objects[2] = "<< /Type /Pages /Kids [3 0 R] /Count 1 >>";
-        $objects[3] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 841.89 595.28] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R /F4 7 0 R >> >> /Contents 8 0 R >>";
+
+        $xObjStr = '';
+        if (!empty($bgJpgData)) {
+            $xObjStr .= ' /Im1 9 0 R';
+        }
+        $xObjDict = !empty($xObjStr) ? " /XObject <<{$xObjStr} >>" : '';
+
+        $objects[3] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 841.89 595.28] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R /F4 7 0 R >>{$xObjDict} >> /Contents 8 0 R >>";
         $objects[4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
         $objects[5] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
         $objects[6] = "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>";
-        $objects[7] = "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>";
+        $objects[7] = "<< /Type /Font /Subtype /Type1 /BaseFont /Times-BoldItalic /Encoding /WinAnsiEncoding >>";
         $objects[8] = "<< /Length {$streamLen} >>\nstream\n{$s}endstream";
+
+        $objCount = 8;
+        if (!empty($bgJpgData)) {
+            $bgLen = strlen($bgJpgData);
+            $objects[9] = "<< /Type /XObject /Subtype /Image /Width 942 /Height 670 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length {$bgLen} >>\nstream\n{$bgJpgData}\nendstream";
+            $objCount = 9;
+        }
 
         $pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
         $offsets = [];
 
-        for ($i = 1; $i <= 8; $i++) {
+        for ($i = 1; $i <= $objCount; $i++) {
             $offsets[$i] = strlen($pdf);
             $pdf .= "{$i} 0 obj\n" . $objects[$i] . "\nendobj\n";
         }
 
         $xrefPos = strlen($pdf);
-        $pdf .= "xref\n0 9\n";
+        $totalObjs = $objCount + 1;
+        $pdf .= "xref\n0 {$totalObjs}\n";
         $pdf .= "0000000000 65535 f \n";
-        for ($i = 1; $i <= 8; $i++) {
+        for ($i = 1; $i <= $objCount; $i++) {
             $pdf .= sprintf("%010d 00000 n \n", $offsets[$i]);
         }
 
-        $pdf .= "trailer\n<< /Size 9 /Root 1 0 R >>\n";
+        $pdf .= "trailer\n<< /Size {$totalObjs} /Root 1 0 R >>\n";
         $pdf .= "startxref\n{$xrefPos}\n%%EOF\n";
 
         return $pdf;
