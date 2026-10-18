@@ -220,7 +220,7 @@
                         <div class="small fw-bold text-dark text-uppercase mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;">
                             Connected Parents / Guardians
                         </div>
-                        @if($linkedParents->isNotEmpty())
+                        @if(isset($linkedParents) && $linkedParents && $linkedParents->isNotEmpty())
                             <div class="d-flex flex-column gap-2">
                                 @foreach($linkedParents as $link)
                                     <div class="d-flex align-items-center justify-content-between p-2 rounded-2 bg-light border">
@@ -282,7 +282,7 @@
         </div>
 
         <!-- 4. ACHIEVED CRYPTOGRAPHIC CERTIFICATES -->
-        @if($certificates->isNotEmpty())
+        @if(isset($certificates) && $certificates && $certificates->isNotEmpty())
             <div class="lms-card p-4 p-md-5 shadow-sm border" style="background: var(--lms-surface-card); border-radius: 24px;">
                 <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
                     <div>
