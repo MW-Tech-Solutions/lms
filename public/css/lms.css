@@ -1592,6 +1592,66 @@ body.session-active main {
   color: #FFFFFF;
 }
 
+/* Course Video Player Enhancements & Center Play Button Overlay */
+.course-video-container {
+  position: relative;
+  background-color: #000000;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.course-video-container video {
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+.course-video-container video::-internal-media-controls-download-button {
+  display: none !important;
+}
+
+.video-play-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+.video-play-btn {
+  width: 76px;
+  height: 76px;
+  border-radius: 50% !important;
+  background: rgba(114, 62, 195, 0.92) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #FFFFFF !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 2px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(114, 62, 195, 0.4) !important;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, box-shadow 0.25s ease !important;
+  cursor: pointer !important;
+}
+
+.video-play-btn:hover {
+  transform: scale(1.12) !important;
+  background-color: #5B21B6 !important;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.5), 0 0 30px rgba(114, 62, 195, 0.6) !important;
+}
+
+.video-play-btn:active {
+  transform: scale(0.95) !important;
+}
+
+.video-play-btn i {
+  font-size: 2.8rem;
+  margin-left: 5px;
+  line-height: 1;
+}
+
 .admin-stat-card {
   background: var(--lms-surface-card);
   border: 1px solid var(--lms-border);

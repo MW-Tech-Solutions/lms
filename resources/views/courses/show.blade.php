@@ -172,14 +172,40 @@
                                             class="w-100 h-100 border-0"></iframe>
                                 @else
                                     <video controls 
+                                           id="coursePreviewVideo"
                                            controlsList="nodownload noplaybackrate" 
                                            disablePictureInPicture 
                                            oncontextmenu="return false;"
                                            class="w-100 h-100" 
-                                           poster="{{ $course->thumbnailUrl() }}">
+                                           style="cursor: pointer;"
+                                           poster="{{ $course->thumbnailUrl() }}"
+                                           onclick="if (this.paused) this.play(); else this.pause();">
                                         <source src="{{ $course->videoUrl() }}" type="video/mp4">
                                         Your browser does not support HTML5 video.
                                     </video>
+                                    <!-- Floating Center Play Button Overlay -->
+                                    <div id="coursePreviewPlayOverlay" 
+                                         class="video-play-overlay position-absolute top-50 start-50 translate-middle d-flex align-items-center justify-content-center"
+                                         onclick="const v = document.getElementById('coursePreviewVideo'); if (v) { if (v.paused) v.play(); else v.pause(); }"
+                                         style="z-index: 5; cursor: pointer; pointer-events: auto;">
+                                        <button type="button" 
+                                                class="video-play-btn btn shadow-lg"
+                                                aria-label="Play Course Video"
+                                                title="Click to Play Video">
+                                            <i class="bi bi-play-fill"></i>
+                                        </button>
+                                    </div>
+                                    <script>
+                                    (function() {
+                                        const v = document.getElementById('coursePreviewVideo');
+                                        const overlay = document.getElementById('coursePreviewPlayOverlay');
+                                        if (v && overlay) {
+                                            v.addEventListener('play', function() { overlay.style.display = 'none'; });
+                                            v.addEventListener('pause', function() { overlay.style.display = 'flex'; });
+                                            v.addEventListener('ended', function() { overlay.style.display = 'flex'; });
+                                        }
+                                    })();
+                                    </script>
                                 @endif
                             </div>
                         </div>
@@ -248,74 +274,151 @@
                                     @foreach($sec->modules as $mod)
                                         <li class="list-group-item d-flex align-items-center justify-content-between px-0 py-3 border-bottom">
                                             <div class="d-flex align-items-center gap-3">
-                                                <span class="curriculum-sidebar-icon">
-                                                    @switch($mod->module_type)
-                                                        @case('VIDEO')
-                                                            <i class="bi bi-play-circle-fill"></i>
-                                                            @break
-                                                        @case('SCORM')
-                                                            <i class="bi bi-box-seam-fill"></i>
-                                                            @break
-                                                        @case('QUIZ')
-                                                            <i class="bi bi-patch-question-fill"></i>
-                                                            @break
-                                                        @case('ASSIGNMENT')
-                                                            <i class="bi bi-file-earmark-arrow-up-fill"></i>
-                                                            @break
-                                                        @case('ATTENDANCE')
-                                                            <i class="bi bi-qr-code"></i>
-                                                            @break
-                                                        @case('LESSON')
-                                                            <i class="bi bi-diagram-3-fill"></i>
-                                                            @break
-                                                        @case('FEEDBACK')
-                                                            <i class="bi bi-chat-left-heart-fill"></i>
-                                                            @break
-                                                        @case('CHOICE')
-                                                            <i class="bi bi-ui-radios-grid"></i>
-                                                            @break
-                                                        @case('FORUM')
-                                                            <i class="bi bi-chat-square-quote-fill"></i>
-                                                            @break
-                                                        @case('H5P')
-                                                            <i class="bi bi-badge-hd-fill"></i>
-                                                            @break
-                                                        @case('WORKSHOP')
-                                                            <i class="bi bi-people-fill"></i>
-                                                            @break
-                                                        @case('CHAT')
-                                                            <i class="bi bi-chat-dots-fill"></i>
-                                                            @break
-                                                        @case('GLOSSARY')
-                                                            <i class="bi bi-spellcheck"></i>
-                                                            @break
-                                                        @case('WIKI')
-                                                            <i class="bi bi-book-half"></i>
-                                                            @break
-                                                        @case('PAGE')
-                                                            <i class="bi bi-file-earmark-richtext-fill"></i>
-                                                            @break
-                                                        @case('BOOK')
-                                                            <i class="bi bi-journal-bookmark-fill"></i>
-                                                            @break
-                                                        @case('FILE')
-                                                            <i class="bi bi-file-earmark-arrow-down-fill"></i>
-                                                            @break
-                                                        @case('FOLDER')
-                                                            <i class="bi bi-folder2-open"></i>
-                                                            @break
-                                                        @case('URL')
-                                                            <i class="bi bi-link-45deg"></i>
-                                                            @break
-                                                        @case('LABEL')
-                                                            <i class="bi bi-card-text"></i>
-                                                            @break
-                                                        @default
-                                                            <i class="bi bi-file-text-fill"></i>
-                                                    @endswitch
-                                                </span>
+                                                @if($isEnrolled)
+                                                    <a href="{{ route('learning.player', ['course' => $course->slug, 'module_id' => $mod->id]) }}" 
+                                                       class="curriculum-sidebar-icon text-decoration-none" 
+                                                       title="Play {{ $mod->title ?? 'Module' }}">
+                                                        @switch($mod->module_type)
+                                                            @case('VIDEO')
+                                                                <i class="bi bi-play-circle-fill"></i>
+                                                                @break
+                                                            @case('SCORM')
+                                                                <i class="bi bi-box-seam-fill"></i>
+                                                                @break
+                                                            @case('QUIZ')
+                                                                <i class="bi bi-patch-question-fill"></i>
+                                                                @break
+                                                            @case('ASSIGNMENT')
+                                                                <i class="bi bi-file-earmark-arrow-up-fill"></i>
+                                                                @break
+                                                            @case('ATTENDANCE')
+                                                                <i class="bi bi-qr-code"></i>
+                                                                @break
+                                                            @case('LESSON')
+                                                                <i class="bi bi-diagram-3-fill"></i>
+                                                                @break
+                                                            @case('FEEDBACK')
+                                                                <i class="bi bi-chat-left-heart-fill"></i>
+                                                                @break
+                                                            @case('CHOICE')
+                                                                <i class="bi bi-ui-radios-grid"></i>
+                                                                @break
+                                                            @case('FORUM')
+                                                                <i class="bi bi-chat-square-quote-fill"></i>
+                                                                @break
+                                                            @case('H5P')
+                                                                <i class="bi bi-badge-hd-fill"></i>
+                                                                @break
+                                                            @case('WORKSHOP')
+                                                                <i class="bi bi-people-fill"></i>
+                                                                @break
+                                                            @case('CHAT')
+                                                                <i class="bi bi-chat-dots-fill"></i>
+                                                                @break
+                                                            @case('GLOSSARY')
+                                                                <i class="bi bi-spellcheck"></i>
+                                                                @break
+                                                            @case('WIKI')
+                                                                <i class="bi bi-book-half"></i>
+                                                                @break
+                                                            @case('PAGE')
+                                                                <i class="bi bi-file-earmark-richtext-fill"></i>
+                                                                @break
+                                                            @case('BOOK')
+                                                                <i class="bi bi-journal-bookmark-fill"></i>
+                                                                @break
+                                                            @case('FILE')
+                                                                <i class="bi bi-file-earmark-arrow-down-fill"></i>
+                                                                @break
+                                                            @case('FOLDER')
+                                                                <i class="bi bi-folder2-open"></i>
+                                                                @break
+                                                            @case('URL')
+                                                                <i class="bi bi-link-45deg"></i>
+                                                                @break
+                                                            @case('LABEL')
+                                                                <i class="bi bi-card-text"></i>
+                                                                @break
+                                                            @default
+                                                                <i class="bi bi-file-text-fill"></i>
+                                                        @endswitch
+                                                    </a>
+                                                @else
+                                                    <span class="curriculum-sidebar-icon">
+                                                        @switch($mod->module_type)
+                                                            @case('VIDEO')
+                                                                <i class="bi bi-play-circle-fill"></i>
+                                                                @break
+                                                            @case('SCORM')
+                                                                <i class="bi bi-box-seam-fill"></i>
+                                                                @break
+                                                            @case('QUIZ')
+                                                                <i class="bi bi-patch-question-fill"></i>
+                                                                @break
+                                                            @case('ASSIGNMENT')
+                                                                <i class="bi bi-file-earmark-arrow-up-fill"></i>
+                                                                @break
+                                                            @case('ATTENDANCE')
+                                                                <i class="bi bi-qr-code"></i>
+                                                                @break
+                                                            @case('LESSON')
+                                                                <i class="bi bi-diagram-3-fill"></i>
+                                                                @break
+                                                            @case('FEEDBACK')
+                                                                <i class="bi bi-chat-left-heart-fill"></i>
+                                                                @break
+                                                            @case('CHOICE')
+                                                                <i class="bi bi-ui-radios-grid"></i>
+                                                                @break
+                                                            @case('FORUM')
+                                                                <i class="bi bi-chat-square-quote-fill"></i>
+                                                                @break
+                                                            @case('H5P')
+                                                                <i class="bi bi-badge-hd-fill"></i>
+                                                                @break
+                                                            @case('WORKSHOP')
+                                                                <i class="bi bi-people-fill"></i>
+                                                                @break
+                                                            @case('CHAT')
+                                                                <i class="bi bi-chat-dots-fill"></i>
+                                                                @break
+                                                            @case('GLOSSARY')
+                                                                <i class="bi bi-spellcheck"></i>
+                                                                @break
+                                                            @case('WIKI')
+                                                                <i class="bi bi-book-half"></i>
+                                                                @break
+                                                            @case('PAGE')
+                                                                <i class="bi bi-file-earmark-richtext-fill"></i>
+                                                                @break
+                                                            @case('BOOK')
+                                                                <i class="bi bi-journal-bookmark-fill"></i>
+                                                                @break
+                                                            @case('FILE')
+                                                                <i class="bi bi-file-earmark-arrow-down-fill"></i>
+                                                                @break
+                                                            @case('FOLDER')
+                                                                <i class="bi bi-folder2-open"></i>
+                                                                @break
+                                                            @case('URL')
+                                                                <i class="bi bi-link-45deg"></i>
+                                                                @break
+                                                            @case('LABEL')
+                                                                <i class="bi bi-card-text"></i>
+                                                                @break
+                                                            @default
+                                                                <i class="bi bi-file-text-fill"></i>
+                                                        @endswitch
+                                                    </span>
+                                                @endif
                                                 <div>
-                                                    <div class="fw-semibold small text-dark">{{ $mod->title ?? ($mod->module_type . ' Activity') }}</div>
+                                                    @if($isEnrolled)
+                                                        <a href="{{ route('learning.player', ['course' => $course->slug, 'module_id' => $mod->id]) }}" class="fw-semibold small text-dark text-decoration-none hover-underline d-block">
+                                                            {{ $mod->title ?? ($mod->module_type . ' Activity') }}
+                                                        </a>
+                                                    @else
+                                                        <div class="fw-semibold small text-dark">{{ $mod->title ?? ($mod->module_type . ' Activity') }}</div>
+                                                    @endif
                                                     <div class="text-muted" style="font-size: 0.75rem;">{{ $mod->module_type }} &bull; Self-paced interactive completion</div>
                                                 </div>
                                             </div>
@@ -328,7 +431,7 @@
                                                         <i class="bi bi-lock-fill"></i> Locked
                                                     </span>
                                                 @else
-                                                    <a href="{{ route('learning.player', ['course' => $course->slug]) }}" class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1 small text-decoration-none">
+                                                    <a href="{{ route('learning.player', ['course' => $course->slug, 'module_id' => $mod->id]) }}" class="badge bg-success-subtle text-success rounded-pill px-2.5 py-1 small text-decoration-none">
                                                         <i class="bi bi-play-fill"></i> Access
                                                     </a>
                                                 @endif

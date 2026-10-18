@@ -25,6 +25,30 @@ function learningPlayer() {
             }
             return this.videoWatchPercent >= 90;
         },
+        isVideoPlaying: false,
+        toggleVideoPlayback(elId = 'courseVideoPlayer') {
+            const video = document.getElementById(elId) || document.querySelector('.course-video-container video');
+            if (!video) return;
+            if (video.paused || video.ended) {
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        this.isVideoPlaying = true;
+                    }).catch(err => {
+                        console.warn('Playback error:', err);
+                    });
+                }
+            } else {
+                video.pause();
+                this.isVideoPlaying = false;
+            }
+        },
+        onVideoPlay() {
+            this.isVideoPlaying = true;
+        },
+        onVideoPause() {
+            this.isVideoPlaying = false;
+        },
         onVideoTimeUpdate(e) {
             const v = e.target;
             if (v && v.duration && v.duration > 0) {
@@ -35,6 +59,7 @@ function learningPlayer() {
             }
         },
         onVideoEnded() {
+            this.isVideoPlaying = false;
             this.videoWatchPercent = 100;
         },
         openReflectionModal(moduleId) {
@@ -401,25 +426,70 @@ document.addEventListener('alpine:init', () => {
                                                     disablePictureInPicture 
                                                     oncontextmenu="return false;"
                                                     class="w-100 h-100" 
+                                                    style="cursor: pointer;"
                                                     poster="{{ $course->thumbnailUrl() }}"
+                                                    @play="onVideoPlay()"
+                                                    @pause="onVideoPause()"
                                                     @timeupdate="onVideoTimeUpdate($event)"
-                                                    @ended="onVideoEnded()">
+                                                    @ended="onVideoEnded()"
+                                                    @click="toggleVideoPlayback('courseVideoPlayer')">
                                                  <source src="{{ $course->videoUrl() }}" type="video/mp4">
                                                  Your browser does not support HTML5 video.
                                              </video>
+                                             <!-- Central Floating Play Button Overlay -->
+                                             <div class="video-play-overlay position-absolute top-50 start-50 translate-middle d-flex align-items-center justify-content-center"
+                                                  x-show="!isVideoPlaying"
+                                                  x-transition:enter="transition ease-out duration-200"
+                                                  x-transition:enter-start="opacity-0 scale-90"
+                                                  x-transition:enter-end="opacity-100 scale-100"
+                                                  x-transition:leave="transition ease-in duration-150"
+                                                  x-transition:leave-start="opacity-100 scale-100"
+                                                  x-transition:leave-end="opacity-0 scale-90"
+                                                  @click.stop="toggleVideoPlayback('courseVideoPlayer')">
+                                                 <button type="button" 
+                                                         class="video-play-btn btn shadow-lg"
+                                                         aria-label="Play Video"
+                                                         title="Click to Play Video">
+                                                     <i class="bi bi-play-fill"></i>
+                                                 </button>
+                                             </div>
                                          @endif
                                      </div>
                                  @else
-                                     <div class="ratio ratio-16x9 rounded overflow-hidden shadow-sm mb-4 bg-dark">
+                                     <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm mb-4 bg-dark position-relative course-video-container" oncontextmenu="return false;">
                                          <video controls 
+                                                id="courseVideoPlayerFallback"
                                                 controlsList="nodownload noplaybackrate" 
                                                 disablePictureInPicture 
                                                 oncontextmenu="return false;"
                                                 class="w-100 h-100" 
-                                                poster="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200">
+                                                style="cursor: pointer;"
+                                                poster="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200"
+                                                @play="onVideoPlay()"
+                                                @pause="onVideoPause()"
+                                                @timeupdate="onVideoTimeUpdate($event)"
+                                                @ended="onVideoEnded()"
+                                                @click="toggleVideoPlayback('courseVideoPlayerFallback')">
                                              <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
                                              Your browser does not support HTML5 video.
                                          </video>
+                                         <!-- Fallback Central Floating Play Button Overlay -->
+                                         <div class="video-play-overlay position-absolute top-50 start-50 translate-middle d-flex align-items-center justify-content-center"
+                                              x-show="!isVideoPlaying"
+                                              x-transition:enter="transition ease-out duration-200"
+                                              x-transition:enter-start="opacity-0 scale-90"
+                                              x-transition:enter-end="opacity-100 scale-100"
+                                              x-transition:leave="transition ease-in duration-150"
+                                              x-transition:leave-start="opacity-100 scale-100"
+                                              x-transition:leave-end="opacity-0 scale-90"
+                                              @click.stop="toggleVideoPlayback('courseVideoPlayerFallback')">
+                                             <button type="button" 
+                                                     class="video-play-btn btn shadow-lg"
+                                                     aria-label="Play Video"
+                                                     title="Click to Play Video">
+                                                 <i class="bi bi-play-fill"></i>
+                                             </button>
+                                         </div>
                                      </div>
                                  @endif
                                 <!-- Video Watch Requirement Telemetry Bar (90% Completion Rule) -->
@@ -1093,8 +1163,7 @@ document.addEventListener('alpine:init', () => {
 <style>
 /* Anti-piracy content security */
 .course-extracted-content,
-.study-material-text,
-.course-video-container {
+.study-material-text {
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
@@ -1104,12 +1173,6 @@ document.addEventListener('alpine:init', () => {
 
 .course-video-container video::-internal-media-controls-download-button {
     display:none !important;
-}
-.course-video-container video::-webkit-media-controls-enclosure {
-    overflow:hidden !important;
-}
-.course-video-container video::-webkit-media-controls-panel {
-    width: calc(100% + 30px);
 }
 
 @media print {
@@ -1150,10 +1213,23 @@ document.addEventListener('alpine:init', () => {
     // 2. Prevent Copy, Cut, and Drag of protected curriculum text & media
     ['copy', 'cut', 'dragstart'].forEach(function(evt) {
         document.addEventListener(evt, function(e) {
-            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-                e.preventDefault();
-                return false;
+            const el = e.target;
+            if (el && (
+                el.tagName === 'INPUT' || 
+                el.tagName === 'TEXTAREA' || 
+                el.tagName === 'VIDEO' || 
+                el.tagName === 'AUDIO' || 
+                el.tagName === 'BUTTON' || 
+                el.tagName === 'A' ||
+                el.closest('video, audio, button, a, .btn, .video-play-overlay, input, textarea')
+            )) {
+                return;
             }
+            if (evt === 'dragstart' && el && el.closest('.course-video-container')) {
+                return;
+            }
+            e.preventDefault();
+            return false;
         });
     });
 
