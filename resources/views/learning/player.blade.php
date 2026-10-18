@@ -3,133 +3,148 @@
 @section('title', $course->title . ' - Player')
 
 @section('content')
-<div class="container-fluid px-0" 
-     x-data="{
-         sidebarOpen: true,
-         currentModuleId: {{ $activeModule ? $activeModule->id : 0 }},
-         currentModuleType: '{{ $activeModule ? $activeModule->module_type : 'LESSON' }}',
-         completedModules: {{ json_encode($completedModuleIds ?? []) }},
-         scormCmiStatus: 'not attempted',
-         videoWatchPercent: {{ ($activeModule && in_array($activeModule->id, $completedModuleIds ?? [], true)) ? 100 : 0 }},
-         reflectionChoice: '{{ $activeReflection?->reflection_choice ?? 'UNDERSTOOD' }}',
-         studentComment: '{{ addslashes($activeReflection?->student_comment ?? '') }}',
-         savedReflection: '{{ $activeReflection?->reflection_choice ?? '' }}',
-         isSubmittingReflection: false,
-         get canMarkDone() {
-             if (this.completedModules.includes(this.currentModuleId)) {
-                 return true;
-             }
-             if (this.currentModuleType !== 'VIDEO') {
-                 return true;
-             }
-             return this.videoWatchPercent >= 90;
-         },
-         onVideoTimeUpdate(e) {
-             const v = e.target;
-             if (v && v.duration && v.duration > 0) {
-                 const pct = Math.min(100, Math.floor((v.currentTime / v.duration) * 100));
-                 if (pct > this.videoWatchPercent) {
-                     this.videoWatchPercent = pct;
-                 }
-             }
-         },
-         onVideoEnded() {
-             this.videoWatchPercent = 100;
-         },
-         openReflectionModal(moduleId) {
-             if (this.currentModuleType === 'VIDEO' && !this.canMarkDone) {
-                 if (typeof Swal !== 'undefined') {
-                     Swal.fire({
-                         icon: 'warning',
-                         title: 'Video Incomplete (90% Required)',
-                         text: 'Please watch at least 90% of the instructional video to unlock module completion. Currently watched: ' + this.videoWatchPercent + '%',
-                         confirmButtonColor: '#723EC3'
-                     });
-                 } else {
-                     alert('Please watch at least 90% of the instructional video to complete this module. Currently watched: ' + this.videoWatchPercent + '%');
-                 }
-                 return;
-             }
-             const modalEl = document.getElementById('reflectionModal');
-             if (modalEl && typeof bootstrap !== 'undefined') {
-                 const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                 bsModal.show();
-             } else {
-                 this.markCompleted(moduleId);
-             }
-         },
-         markCompleted(moduleId, explicitChoice = null) {
-             if (this.currentModuleType === 'VIDEO' && !this.canMarkDone) {
-                 this.openReflectionModal(moduleId);
-                 return;
-             }
+<script>
+function learningPlayer() {
+    return {
+        sidebarOpen: true,
+        currentModuleId: {{ $activeModule ? $activeModule->id : 0 }},
+        currentModuleType: '{{ $activeModule ? $activeModule->module_type : 'LESSON' }}',
+        completedModules: {!! json_encode($completedModuleIds ?? []) !!},
+        scormCmiStatus: 'not attempted',
+        videoWatchPercent: {{ ($activeModule && in_array($activeModule->id, $completedModuleIds ?? [], true)) ? 100 : 0 }},
+        reflectionChoice: '{{ $activeReflection?->reflection_choice ?? 'UNDERSTOOD' }}',
+        studentComment: '{{ addslashes($activeReflection?->student_comment ?? '') }}',
+        savedReflection: '{{ $activeReflection?->reflection_choice ?? '' }}',
+        isSubmittingReflection: false,
+        get canMarkDone() {
+            if (this.completedModules.includes(this.currentModuleId)) {
+                return true;
+            }
+            if (this.currentModuleType !== 'VIDEO') {
+                return true;
+            }
+            return this.videoWatchPercent >= 90;
+        },
+        onVideoTimeUpdate(e) {
+            const v = e.target;
+            if (v && v.duration && v.duration > 0) {
+                const pct = Math.min(100, Math.floor((v.currentTime / v.duration) * 100));
+                if (pct > this.videoWatchPercent) {
+                    this.videoWatchPercent = pct;
+                }
+            }
+        },
+        onVideoEnded() {
+            this.videoWatchPercent = 100;
+        },
+        openReflectionModal(moduleId) {
+            if (this.currentModuleType === 'VIDEO' && !this.canMarkDone) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Video Incomplete (90% Required)',
+                        text: 'Please watch at least 90% of the instructional video to unlock module completion. Currently watched: ' + this.videoWatchPercent + '%',
+                        confirmButtonColor: '#723EC3'
+                    });
+                } else {
+                    alert('Please watch at least 90% of the instructional video to complete this module. Currently watched: ' + this.videoWatchPercent + '%');
+                }
+                return;
+            }
+            const modalEl = document.getElementById('reflectionModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                bsModal.show();
+            } else {
+                this.markCompleted(moduleId);
+            }
+        },
+        markCompleted(moduleId, explicitChoice = null) {
+            if (this.currentModuleType === 'VIDEO' && !this.canMarkDone) {
+                this.openReflectionModal(moduleId);
+                return;
+            }
 
-             const choice = explicitChoice || this.reflectionChoice || 'UNDERSTOOD';
-             this.isSubmittingReflection = true;
+            const choice = explicitChoice || this.reflectionChoice || 'UNDERSTOOD';
+            this.isSubmittingReflection = true;
 
-             fetch('{{ route('learning.module-complete') }}', {
-                 method: 'POST',
-                 headers: {
-                     'Content-Type': 'application/json',
-                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                 },
-                 body: JSON.stringify({
-                     module_id: moduleId,
-                     watch_percentage: this.videoWatchPercent,
-                     reflection_choice: choice,
-                     student_comment: this.studentComment
-                 })
-             }).then(r => r.json()).then(data => {
-                 this.isSubmittingReflection = false;
-                 if (data.success) {
-                     if (!this.completedModules.includes(moduleId)) {
-                         this.completedModules.push(moduleId);
-                     }
-                     this.savedReflection = choice;
+            fetch('{{ route('learning.module-complete') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    module_id: moduleId,
+                    watch_percentage: this.videoWatchPercent,
+                    reflection_choice: choice,
+                    student_comment: this.studentComment
+                })
+            }).then(r => r.json()).then(data => {
+                this.isSubmittingReflection = false;
+                if (data.success) {
+                    if (!this.completedModules.includes(moduleId)) {
+                        this.completedModules.push(moduleId);
+                    }
+                    this.savedReflection = choice;
 
-                     const modalEl = document.getElementById('reflectionModal');
-                     if (modalEl && typeof bootstrap !== 'undefined') {
-                         const bsModal = bootstrap.Modal.getInstance(modalEl);
-                         if (bsModal) bsModal.hide();
-                     }
+                    const modalEl = document.getElementById('reflectionModal');
+                    if (modalEl && typeof bootstrap !== 'undefined') {
+                        const bsModal = bootstrap.Modal.getInstance(modalEl);
+                        if (bsModal) bsModal.hide();
+                    }
 
-                     if (typeof Swal !== 'undefined') {
-                         Swal.fire({
-                             icon: 'success',
-                             title: 'Lesson Completed!',
-                             html: `<div class="text-start">
-                                 <p class="mb-2 font-semibold">${data.message || 'Progress saved successfully.'}</p>
-                                 ${data.xp_awarded > 0 ? '<div class="badge bg-primary text-white p-2 mb-2 font-mono"><i class="bi bi-star-fill text-warning me-1"></i> +' + data.xp_awarded + ' XP Added!</div>' : ''}
-                                 ${data.certificate_unlocked ? '<div class="alert alert-success py-2 px-3 small mt-2"><i class="bi bi-award-fill me-1"></i> Official Certificate has been unlocked!</div>' : ''}
-                             </div>`,
-                             confirmButtonColor: '#723EC3',
-                             timer: 3000
-                         }).then(() => {
-                             if (data.all_completed || data.certificate_unlocked) {
-                                 window.location.reload();
-                             }
-                         });
-                     } else {
-                         if (data.all_completed) {
-                             window.location.reload();
-                         }
-                     }
-                 } else {
-                     if (typeof Swal !== 'undefined') {
-                         Swal.fire({
-                             icon: 'error',
-                             title: 'Unable to Complete',
-                             text: data.message || 'Validation error.',
-                             confirmButtonColor: '#723EC3'
-                         });
-                     }
-                 }
-             }).catch(err => {
-                 this.isSubmittingReflection = false;
-                 console.error('Module completion error', err);
-             });
-         }
-     }">
+                    if (typeof Swal !== 'undefined') {
+                        let htmlContent = '<div class="text-start">';
+                        htmlContent += '<p class="mb-2 font-semibold">' + (data.message || 'Progress saved successfully.') + '</p>';
+                        if (data.xp_awarded > 0) {
+                            htmlContent += '<div class="badge bg-primary text-white p-2 mb-2 font-mono"><i class="bi bi-star-fill text-warning me-1"></i> +' + data.xp_awarded + ' XP Added!</div>';
+                        }
+                        if (data.certificate_unlocked) {
+                            htmlContent += '<div class="alert alert-success py-2 px-3 small mt-2"><i class="bi bi-award-fill me-1"></i> Official Certificate has been unlocked!</div>';
+                        }
+                        htmlContent += '</div>';
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Lesson Completed!',
+                            html: htmlContent,
+                            confirmButtonColor: '#723EC3',
+                            timer: 3000
+                        }).then(() => {
+                            if (data.all_completed || data.certificate_unlocked) {
+                                window.location.reload();
+                            }
+                        });
+                    } else {
+                        if (data.all_completed) {
+                            window.location.reload();
+                        }
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Unable to Complete',
+                            text: data.message || 'Validation error.',
+                            confirmButtonColor: '#723EC3'
+                        });
+                    }
+                }
+            }).catch(err => {
+                this.isSubmittingReflection = false;
+                console.error('Module completion error', err);
+            });
+        }
+    };
+}
+document.addEventListener('alpine:init', () => {
+    if (typeof Alpine !== 'undefined' && Alpine.data) {
+        Alpine.data('learningPlayer', learningPlayer);
+    }
+});
+</script>
+<div class="container-fluid px-0" x-data="learningPlayer()">
     <div class="d-flex flex-nowrap" style="min-height: calc(100vh - 65px);">
         <!-- Curriculum Sidebar (Left) -->
         <div class="player-sidebar p-3 flex-shrink-0" 
