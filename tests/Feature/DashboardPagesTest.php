@@ -34,6 +34,13 @@ class DashboardPagesTest extends TestCase
         }
     }
 
+    public function test_my_certificates_route(): void
+    {
+        $student = User::where('email', 'student@enterpriselms.com')->first() ?? User::find(6) ?? User::first();
+        $response = $this->actingAs($student)->get('/my-certificates');
+        $response->assertStatus(200);
+    }
+
     public function test_all_public_landing_pages_render_successfully(): void
     {
         $publicRoutes = [
