@@ -293,7 +293,7 @@ document.addEventListener('alpine:init', () => {
                                             : (canMarkDone ? 'btn-outline-success shadow-xs' : 'btn-outline-secondary opacity-75')"
                                     :disabled="!canMarkDone && !completedModules.includes(currentModuleId)"
                                     @click="openReflectionModal(currentModuleId)">
-                                <i class="bi" :class="completedModules.includes(currentModuleId) 
+                                <i class="bi me-1.5" :class="completedModules.includes(currentModuleId) 
                                                        ? 'bi-check2-circle' 
                                                        : (canMarkDone ? 'bi-check-circle' : 'bi-lock-fill')"></i>
                                 <span x-text="completedModules.includes(currentModuleId) 
@@ -473,7 +473,7 @@ document.addEventListener('alpine:init', () => {
                                                  'alert-danger': savedReflection === 'NOT_UNDERSTOOD'
                                              }">
                                             <div class="d-flex align-items-center gap-2">
-                                                <i class="bi" :class="{
+                                                <i class="bi me-1" :class="{
                                                     'bi-check-circle-fill text-success': savedReflection === 'UNDERSTOOD',
                                                     'bi-arrow-clockwise text-warning': savedReflection === 'NEED_RETURN',
                                                     'bi-flag-fill text-danger': savedReflection === 'NOT_UNDERSTOOD'
@@ -500,10 +500,10 @@ document.addEventListener('alpine:init', () => {
                                         </div>
                                         <div class="col-md-5 d-flex align-items-end">
                                             <button type="button" 
-                                                    class="btn btn-primary btn-sm w-100 rounded-3 fw-bold d-flex align-items-center justify-content-center gap-1.5 py-2 shadow-xs"
+                                                    class="btn btn-primary btn-sm w-100 rounded-3 fw-bold d-flex align-items-center justify-content-center gap-2 py-2 shadow-xs"
                                                     :disabled="!canMarkDone && !completedModules.includes(currentModuleId)"
                                                     @click="markCompleted(currentModuleId, reflectionChoice)">
-                                                <i class="bi bi-check2-circle"></i>
+                                                <i class="bi bi-check2-circle me-1.5"></i>
                                                 <span x-text="completedModules.includes(currentModuleId) ? 'Update Learning Reflection' : (canMarkDone ? 'Confirm &amp; Mark as Done' : ('Watch 90% (' + videoWatchPercent + '%)'))"></span>
                                             </button>
                                         </div>
@@ -1012,12 +1012,13 @@ document.addEventListener('alpine:init', () => {
                              :class="reflectionChoice === 'UNDERSTOOD' ? 'border-success bg-success-subtle shadow-xs' : 'border-light-subtle bg-light'"
                              @click="reflectionChoice = 'UNDERSTOOD'">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-bold small text-dark d-flex align-items-center gap-1.5">
-                                    <i class="bi bi-check-circle-fill text-success"></i> Done &amp; Understood
-                                </span>
-                                <span class="badge bg-success text-white rounded-pill font-mono" style="font-size: 0.68rem;">+50 XP BONUS</span>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-check-circle-fill text-success fs-5 me-2" style="font-size: 1.15rem;"></i>
+                                    <span class="fw-bold small text-dark">Done &amp; Understood</span>
+                                </div>
+                                <span class="badge bg-success text-white rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.7rem; letter-spacing: 0.4px;">+50 XP BONUS</span>
                             </div>
-                            <p class="text-secondary small mb-0" style="font-size: 0.75rem; line-height: 1.35;">
+                            <p class="text-secondary small mb-0" style="padding-left: 27px; font-size: 0.78rem; line-height: 1.4;">
                                 I fully comprehended the syllabus content and feel confident solving questions on this topic.
                             </p>
                         </div>
@@ -1028,12 +1029,13 @@ document.addEventListener('alpine:init', () => {
                              :class="reflectionChoice === 'NEED_RETURN' ? 'border-warning bg-warning-subtle shadow-xs' : 'border-light-subtle bg-light'"
                              @click="reflectionChoice = 'NEED_RETURN'">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-bold small text-dark d-flex align-items-center gap-1.5">
-                                    <i class="bi bi-arrow-repeat text-warning"></i> Done, but Need Review Later
-                                </span>
-                                <span class="badge bg-warning text-dark rounded-pill font-mono" style="font-size: 0.68rem;">REVISION QUEUE</span>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-arrow-repeat text-warning fs-5 me-2" style="font-size: 1.15rem;"></i>
+                                    <span class="fw-bold small text-dark">Done, but Need Review Later</span>
+                                </div>
+                                <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.7rem; letter-spacing: 0.4px;">REVISION QUEUE</span>
                             </div>
-                            <p class="text-secondary small mb-0" style="font-size: 0.75rem; line-height: 1.35;">
+                            <p class="text-secondary small mb-0" style="padding-left: 27px; font-size: 0.78rem; line-height: 1.4;">
                                 I followed the lecture, but need additional revision or practice questions before examination.
                             </p>
                         </div>
@@ -1044,12 +1046,13 @@ document.addEventListener('alpine:init', () => {
                              :class="reflectionChoice === 'NOT_UNDERSTOOD' ? 'border-danger bg-danger-subtle shadow-xs' : 'border-light-subtle bg-light'"
                              @click="reflectionChoice = 'NOT_UNDERSTOOD'">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-bold small text-dark d-flex align-items-center gap-1.5">
-                                    <i class="bi bi-flag-fill text-danger"></i> Done, but Not Understood
-                                </span>
-                                <span class="badge bg-danger text-white rounded-pill font-mono" style="font-size: 0.68rem;">TEACHER FLAGGED</span>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-flag-fill text-danger fs-5 me-2" style="font-size: 1.15rem;"></i>
+                                    <span class="fw-bold small text-dark">Done, but Not Understood</span>
+                                </div>
+                                <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.7rem; letter-spacing: 0.4px;">TEACHER FLAGGED</span>
                             </div>
-                            <p class="text-secondary small mb-0" style="font-size: 0.75rem; line-height: 1.35;">
+                            <p class="text-secondary small mb-0" style="padding-left: 27px; font-size: 0.78rem; line-height: 1.4;">
                                 I completed watching, but struggled with key concepts. Send an academic assistance flag to my instructor.
                             </p>
                         </div>
@@ -1068,10 +1071,10 @@ document.addEventListener('alpine:init', () => {
                 <div class="modal-footer border-0 pt-0 pb-4 px-4 d-flex justify-content-between">
                     <button type="button" class="btn btn-outline-secondary btn-sm px-3 rounded-pill" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" 
-                            class="btn btn-success btn-sm px-4 rounded-pill fw-bold shadow-sm d-flex align-items-center gap-1.5"
+                            class="btn btn-success btn-sm px-4 rounded-pill fw-bold shadow-sm d-flex align-items-center gap-2"
                             :disabled="isSubmittingReflection"
                             @click="markCompleted(currentModuleId, reflectionChoice)">
-                        <span x-show="!isSubmittingReflection"><i class="bi bi-check-lg me-1"></i> Confirm &amp; Mark Done</span>
+                        <span x-show="!isSubmittingReflection"><i class="bi bi-check-lg me-1.5"></i> Confirm &amp; Mark Done</span>
                         <span x-show="isSubmittingReflection" class="spinner-border spinner-border-sm me-1" role="status"></span>
                     </button>
                 </div>
