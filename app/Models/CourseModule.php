@@ -53,4 +53,19 @@ class CourseModule extends Model
     {
         return $this->belongsTo(CourseSection::class, 'section_id');
     }
+
+    public function getTitleAttribute(): string
+    {
+        return match ($this->module_type) {
+            self::TYPE_VIDEO => 'Video Lecture & Syllabus Walkthrough',
+            self::TYPE_PAGE => 'Comprehensive Curriculum Study Pack',
+            self::TYPE_QUIZ => 'Knowledge Check & Practice Assessment',
+            self::TYPE_ASSIGNMENT => 'Past Paper Assignment Submission',
+            self::TYPE_LESSON => 'Adaptive Curriculum Lesson',
+            self::TYPE_SCORM => 'Interactive SCORM Learning Package',
+            self::TYPE_H5P => 'Interactive Rich Media Exercise',
+            self::TYPE_FORUM => 'Discussion & Cohort Q&A',
+            default => 'Course Curriculum Module ' . ($this->sort_order + 1),
+        };
+    }
 }

@@ -8,6 +8,7 @@ use App\Models\AssignmentSubmission;
 use App\Models\Certificate;
 use App\Models\Course;
 use App\Models\CourseModule;
+use App\Models\CourseSection;
 use App\Models\Enrollment;
 use App\Services\CertificateGeneratorService;
 use Carbon\Carbon;
@@ -66,8 +67,46 @@ class LearningController extends Controller
             ['status' => Enrollment::STATUS_ACTIVE, 'enrolled_at' => Carbon::now()]
         );
 
+        // Ensure course has at least one structured curriculum section
+        if ($course->sections->isEmpty()) {
+            CourseSection::create([
+                'course_id' => $course->id,
+                'title' => 'Core Curriculum & Syllabus Framework',
+                'sort_order' => 0,
+            ]);
+            $course->load('sections.modules');
+        }
+
         $allModules = $course->sections->flatMap->modules;
+
+        // Ensure section has active learning modules
+        if ($allModules->isEmpty()) {
+            $section = $course->sections->first();
+
+            CourseModule::create([
+                'section_id' => $section->id,
+                'module_type' => CourseModule::TYPE_VIDEO,
+                'sort_order' => 0,
+                'is_mandatory' => true,
+            ]);
+
+            CourseModule::create([
+                'section_id' => $section->id,
+                'module_type' => CourseModule::TYPE_PAGE,
+                'sort_order' => 1,
+                'is_mandatory' => false,
+            ]);
+
+            $course->load('sections.modules');
+            $allModules = $course->sections->flatMap->modules;
+        }
+
         $totalModulesCount = $allModules->count();
+        $completedModuleIds = session()->get("course_{$course->id}_completed_modules", []);
+        $allCourseModuleIds = $allModules->pluck('id')->all();
+
+        $isAllCompleted = ($totalModulesCount > 0 && count(array_intersect($allCourseModuleIds, $completedModuleIds)) === $totalModulesCount)
+            || ($enrollment->status === Enrollment::STATUS_COMPLETED);
 
         $requestedModuleId = $request->query('module_id');
         $activeModule = null;
@@ -76,14 +115,14 @@ class LearningController extends Controller
             $activeModule = $allModules->firstWhere('id', (int) $requestedModuleId);
         }
 
+        // When resuming, open the first uncompleted module, or the first module
         if (!$activeModule) {
-            $activeModule = $allModules->first();
+            $activeModule = $allModules->first(function ($mod) use ($completedModuleIds) {
+                return !in_array($mod->id, $completedModuleIds, true);
+            }) ?? $allModules->first();
         }
 
-        // Session-based completed module cache or simple state tracking
-        $completedModuleIds = session()->get("course_{$course->id}_completed_modules", []);
-
-        return view('learning.player', compact('course', 'activeModule', 'totalModulesCount', 'completedModuleIds'));
+        return view('learning.player', compact('course', 'activeModule', 'totalModulesCount', 'completedModuleIds', 'isAllCompleted', 'enrollment'));
     }
 
     /**

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseCategory;
+use App\Models\CourseModule;
 use App\Models\CourseSection;
 use App\Services\DocumentExtractionService;
 use Illuminate\Http\RedirectResponse;
@@ -257,11 +258,25 @@ class CourseAdminController extends Controller
             'deletion_status' => Course::DELETION_NONE,
         ]);
 
-        // Automatically initialize default Section 1
-        CourseSection::create([
+        // Automatically initialize default Section 1 and modules
+        $section = CourseSection::create([
             'course_id' => $course->id,
             'title' => 'Core Module 1: Foundational Framework',
             'sort_order' => 0,
+        ]);
+
+        CourseModule::create([
+            'section_id' => $section->id,
+            'module_type' => CourseModule::TYPE_VIDEO,
+            'sort_order' => 0,
+            'is_mandatory' => true,
+        ]);
+
+        CourseModule::create([
+            'section_id' => $section->id,
+            'module_type' => CourseModule::TYPE_PAGE,
+            'sort_order' => 1,
+            'is_mandatory' => false,
         ]);
 
         $successMsg = $isTeacher

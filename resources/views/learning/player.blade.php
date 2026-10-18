@@ -178,7 +178,22 @@
                             </button>
                         </div>
                     @endif
-                </div>
+                @if(!empty($isAllCompleted))
+                    <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between p-3.5 rounded-4 shadow-sm mb-4 border border-success-subtle">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center shadow-xs" style="width: 44px; height: 44px;">
+                                <i class="bi bi-patch-check-fill fs-5"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold text-success mb-0">Course Curriculum Completed!</h6>
+                                <span class="small text-secondary">You have completed all instructional modules for this course. You can review materials anytime or claim your certificate.</span>
+                            </div>
+                        </div>
+                        <a href="{{ route('certificates.my') }}" class="btn btn-sm btn-success rounded-pill px-3.5 py-2 fw-bold text-white shadow-xs">
+                            <i class="bi bi-award-fill me-1"></i> Claim / View Certificate
+                        </a>
+                    </div>
+                @endif
 
                 @if($activeModule)
                     <!-- Active Module Viewport Container -->
@@ -643,12 +658,11 @@
                     @endif
                 @else
                     <div class="text-center py-5">
-                        <i class="bi bi-check-all display-1 text-success mb-3"></i>
-                        <h2 class="fw-bold">Course Completed!</h2>
-                        <p class="text-secondary mb-4">You have successfully completed all modules for this course.</p>
-                        <a href="{{ route('certificates.my') }}" class="btn btn-accent btn-lg">
-                            <i class="bi bi-award-fill me-2"></i> Claim Your Certificate
-                        </a>
+                        <i class="bi bi-journal-check display-3 text-primary mb-3 d-block"></i>
+                        <h3 class="fw-bold mb-2">{{ $course->title }}</h3>
+                        <p class="text-secondary max-w-600 mx-auto mb-4">
+                            Select a syllabus module from the left curriculum panel to begin your lesson, or review the course study materials and notes below.
+                        </p>
                     </div>
                 @endif
             </div>
