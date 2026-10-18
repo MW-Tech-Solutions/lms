@@ -108,6 +108,17 @@
                                         </strong>
                                     </div>
                                     <div class="col-12 pt-2 border-top">
+                                        <span class="text-muted d-block" style="font-size: 0.72rem;">OFFICIAL CERTIFICATE ID:</span>
+                                        <div class="d-flex align-items-center justify-content-between gap-2 mt-0.5">
+                                            <strong class="text-dark font-mono" style="font-size: 0.85rem;">{{ $cert->certificate_number }}</strong>
+                                            <button type="button" class="btn btn-xs btn-outline-secondary border-0 p-0 text-muted" 
+                                                    onclick="navigator.clipboard.writeText('{{ $cert->certificate_number }}'); this.innerText='Copied!'; setTimeout(() => this.innerText='Copy', 2000);"
+                                                    title="Copy Certificate ID">
+                                                Copy
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 pt-2 border-top">
                                         <span class="text-muted d-block" style="font-size: 0.72rem;">CERTIFICATE RECORD UUID:</span>
                                         <div class="d-flex align-items-center justify-content-between gap-2 mt-0.5">
                                             <span class="text-truncate text-secondary" style="font-size: 0.78rem;">{{ $cert->uuid }}</span>

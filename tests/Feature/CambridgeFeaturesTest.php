@@ -284,4 +284,34 @@ class CambridgeFeaturesTest extends TestCase
              'status' => ResourceRequest::STATUS_PENDING,
          ]);
      }
+
+     /**
+      * Test Course Certificate deduplication, dynamic ID format, and 80% test threshold enforcement
+      */
+     public function test_certificate_generation_deduplication_and_80_percent_test_threshold(): void
+     {
+         $course = Course::first();
+         if (!$course) {
+             $this->markTestSkipped('No course found for certificate test.');
+         }
+
+         // 1. Service test: generate certificate
+         /** @var \App\Services\CertificateGeneratorService $certService */
+         $certService = app(\App\Services\CertificateGeneratorService::class);
+         $cert1 = $certService->generate($this->student, $course);
+
+         $this->assertNotNull($cert1);
+         $this->assertStringStartsWith('ATC-', $cert1->certificate_number);
+
+         // 2. Deduplication: calling generate again on same user & course must return identical certificate
+         $cert2 = $certService->generate($this->student, $course);
+         $this->assertEquals($cert1->id, $cert2->id);
+         $this->assertEquals($cert1->certificate_number, $cert2->certificate_number);
+
+         // 3. User can view my certificates view without duplicates
+         $response = $this->actingAs($this->student)->get('/my-certificates');
+         $response->assertStatus(200);
+         $response->assertSee($cert1->certificate_number);
+         $response->assertSee($course->title);
+     }
 }

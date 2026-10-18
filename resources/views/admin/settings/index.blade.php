@@ -760,6 +760,114 @@
                 </div>
             </div>
 
+            <!-- SECTION: OFFICIAL CERTIFICATE & ACCREDITATION SETTINGS -->
+            <div class="col-12">
+                <div class="lms-card p-4 shadow-sm border rounded-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-3 mb-4 gap-2">
+                        <div>
+                            <h5 class="fw-bold mb-1" style="color: var(--lms-text-primary);">
+                                <i class="bi bi-award-fill text-primary me-2"></i>Official Certificate &amp; Accreditation Configuration (Landscape Template)
+                            </h5>
+                            <span class="text-secondary small">
+                                Configure the official landscape diploma layout, authorized verifier signature, logo branding, dynamic certificate numbers, and test passing thresholds.
+                            </span>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 rounded-pill small">
+                            <i class="bi bi-patch-check-fill me-1"></i> A4 Landscape &bull; Dynamic QR
+                        </span>
+                    </div>
+
+                    <div class="row g-4">
+                        <!-- Left Column: Signature Asset & Signatory Meta -->
+                        <div class="col-lg-6">
+                            <div class="p-3 rounded-3 bg-light border h-100">
+                                <label class="form-label small fw-bold d-flex justify-content-between align-items-center mb-2">
+                                    <span>Authorized Verifier Signature</span>
+                                    @php
+                                        $sigUrl = $site_settings['certificate_signature_url'] ?? (file_exists(public_path('images/certificate_signature.png')) ? asset('images/certificate_signature.png') : null);
+                                    @endphp
+                                    @if($sigUrl)
+                                        <span class="badge bg-success bg-opacity-10 text-success">Active Signature Configured</span>
+                                    @endif
+                                </label>
+
+                                @if($sigUrl)
+                                    <div class="d-flex align-items-center gap-3 mb-3 p-2 rounded-2 bg-white border">
+                                        <img src="{{ $sigUrl }}" alt="Signature Preview" height="42" class="rounded object-fit-contain">
+                                        <div class="small text-truncate text-muted font-mono" style="font-size: 0.75rem;">
+                                            {{ $sigUrl }}
+                                        </div>
+                                    </div>
+                                @endif
+
+                                <div class="mb-3">
+                                    <label class="form-label small text-secondary">Upload New Signature File (PNG with Transparent Background Recommended, SVG, JPG)</label>
+                                    <input type="file" name="signature_file" class="form-control form-control-sm" accept="image/*">
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label small text-secondary">Or Signature Image URL</label>
+                                    <input type="text" name="settings[certificate_signature_url]" class="form-control form-control-sm font-mono" 
+                                           value="{{ $site_settings['certificate_signature_url'] ?? '' }}" placeholder="/uploads/branding/signature_... or https://...">
+                                </div>
+
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Signatory Title</label>
+                                        <input type="text" name="settings[certificate_signatory_title]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['certificate_signatory_title'] ?? 'Head of E-Learning' }}" placeholder="Head of E-Learning">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Signatory Organization</label>
+                                        <input type="text" name="settings[certificate_signatory_sub]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['certificate_signatory_sub'] ?? ($site_settings['brand_name'] ?? 'AllThingsCambridge') }}" placeholder="AllThingsCambridge">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Certificate Dynamic Identifiers & Thresholds -->
+                        <div class="col-lg-6">
+                            <div class="p-3 rounded-3 bg-light border h-100">
+                                <label class="form-label small fw-bold mb-2">Dynamic Identifiers &amp; Compliance Thresholds</label>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Certificate ID Prefix</label>
+                                        <input type="text" name="settings[certificate_prefix]" class="form-control form-control-sm font-mono text-uppercase" 
+                                               value="{{ $site_settings['certificate_prefix'] ?? 'ATC' }}" placeholder="ATC" maxlength="10">
+                                        <span class="text-muted" style="font-size: 0.72rem;">Format: <code>PREFIX-YYYY-MMDD-SERIAL</code></span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Final Test Passing Score (%)</label>
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" min="50" max="100" name="settings[certificate_min_score]" class="form-control font-mono fw-bold" 
+                                                   value="{{ $site_settings['certificate_min_score'] ?? '80' }}">
+                                            <span class="input-group-text">% Required</span>
+                                        </div>
+                                        <span class="text-muted" style="font-size: 0.72rem;">Enforces 80% minimum score before certificate access</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Top-Right Tagline 1</label>
+                                        <input type="text" name="settings[certificate_tagline_1]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['certificate_tagline_1'] ?? 'Better Learning' }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold">Top-Right Tagline 2</label>
+                                        <input type="text" name="settings[certificate_tagline_2]" class="form-control form-control-sm" 
+                                               value="{{ $site_settings['certificate_tagline_2'] ?? 'Brighter Future' }}">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-semibold">Official Website Display URL (Footer Left)</label>
+                                        <input type="text" name="settings[certificate_website_url]" class="form-control form-control-sm font-mono" 
+                                               value="{{ $site_settings['certificate_website_url'] ?? 'www.allthingscambridge.com' }}" placeholder="www.allthingscambridge.com">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- SECTION 7: FOOTER & COMPLIANCE STATEMENTS -->
             <div class="col-12">
                 <div class="lms-card p-4 shadow-sm">

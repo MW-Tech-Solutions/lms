@@ -252,6 +252,27 @@ class SettingsAdminController extends Controller
             }
         }
 
+        // 3c. Handle Certificate Authorized Signature File Upload
+        if ($request->hasFile('signature_file')) {
+            $sigDir = public_path('uploads/branding');
+            if (!is_dir($sigDir)) {
+                @mkdir($sigDir, 0755, true);
+            }
+
+            $sig = $request->file('signature_file');
+            $sigExt = strtolower($sig->getClientOriginalExtension());
+            $sigFilename = 'signature_' . time() . '.' . $sigExt;
+            $sig->move($sigDir, $sigFilename);
+
+            $settings['certificate_signature_url'] = '/uploads/branding/' . $sigFilename;
+
+            $imagesDir = public_path('images');
+            if (!is_dir($imagesDir)) {
+                @mkdir($imagesDir, 0755, true);
+            }
+            @copy($sigDir . '/' . $sigFilename, $imagesDir . '/certificate_signature.png');
+        }
+
         // 4. Update standard setting values across Global AND all Tenants
         $tenants = \Illuminate\Support\Facades\Schema::hasTable('tenants')
             ? \App\Models\Tenant::all()

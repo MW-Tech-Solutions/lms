@@ -228,21 +228,80 @@
                     @endif
                 </div>
 
-                @if(!empty($isAllCompleted))
-                    <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between p-3.5 rounded-4 shadow-sm mb-4 border border-success-subtle">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center shadow-xs" style="width: 44px; height: 44px;">
-                                <i class="bi bi-patch-check-fill fs-5"></i>
+                @if(isset($quizStatus))
+                    @if($quizStatus === 'CLAIMED' || $quizStatus === 'TEST_PASSED')
+                        <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between p-3.5 rounded-4 shadow-sm mb-4 border border-success-subtle">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center shadow-xs" style="width: 44px; height: 44px;">
+                                    <i class="bi bi-patch-check-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold text-success mb-0">Official Course Certificate Unlocked!</h6>
+                                    <span class="small text-secondary">
+                                        @if($quizScore !== null)
+                                            Final Assessment Passed (Score: <strong>{{ $quizScore }}%</strong> &bull; {{ (int) $requiredQuizScore }}% Required). Your official cryptographic credential is ready.
+                                        @else
+                                            You have satisfied all academic curriculum and assessment requirements for this course.
+                                        @endif
+                                    </span>
+                                </div>
                             </div>
-                            <div>
-                                <h6 class="fw-bold text-success mb-0">Course Curriculum Completed!</h6>
-                                <span class="small text-secondary">You have completed all instructional modules for this course. You can review materials anytime or claim your certificate.</span>
-                            </div>
+                            <a href="{{ route('certificates.my') }}" class="btn btn-sm btn-success rounded-pill px-3.5 py-2 fw-bold text-white shadow-xs">
+                                <i class="bi bi-award-fill me-1"></i> View / Download Certificate
+                            </a>
                         </div>
-                        <a href="{{ route('certificates.my') }}" class="btn btn-sm btn-success rounded-pill px-3.5 py-2 fw-bold text-white shadow-xs">
-                            <i class="bi bi-award-fill me-1"></i> Claim / View Certificate
-                        </a>
-                    </div>
+                    @elseif($quizStatus === 'AWAITING_TEST')
+                        <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between p-3.5 rounded-4 shadow-sm mb-4 border border-warning-subtle" style="background: #FFFBEB;">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center shadow-xs" style="width: 44px; height: 44px;">
+                                    <i class="bi bi-hourglass-split fs-5"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0">Syllabus Completed &bull; Final Assessment Pending</h6>
+                                    <span class="small text-secondary">
+                                        You have finished all instructional curriculum modules! The final certification test has not been released yet. Please wait for the test to be activated by the instructor or administrator to earn your certificate.
+                                    </span>
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3.5 py-2 fw-semibold opacity-75" disabled>
+                                <i class="bi bi-lock-fill me-1"></i> Awaiting Final Test
+                            </button>
+                        </div>
+                    @elseif($quizStatus === 'TEST_REQUIRED' && $quiz)
+                        <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between p-3.5 rounded-4 shadow-sm mb-4 border border-info-subtle" style="background: #F0F9FF;">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-xs" style="width: 44px; height: 44px;">
+                                    <i class="bi bi-journal-check fs-5"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold text-primary mb-0">Syllabus Completed &bull; Final Test Required (80% Passing Score)</h6>
+                                    <span class="small text-secondary">
+                                        You must complete the final course test and achieve at least <strong>{{ (int) $requiredQuizScore }}% correct answers</strong> to unlock and earn your certificate.
+                                    </span>
+                                </div>
+                            </div>
+                            <a href="{{ route('quiz.take', ['quiz' => $quiz->id]) }}" class="btn btn-sm btn-primary rounded-pill px-3.5 py-2 fw-bold text-white shadow-xs">
+                                <i class="bi bi-play-circle-fill me-1"></i> Take Final Test (80% Required)
+                            </a>
+                        </div>
+                    @elseif($quizStatus === 'TEST_FAILED' && $quiz)
+                        <div class="alert alert-danger d-flex flex-wrap align-items-center justify-content-between p-3.5 rounded-4 shadow-sm mb-4 border border-danger-subtle" style="background: #FEF2F2;">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center shadow-xs" style="width: 44px; height: 44px;">
+                                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold text-danger mb-0">Test Score: {{ $quizScore }}% ({{ (int) $requiredQuizScore }}% Minimum Required)</h6>
+                                    <span class="small text-secondary">
+                                        You scored {{ $quizScore }}% on the final assessment, which is below the required {{ (int) $requiredQuizScore }}% passing threshold for certification. Please review your lesson materials and retake the test.
+                                    </span>
+                                </div>
+                            </div>
+                            <a href="{{ route('quiz.take', ['quiz' => $quiz->id]) }}" class="btn btn-sm btn-danger rounded-pill px-3.5 py-2 fw-bold text-white shadow-xs">
+                                <i class="bi bi-arrow-repeat me-1"></i> Retake Final Test (80% Required)
+                            </a>
+                        </div>
+                    @endif
                 @endif
 
                 @if($activeModule)
@@ -332,22 +391,37 @@
 
                             @case('QUIZ')
                                 @php
-                                    $quiz = \App\Models\Quiz::find($activeModule->instance_id) ?? \App\Models\Quiz::first();
+                                    $currentQuiz = \App\Models\Quiz::find($activeModule->instance_id) ?? ($quiz ?? \App\Models\Quiz::first());
                                 @endphp
-                                <div class="lms-card p-5 text-center my-4 shadow-sm">
-                                    <i class="bi bi-shield-shaded display-3 text-primary mb-3 d-block"></i>
-                                    <h3 class="fw-bold mb-2">{{ $quiz ? $quiz->title : 'Modular Knowledge Assessment' }}</h3>
-                                    <p class="text-secondary max-w-600 mx-auto mb-4">
-                                        {{ $site_settings['msg_quiz_prep'] ?? 'This assessment is monitored by real-time anti-cheat telemetry. Ensure your webcam is enabled and avoid switching browser tabs during the test.' }}
-                                    </p>
-                                    <div class="d-flex justify-content-center gap-4 text-start font-mono small mb-4">
-                                        <div><i class="bi bi-clock me-1 text-primary"></i> {{ $quiz ? $quiz->time_limit_minutes : 30 }} Minutes</div>
-                                        <div><i class="bi bi-award me-1 text-success"></i> Passing: {{ $quiz ? $quiz->passing_percentage : 70 }}%</div>
-                                        <div><i class="bi bi-eye me-1 text-danger"></i> AI Proctor: Active</div>
+                                <div class="lms-card p-5 text-center my-4 shadow-sm border rounded-4">
+                                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center p-3 mb-3 bg-primary-subtle text-primary">
+                                        <i class="bi bi-patch-question-fill display-5"></i>
                                     </div>
-                                    @if($quiz)
-                                        <a href="{{ route('quiz.take', ['quiz' => $quiz->id]) }}" class="btn btn-accent btn-lg px-5 shadow">
-                                            <i class="bi bi-play-circle-fill me-2"></i> {{ $site_settings['label_start_exam'] ?? 'Launch Examination' }}
+                                    <h3 class="fw-bold mb-2">{{ $currentQuiz ? $currentQuiz->title : 'Modular Knowledge Assessment' }}</h3>
+                                    <p class="text-secondary max-w-600 mx-auto mb-4">
+                                        {{ $site_settings['msg_quiz_prep'] ?? 'This assessment verifies syllabus comprehension and is monitored by anti-cheat telemetry. Achieving at least 80% correct answers is mandatory to unlock and qualify for your official certificate.' }}
+                                    </p>
+
+                                    <!-- Score Status Badge -->
+                                    @if($quizScore !== null)
+                                        <div class="mb-4">
+                                            <span class="badge px-3.5 py-2 rounded-pill font-mono {{ $hasPassedQuiz ? 'bg-success text-white' : 'bg-danger text-white' }} shadow-xs">
+                                                <i class="bi {{ $hasPassedQuiz ? 'bi-check-circle-fill' : 'bi-exclamation-circle-fill' }} me-1"></i>
+                                                Best Score: {{ $quizScore }}% &bull; {{ $hasPassedQuiz ? '80% Requirement Met (Certificate Unlocked)' : 'Did Not Meet 80% Threshold' }}
+                                            </span>
+                                        </div>
+                                    @endif
+
+                                    <div class="d-flex flex-wrap justify-content-center gap-3 gap-md-4 text-start font-mono small mb-4 p-3 rounded-3 bg-light border max-w-600 mx-auto">
+                                        <div><i class="bi bi-clock me-1 text-primary"></i> {{ $currentQuiz ? $currentQuiz->time_limit_minutes : 30 }} Minutes</div>
+                                        <div><i class="bi bi-award me-1 text-success"></i> <strong>Passing: {{ (int) $requiredQuizScore }}%</strong></div>
+                                        <div><i class="bi bi-shield-check me-1 text-info"></i> Anti-Cheat: Active</div>
+                                    </div>
+
+                                    @if($currentQuiz)
+                                        <a href="{{ route('quiz.take', ['quiz' => $currentQuiz->id]) }}" class="btn btn-accent btn-lg px-5 shadow rounded-pill">
+                                            <i class="bi bi-play-circle-fill me-2"></i> 
+                                            {{ $hasPassedQuiz ? 'Retake Examination (Practice)' : ($quizScore !== null ? 'Retake Examination (80% Required)' : ($site_settings['label_start_exam'] ?? 'Launch Examination (80% Required)')) }}
                                         </a>
                                     @endif
                                 </div>

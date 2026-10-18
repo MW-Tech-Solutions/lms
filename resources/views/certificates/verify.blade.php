@@ -46,8 +46,13 @@
                                 {{ $certificate->expires_at ? $certificate->expires_at->format('F d, Y') : 'Permanent Accreditation' }}
                             </span>
                         </div>
-                        <div class="col-12 border-top pt-2 font-mono small text-muted">
-                            <span class="fw-bold">Certificate Record UUID:</span> {{ $certificate->uuid }}
+                        <div class="col-sm-6 border-top pt-2">
+                            <span class="small text-muted text-uppercase fw-semibold d-block">Official Certificate ID</span>
+                            <span class="font-mono fw-bold text-dark fs-6">{{ $certificate->certificate_number }}</span>
+                        </div>
+                        <div class="col-sm-6 border-top pt-2 font-mono small text-muted">
+                            <span class="small text-muted text-uppercase fw-semibold d-block">Record UUID</span>
+                            <span class="text-secondary text-truncate d-block">{{ $certificate->uuid }}</span>
                         </div>
                     </div>
                 </div>

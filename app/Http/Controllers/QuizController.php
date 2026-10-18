@@ -145,15 +145,72 @@ class QuizController extends Controller
             'submitted_at' => Carbon::now(),
         ]);
 
-        $passed = $percentage >= $quiz->passing_percentage;
+        $config = app()->bound(\App\Services\SiteConfigService::class) ? app(\App\Services\SiteConfigService::class) : null;
+        $requiredScore = $config ? (float) ($config->get('certificate_min_score', '80') ?: 80.0) : 80.0;
+        $passed = $percentage >= $requiredScore;
+
+        // Check if quiz belongs to an enrolled course
+        $courseModule = \App\Models\CourseModule::with('section.course')
+            ->where('module_type', \App\Models\CourseModule::TYPE_QUIZ)
+            ->where('instance_id', $quiz->id)
+            ->first();
+
+        if ($courseModule && $courseModule->section && $courseModule->section->course) {
+            $course = $courseModule->section->course;
+            $sessionKey = "course_{$course->id}_completed_modules";
+            $completed = session()->get($sessionKey, []);
+
+            if ($passed && !in_array($courseModule->id, $completed, true)) {
+                $completed[] = $courseModule->id;
+                session()->put($sessionKey, $completed);
+            }
+
+            if ($passed) {
+                $instructionalIds = $course->sections->flatMap->modules
+                    ->where('module_type', '!=', \App\Models\CourseModule::TYPE_QUIZ)
+                    ->pluck('id')
+                    ->all();
+                $allInstructionalDone = count($instructionalIds) === 0 || count(array_intersect($instructionalIds, $completed)) === count($instructionalIds);
+
+                if ($allInstructionalDone) {
+                    $enrollment = \App\Models\Enrollment::where('user_id', Auth::id())
+                        ->where('course_id', $course->id)
+                        ->first();
+                    if ($enrollment) {
+                        $enrollment->update([
+                            'status' => \App\Models\Enrollment::STATUS_COMPLETED,
+                            'completed_at' => Carbon::now(),
+                        ]);
+                    }
+                    /** @var \App\Services\CertificateGeneratorService $certService */
+                    $certService = app(\App\Services\CertificateGeneratorService::class);
+                    $certService->generate(Auth::user(), $course);
+
+                    return redirect()->route('certificates.my')->with(
+                        'success',
+                        sprintf('Outstanding achievement! You scored %s%% on the final test (Passing requirement: %d%%). Your official course certificate has been unlocked and issued!', $percentage, (int) $requiredScore)
+                    );
+                }
+
+                return redirect()->route('learning.player', $course->slug)->with(
+                    'success',
+                    sprintf('Exam passed with %s%% (Required: %d%%)! Complete the remaining curriculum modules to unlock your certificate.', $percentage, (int) $requiredScore)
+                );
+            }
+
+            return redirect()->route('learning.player', ['course' => $course->slug, 'module_id' => $courseModule->id])->with(
+                'error',
+                sprintf('Exam score: %s%%. The passing requirement to qualify for your certificate is %d%%. Please review the study materials and retake the test.', $percentage, (int) $requiredScore)
+            );
+        }
 
         return redirect()->route('my-learning')->with(
             $passed ? 'success' : 'error',
             sprintf(
                 'Exam completed! Your final score: %s%% (Passing requirement: %d%%). Status: %s.',
                 $percentage,
-                $quiz->passing_percentage,
-                $passed ? 'PASSED & COMPLIANT' : 'DID NOT PASS'
+                (int) $requiredScore,
+                $passed ? 'PASSED & COMPLIANT' : 'DID NOT PASS (80% REQUIRED)'
             )
         );
     }

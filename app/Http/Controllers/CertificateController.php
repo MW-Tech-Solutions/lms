@@ -61,7 +61,8 @@ class CertificateController extends Controller
         $certificates = Certificate::with('course.category')
             ->where('user_id', Auth::id())
             ->latest('issued_at')
-            ->get();
+            ->get()
+            ->unique('course_id');
 
         return view('certificates.my', compact('certificates'));
     }

@@ -105,8 +105,71 @@ class LearningController extends Controller
         $completedModuleIds = session()->get("course_{$course->id}_completed_modules", []);
         $allCourseModuleIds = $allModules->pluck('id')->all();
 
-        $isAllCompleted = ($totalModulesCount > 0 && count(array_intersect($allCourseModuleIds, $completedModuleIds)) === $totalModulesCount)
-            || ($enrollment->status === Enrollment::STATUS_COMPLETED);
+        // Separate instructional modules from assessment (quiz) modules
+        $instructionalModules = $allModules->where('module_type', '!=', CourseModule::TYPE_QUIZ);
+        $instructionalIds = $instructionalModules->pluck('id')->all();
+        $isInstructionalCompleted = count($instructionalIds) === 0
+            || count(array_intersect($instructionalIds, $completedModuleIds)) === count($instructionalIds);
+
+        // Find active quiz for the course if available
+        $quizModule = $allModules->firstWhere('module_type', CourseModule::TYPE_QUIZ);
+        $quiz = null;
+        $hasActiveQuiz = false;
+
+        if ($quizModule && $quizModule->instance_id) {
+            $quiz = \App\Models\Quiz::find($quizModule->instance_id);
+        }
+        if (!$quiz) {
+            $quiz = \App\Models\Quiz::first();
+        }
+
+        if ($quiz) {
+            $hasActiveQuiz = $quiz->questions()->count() > 0 || \App\Models\Question::count() > 0;
+        }
+
+        $config = app()->bound(SiteConfigService::class) ? app(SiteConfigService::class) : null;
+        $requiredQuizScore = $config ? (float) ($config->get('certificate_min_score', '80') ?: 80.0) : 80.0;
+
+        $bestAttempt = null;
+        $quizScore = null;
+        $hasPassedQuiz = false;
+
+        if ($quiz) {
+            $bestAttempt = \App\Models\QuizAttempt::where('quiz_id', $quiz->id)
+                ->where('user_id', $user->id)
+                ->where('state', \App\Models\QuizAttempt::STATE_GRADED)
+                ->orderByDesc('score_obtained')
+                ->first();
+
+            if ($bestAttempt) {
+                $quizScore = (float) $bestAttempt->score_obtained;
+                $hasPassedQuiz = $quizScore >= $requiredQuizScore;
+            }
+        }
+
+        $existingCertificate = Certificate::where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->first();
+
+        // Determine granular quiz and certificate status
+        if ($existingCertificate) {
+            $quizStatus = 'CLAIMED';
+        } elseif (!$isInstructionalCompleted) {
+            $quizStatus = 'INSTRUCTIONAL_INCOMPLETE';
+        } elseif (!$hasActiveQuiz) {
+            $quizStatus = 'AWAITING_TEST';
+        } elseif ($bestAttempt === null) {
+            $quizStatus = 'TEST_REQUIRED';
+        } elseif (!$hasPassedQuiz) {
+            $quizStatus = 'TEST_FAILED';
+        } else {
+            $quizStatus = 'TEST_PASSED';
+        }
+
+        $canAccessCertificate = ($existingCertificate !== null)
+            || ($isInstructionalCompleted && $hasActiveQuiz && $hasPassedQuiz);
+
+        $isAllCompleted = $canAccessCertificate || ($enrollment->status === Enrollment::STATUS_COMPLETED);
 
         $requestedModuleId = $request->query('module_id');
         $activeModule = null;
@@ -122,7 +185,22 @@ class LearningController extends Controller
             }) ?? $allModules->first();
         }
 
-        return view('learning.player', compact('course', 'activeModule', 'totalModulesCount', 'completedModuleIds', 'isAllCompleted', 'enrollment'));
+        return view('learning.player', compact(
+            'course',
+            'activeModule',
+            'totalModulesCount',
+            'completedModuleIds',
+            'isAllCompleted',
+            'enrollment',
+            'quiz',
+            'hasActiveQuiz',
+            'quizScore',
+            'hasPassedQuiz',
+            'requiredQuizScore',
+            'quizStatus',
+            'canAccessCertificate',
+            'existingCertificate'
+        ));
     }
 
     /**
@@ -160,10 +238,34 @@ class LearningController extends Controller
             session()->put($sessionKey, $completed);
         }
 
-        $allCourseModuleIds = $course->sections->flatMap->modules->pluck('id')->all();
-        $isAllCompleted = count(array_intersect($allCourseModuleIds, $completed)) === count($allCourseModuleIds);
+        $allCourseModules = $course->sections->flatMap->modules;
+        $instructionalModules = $allCourseModules->where('module_type', '!=', CourseModule::TYPE_QUIZ);
+        $instructionalIds = $instructionalModules->pluck('id')->all();
+        $isInstructionalDone = count($instructionalIds) === 0 || count(array_intersect($instructionalIds, $completed)) === count($instructionalIds);
 
-        if ($isAllCompleted) {
+        // Check quiz requirement (80% passing score)
+        $quizModule = $allCourseModules->firstWhere('module_type', CourseModule::TYPE_QUIZ);
+        $quiz = $quizModule && $quizModule->instance_id ? \App\Models\Quiz::find($quizModule->instance_id) : \App\Models\Quiz::first();
+        $hasActiveQuiz = $quiz && ($quiz->questions()->count() > 0 || \App\Models\Question::count() > 0);
+
+        $config = app()->bound(SiteConfigService::class) ? app(SiteConfigService::class) : null;
+        $requiredQuizScore = $config ? (float) ($config->get('certificate_min_score', '80') ?: 80.0) : 80.0;
+
+        $hasPassedQuiz = false;
+        if ($quiz) {
+            $bestAttempt = \App\Models\QuizAttempt::where('quiz_id', $quiz->id)
+                ->where('user_id', $user->id)
+                ->where('state', \App\Models\QuizAttempt::STATE_GRADED)
+                ->orderByDesc('score_obtained')
+                ->first();
+            if ($bestAttempt && (float)$bestAttempt->score_obtained >= $requiredQuizScore) {
+                $hasPassedQuiz = true;
+            }
+        }
+
+        // Only issue certificate if instructional modules are completed AND student passed active quiz with >= 80%
+        $certUnlocked = false;
+        if ($isInstructionalDone && $hasActiveQuiz && $hasPassedQuiz) {
             $enrollment = Enrollment::where('user_id', $user->id)
                 ->where('course_id', $course->id)
                 ->first();
@@ -175,14 +277,16 @@ class LearningController extends Controller
                 ]);
             }
 
-            // Issue official PDF Certificate with QR code
+            // Issue or retrieve existing unique PDF Certificate
             $certService->generate($user, $course);
+            $certUnlocked = true;
         }
 
         return response()->json([
             'success' => true,
             'completed_count' => count($completed),
-            'all_completed' => $isAllCompleted,
+            'all_completed' => $isInstructionalDone && $hasActiveQuiz && $hasPassedQuiz,
+            'certificate_unlocked' => $certUnlocked,
         ]);
     }
 
