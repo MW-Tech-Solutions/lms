@@ -51,7 +51,48 @@ class Course extends Model
         'deletion_status',
         'deletion_reason',
         'public_preview_content',
+        'extracted_material_html',
+        'extracted_material_title',
     ];
+
+    /**
+     * Check if the course video URL is an embeddable stream (YouTube, Vimeo, etc.)
+     */
+    public function isVideoEmbed(): bool
+    {
+        if (empty($this->video_url)) {
+            return false;
+        }
+
+        $url = trim($this->video_url);
+        return (bool) preg_match('/(?:youtube\.com|youtu\.be|vimeo\.com)/i', $url);
+    }
+
+    /**
+     * Convert standard YouTube or Vimeo links into secure, privacy-compliant iframe embed URLs
+     */
+    public function videoEmbedUrl(): ?string
+    {
+        if (empty($this->video_url)) {
+            return null;
+        }
+
+        $url = trim($this->video_url);
+
+        // YouTube detection (handles youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID, /shorts/ID)
+        if (preg_match('/(?:youtube\.com\/(?:watch\?.*v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i', $url, $matches)) {
+            $videoId = $matches[1];
+            return "https://www.youtube-nocookie.com/embed/{$videoId}?rel=0&modestbranding=1&enablejsapi=1";
+        }
+
+        // Vimeo detection
+        if (preg_match('/vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|video\/|)(\d+)/i', $url, $matches)) {
+            $vimeoId = end($matches);
+            return "https://player.vimeo.com/video/{$vimeoId}?dnt=1&title=0&byline=0&portrait=0";
+        }
+
+        return $url;
+    }
 
     public function getCourseCodeAttribute(): string
     {

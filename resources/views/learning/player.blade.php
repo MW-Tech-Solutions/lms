@@ -186,30 +186,38 @@
                         @switch($activeModule->module_type)
                             @case('VIDEO')
                                 @if($course->video_url)
-                                    <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm mb-4 bg-dark">
-                                        @if(Str::startsWith($course->video_url, ['http://', 'https://']) && (Str::contains($course->video_url, 'youtube.com') || Str::contains($course->video_url, 'youtu.be')))
-                                            @php
-                                                $embedUrl = str_replace('watch?v=', 'embed/', $course->video_url);
-                                                $embedUrl = str_replace('youtu.be/', 'www.youtube.com/embed/', $embedUrl);
-                                            @endphp
-                                            <iframe src="{{ $embedUrl }}" title="{{ $course->title }}" allowfullscreen class="w-100 h-100 border-0"></iframe>
-                                        @elseif(Str::startsWith($course->video_url, ['http://', 'https://']) && Str::contains($course->video_url, 'vimeo.com'))
-                                            <iframe src="{{ str_replace('vimeo.com/', 'player.vimeo.com/video/', $course->video_url) }}" allowfullscreen class="w-100 h-100 border-0"></iframe>
-                                        @else
-                                            <video controls class="w-100 h-100" poster="{{ $course->thumbnailUrl() }}">
-                                                <source src="{{ $course->videoUrl() }}" type="video/mp4">
-                                                Your browser does not support HTML5 video.
-                                            </video>
-                                        @endif
-                                    </div>
-                                @else
-                                    <div class="ratio ratio-16x9 rounded overflow-hidden shadow-sm mb-4 bg-dark">
-                                        <video controls class="w-100 h-100" poster="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200">
-                                            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
-                                            Your browser does not support HTML5 video.
-                                        </video>
-                                    </div>
-                                @endif
+                                    <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm mb-4 bg-dark position-relative course-video-container" oncontextmenu="return false;">
+                                         @if($course->isVideoEmbed())
+                                             <iframe src="{{ $course->videoEmbedUrl() }}" 
+                                                     title="{{ $course->title }}" 
+                                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                                     allowfullscreen 
+                                                     class="w-100 h-100 border-0"></iframe>
+                                         @else
+                                             <video controls 
+                                                    controlsList="nodownload noplaybackrate" 
+                                                    disablePictureInPicture 
+                                                    oncontextmenu="return false;"
+                                                    class="w-100 h-100" 
+                                                    poster="{{ $course->thumbnailUrl() }}">
+                                                 <source src="{{ $course->videoUrl() }}" type="video/mp4">
+                                                 Your browser does not support HTML5 video.
+                                             </video>
+                                         @endif
+                                     </div>
+                                 @else
+                                     <div class="ratio ratio-16x9 rounded overflow-hidden shadow-sm mb-4 bg-dark">
+                                         <video controls 
+                                                controlsList="nodownload noplaybackrate" 
+                                                disablePictureInPicture 
+                                                oncontextmenu="return false;"
+                                                class="w-100 h-100" 
+                                                poster="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=1200">
+                                             <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+                                             Your browser does not support HTML5 video.
+                                         </video>
+                                     </div>
+                                 @endif
                                 <h4 class="fw-bold mb-2">{{ $course->title }}: Video Lecture</h4>
                                 <p class="text-secondary">Watch this required instructional module to advance to compliance verification.</p>
                                 @break
@@ -595,7 +603,7 @@
                     </div>
 
                     <!-- Course Attached Materials & Study Notes -->
-                    @if($course->material_notes || $course->material_file)
+                    @if($course->material_notes || $course->material_file || !empty($course->extracted_material_html))
                         <div class="lms-card p-4 p-md-5 my-4 rounded-4 shadow-sm border border-primary-subtle" style="background: radial-gradient(circle at 10% 10%, rgba(114, 62, 195, 0.03) 0%, var(--lms-surface-card) 100%);">
                             <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 border-bottom pb-3">
                                 <div class="d-flex align-items-center gap-2">
@@ -603,20 +611,31 @@
                                         <i class="bi bi-file-earmark-text-fill fs-5"></i>
                                     </div>
                                     <div>
-                                        <h5 class="fw-bold mb-0 text-dark">Course Study Materials &amp; Revision Notes</h5>
-                                        <span class="text-muted small">Curated syllabus content and past papers provided by your Cambridge instructor</span>
+                                        <h5 class="fw-bold mb-0 text-dark">Course Curriculum Material &amp; Syllabus Notes</h5>
+                                        <span class="text-muted small">In-system structured academic content extracted from instructor materials</span>
                                     </div>
                                 </div>
-                                @if($course->material_file)
-                                    <a href="{{ $course->materialUrl() }}" target="_blank" class="tj-btn-primary py-2 px-3 small d-inline-flex align-items-center gap-1.5 shadow-sm">
-                                        <i class="bi bi-download"></i>
-                                        <span>Download Attached File</span>
-                                    </a>
-                                @endif
+                                <div class="d-inline-flex align-items-center gap-2 py-1.5 px-3 rounded-pill bg-light border text-muted small">
+                                    <i class="bi bi-shield-lock-fill text-primary"></i>
+                                    <span>Download Protected &bull; Read-Only</span>
+                                </div>
                             </div>
 
+                            @if(!empty($course->extracted_material_html))
+                                <div class="course-extracted-content p-4 p-md-5 rounded-4 border bg-white shadow-sm mb-3 user-select-none" 
+                                     oncontextmenu="return false;" 
+                                     oncopy="return false;" 
+                                     oncut="return false;" 
+                                     ondragstart="return false;"
+                                     style="-webkit-user-select: none; -ms-user-select: none; user-select: none;">
+                                    {!! $course->extracted_material_html !!}
+                                </div>
+                            @endif
+
                             @if($course->material_notes)
-                                <div class="study-material-text text-secondary p-3.5 rounded-3 bg-white border" style="font-size: 1rem; line-height: 1.85; white-space: pre-line;">
+                                <div class="study-material-text text-secondary p-3.5 rounded-3 bg-white border" 
+                                     oncontextmenu="return false;"
+                                     style="font-size: 1rem; line-height: 1.85; white-space: pre-line; -webkit-user-select: none; user-select: none;">
                                     {{ $course->material_notes }}
                                 </div>
                             @endif
@@ -648,4 +667,107 @@
         </div>
     </div>
 </div>
+
+<!-- Anti-Piracy Watermark Overlay -->
+<div id="drmWatermark" class="position-fixed pointer-events-none user-select-none" 
+     style="bottom: 25px; right: 25px; z-index: 9999; opacity: 0.18; font-family: monospace; font-size: 0.85rem; color: #64748B; pointer-events: none; -webkit-user-select: none; user-select: none;">
+    <span>{{ auth()->check() ? auth()->user()->email : 'Cambridge Certified Platform' }}</span> &bull; 
+    <span>{{ now()->format('Y-m-d') }}</span>
+</div>
+
+<style>
+/* Anti-piracy content security */
+.course-extracted-content,
+.study-material-text,
+.course-video-container {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+}
+
+.course-video-container video::-internal-media-controls-download-button {
+    display:none !important;
+}
+.course-video-container video::-webkit-media-controls-enclosure {
+    overflow:hidden !important;
+}
+.course-video-container video::-webkit-media-controls-panel {
+    width: calc(100% + 30px);
+}
+
+@media print {
+    body {
+        display: none !important;
+    }
+}
+</style>
+
+@push('scripts')
+<script>
+(function() {
+    'use strict';
+
+    // 1. Disable Right Click across Learning & Material interfaces
+    document.addEventListener('contextmenu', function(e) {
+        // Allow right click only on explicit input form controls if necessary
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+        e.preventDefault();
+        if (typeof Swal !== 'undefined') {
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'bottom-end',
+                showConfirmButton: false,
+                timer: 2500,
+                timerProgressBar: true
+            });
+            Toast.fire({
+                icon: 'warning',
+                title: 'Protected Material: Right-click & downloading are restricted.'
+            });
+        }
+        return false;
+    });
+
+    // 2. Prevent Copy, Cut, and Drag of protected curriculum text & media
+    ['copy', 'cut', 'dragstart'].forEach(function(evt) {
+        document.addEventListener(evt, function(e) {
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                return false;
+            }
+        });
+    });
+
+    // 3. Block Developer Tools & Scrape Shortcuts (Ctrl+S, Ctrl+P, Ctrl+U, F12)
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+S (Save), Ctrl+P (Print), Ctrl+U (View Source)
+        if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S' || e.key === 'p' || e.key === 'P' || e.key === 'u' || e.key === 'U')) {
+            e.preventDefault();
+            return false;
+        }
+        // F12 (Inspect Element)
+        if (e.key === 'F12') {
+            e.preventDefault();
+            return false;
+        }
+        // Ctrl+Shift+I or Ctrl+Shift+J or Ctrl+Shift+C (DevTools)
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j' || e.key === 'C' || e.key === 'c')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // 4. Ensure all HTML5 videos strictly disable picture-in-picture & download controls
+    document.querySelectorAll('video').forEach(function(video) {
+        video.setAttribute('controlsList', 'nodownload noplaybackrate');
+        video.setAttribute('disablePictureInPicture', 'true');
+        video.oncontextmenu = function() { return false; };
+    });
+})();
+</script>
+@endpush
 @endsection

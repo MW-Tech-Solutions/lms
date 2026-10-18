@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseCategory;
 use App\Models\CourseSection;
+use App\Services\DocumentExtractionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -216,6 +217,18 @@ class CourseAdminController extends Controller
         // Material Document file resolution
         $materialFilePath = $preStoredMaterial;
 
+        // Automatically extract structured text and headers if a document was uploaded
+        $extractedMaterialHtml = null;
+        $extractedMaterialTitle = null;
+        if (!empty($materialFilePath)) {
+            $docExtractor = app(DocumentExtractionService::class);
+            $extracted = $docExtractor->extract($materialFilePath);
+            if (!empty($extracted['html'])) {
+                $extractedMaterialHtml = $extracted['html'];
+                $extractedMaterialTitle = $extracted['title'] ?? null;
+            }
+        }
+
         $course = Course::create([
             'instructor_id' => $isTeacher ? $user->id : ($request->input('instructor_id') ?: $user?->id),
             'category_id' => $validated['category_id'] ?? null,
@@ -224,6 +237,8 @@ class CourseAdminController extends Controller
             'thumbnail' => $thumbnailPath,
             'video_url' => $videoPath,
             'material_file' => $materialFilePath,
+            'extracted_material_html' => $extractedMaterialHtml,
+            'extracted_material_title' => $extractedMaterialTitle,
             'material_notes' => $validated['material_notes'] ?? null,
             'description' => $validated['description'] ?? null,
             'public_preview_content' => $validated['public_preview_content'] ?? null,
@@ -373,7 +388,17 @@ class CourseAdminController extends Controller
         }
 
         if ($request->hasFile('material_file')) {
-            $data['material_file'] = $request->file('material_file')->store('courses/materials', 'public');
+            $materialPath = $request->file('material_file')->store('courses/materials', 'public');
+            $data['material_file'] = $materialPath;
+
+            // Automatically extract text & headers into structured curriculum
+            $docExtractor = app(DocumentExtractionService::class);
+            $extracted = $docExtractor->extract($materialPath);
+            if (!empty($extracted['html'])) {
+                $data['extracted_material_html'] = $extracted['html'];
+                $data['extracted_material_title'] = $extracted['title'] ?? null;
+            }
+
             if ($isTeacher) {
                 $data['material_approval_status'] = 'PENDING';
                 $data['material_rejection_reason'] = null;

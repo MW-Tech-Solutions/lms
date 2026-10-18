@@ -151,10 +151,10 @@
                             <div class="text-muted small">Official curriculum multimedia and downloadable syllabus materials uploaded by the instructor.</div>
                         </div>
                         @if($course->material_file)
-                            <a href="{{ $course->materialUrl() }}" target="_blank" class="tj-btn-outline py-2 px-3 small d-inline-flex align-items-center gap-1.5 shadow-sm">
-                                <i class="bi bi-file-earmark-arrow-down-fill text-primary"></i>
-                                <span>Download Material File</span>
-                            </a>
+                            <div class="d-inline-flex align-items-center gap-2 py-1.5 px-3 rounded-pill bg-light border text-muted small">
+                                <i class="bi bi-shield-lock-fill text-primary"></i>
+                                <span>Curriculum Text Protected</span>
+                            </div>
                         @endif
                     </div>
 
@@ -163,21 +163,45 @@
                             <label class="form-label small fw-bold text-uppercase text-muted mb-2" style="letter-spacing: 0.5px;">
                                 <i class="bi bi-play-circle-fill text-success me-1"></i> Course Video Lecture
                             </label>
-                            <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm bg-dark">
-                                @if(Str::startsWith($course->video_url, ['http://', 'https://']) && (Str::contains($course->video_url, 'youtube.com') || Str::contains($course->video_url, 'youtu.be')))
-                                    @php
-                                        $embedUrl = str_replace('watch?v=', 'embed/', $course->video_url);
-                                        $embedUrl = str_replace('youtu.be/', 'www.youtube.com/embed/', $embedUrl);
-                                    @endphp
-                                    <iframe src="{{ $embedUrl }}" title="{{ $course->title }}" allowfullscreen class="w-100 h-100 border-0"></iframe>
-                                @elseif(Str::startsWith($course->video_url, ['http://', 'https://']) && Str::contains($course->video_url, 'vimeo.com'))
-                                    <iframe src="{{ str_replace('vimeo.com/', 'player.vimeo.com/video/', $course->video_url) }}" allowfullscreen class="w-100 h-100 border-0"></iframe>
+                            <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm bg-dark position-relative course-video-container" oncontextmenu="return false;">
+                                @if($course->isVideoEmbed())
+                                    <iframe src="{{ $course->videoEmbedUrl() }}" 
+                                            title="{{ $course->title }}" 
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                            allowfullscreen 
+                                            class="w-100 h-100 border-0"></iframe>
                                 @else
-                                    <video controls class="w-100 h-100" poster="{{ $course->thumbnailUrl() }}">
+                                    <video controls 
+                                           controlsList="nodownload noplaybackrate" 
+                                           disablePictureInPicture 
+                                           oncontextmenu="return false;"
+                                           class="w-100 h-100" 
+                                           poster="{{ $course->thumbnailUrl() }}">
                                         <source src="{{ $course->videoUrl() }}" type="video/mp4">
                                         Your browser does not support HTML5 video.
                                     </video>
                                 @endif
+                            </div>
+                        </div>
+                    @endif
+
+                    @if(!empty($course->extracted_material_html))
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <label class="form-label small fw-bold text-uppercase text-muted mb-0" style="letter-spacing: 0.5px;">
+                                    <i class="bi bi-journal-richtext text-primary me-1"></i> Interactive Course Curriculum &amp; Study Text
+                                </label>
+                                <span class="badge bg-primary-subtle text-primary fw-semibold rounded-pill px-2.5 py-1 small">
+                                    <i class="bi bi-shield-lock-fill me-1"></i> Read-Only In-System
+                                </span>
+                            </div>
+                            <div class="course-extracted-content p-4 p-md-5 rounded-4 border bg-white shadow-sm user-select-none" 
+                                 oncontextmenu="return false;" 
+                                 oncopy="return false;" 
+                                 oncut="return false;" 
+                                 ondragstart="return false;"
+                                 style="-webkit-user-select: none; -ms-user-select: none; user-select: none;">
+                                {!! $course->extracted_material_html !!}
                             </div>
                         </div>
                     @endif
@@ -187,7 +211,9 @@
                             <label class="form-label small fw-bold text-uppercase text-muted mb-2" style="letter-spacing: 0.5px;">
                                 <i class="bi bi-card-text text-primary me-1"></i> Syllabus Study Notes &amp; Reading Material
                             </label>
-                            <div class="p-4 rounded-3 border bg-light text-secondary" style="font-size: 1rem; line-height: 1.8; white-space: pre-line;">
+                            <div class="p-4 rounded-3 border bg-light text-secondary" 
+                                 oncontextmenu="return false;" 
+                                 style="font-size: 1rem; line-height: 1.8; white-space: pre-line; -webkit-user-select: none; user-select: none;">
                                 {{ $course->material_notes }}
                             </div>
                         </div>

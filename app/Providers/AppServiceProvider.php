@@ -19,6 +19,17 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SiteConfigService::class, function () {
             return new SiteConfigService();
         });
+
+        spl_autoload_register(function ($class) {
+            $prefix = 'Smalot\\PdfParser\\';
+            if (str_starts_with($class, $prefix)) {
+                $relativeClass = substr($class, strlen($prefix));
+                $file = base_path('vendor/smalot/pdfparser/src/Smalot/PdfParser/' . str_replace('\\', '/', $relativeClass) . '.php');
+                if (file_exists($file)) {
+                    require_once $file;
+                }
+            }
+        });
     }
 
     /**

@@ -121,7 +121,7 @@
                                 <!-- Thumbnail Container -->
                                 <div class="course-thumb-wrap position-relative">
                                     @if($course->thumbnailUrl())
-                                        <div class="w-100 overflow-hidden position-relative" style="height: 180px; background: linear-gradient(135deg, #0284C7, #0369A1);">
+                                        <div class="w-100 h-100 overflow-hidden position-relative" style="background: linear-gradient(135deg, #0284C7, #0369A1);">
                                             <img src="{{ $course->thumbnailUrl() }}" 
                                                  alt=""
                                                  loading="lazy"
@@ -139,7 +139,7 @@
                                         </div>
                                     @else
                                         <div class="w-100 h-100 d-flex align-items-center justify-content-center text-white" 
-                                             style="background: linear-gradient(135deg, #0284C7, #0369A1); min-height: 180px;">
+                                             style="background: linear-gradient(135deg, #0284C7, #0369A1); min-height: 100%;">
                                             <div class="text-center p-3">
                                                 <i class="bi bi-mortarboard-fill fs-1 text-light d-block mb-1"></i>
                                                 <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-1 small fw-semibold">
