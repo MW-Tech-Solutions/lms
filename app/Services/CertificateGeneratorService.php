@@ -205,6 +205,11 @@ class CertificateGeneratorService
      * Renders cursive calligraphy recipient name, emerald course title, date, ID,
      * and dynamic scannable QR code directly onto the base certificate template.
      */
+    /**
+     * Generate dynamic composite certificate JPEG image matching the official Cambridge design.
+     * Renders high-resolution calligraphy/serif recipient name, emerald course title,
+     * completion date, official certificate ID, signature, and scannable verification QR code.
+     */
     public function generateCertificateCompositeImage(
         Certificate $certificate,
         User $user,
@@ -226,81 +231,117 @@ class CertificateGeneratorService
             return null;
         }
 
+        $w = imagesx($im);
+        $h = imagesy($im);
+        $scale = $w / 2528.0;
+
         $studentName = trim($user->name ?? 'Cambridge Scholar');
         $courseTitle = trim($course->title ?? 'Cambridge Examination Curriculum');
         $certNumber = $certificate->certificate_number ?? ('ATC-' . ($certificate->issued_at ?? Carbon::now())->format('Y-md') . '-' . str_pad((string) $certificate->id, 3, '0', STR_PAD_LEFT));
         $issuedDate = ($certificate->issued_at ?? Carbon::now())->format('F d, Y');
 
-        $fontScript = public_path('fonts/GreatVibes-Regular.ttf');
+        // Font selection
+        $fontRecipient = public_path('fonts/CertificateRecipient.ttf');
+        if (!file_exists($fontRecipient)) {
+            $fontRecipient = public_path('fonts/Georgia-BoldItalic.ttf');
+        }
+        if (!file_exists($fontRecipient)) {
+            $fontRecipient = public_path('fonts/Montserrat-Bold.ttf');
+        }
+
         $fontSans = public_path('fonts/Montserrat-Bold.ttf');
+        $fontMeta = public_path('fonts/Gothic-Bold.ttf');
+        if (!file_exists($fontMeta)) {
+            $fontMeta = $fontSans;
+        }
 
         // Colors matching attached certificate design
-        $darkGreen = imagecolorallocate($im, 6, 78, 59);     // #064E3B for cursive student name
-        $lineGreen = imagecolorallocate($im, 4, 120, 87);    // #047857 for underline
-        $courseGreen = imagecolorallocate($im, 5, 150, 105); // #059669 for course title
-        $darkSlate = imagecolorallocate($im, 15, 23, 42);    // #0F172A for metadata (Date, ID)
+        $darkPine = imagecolorallocate($im, 0, 54, 47);        // #00362F for recipient name
+        $courseGreen = imagecolorallocate($im, 0, 168, 89);     // #00A859 for course title
+        $darkCharcoal = imagecolorallocate($im, 17, 24, 39);    // #111827 for metadata (Date, ID)
 
-        // 1. Draw Recipient Name (Calligraphic Cursive)
-        if (file_exists($fontScript) && function_exists('imagettfbbox')) {
-            $nameFontSize = 40;
-            $bbox = imagettfbbox($nameFontSize, 0, $fontScript, $studentName);
+        // 1. Draw Recipient Name (Elegant Serif Bold Italic)
+        if (file_exists($fontRecipient) && function_exists('imagettfbbox')) {
+            $nameFontSize = (int) (56 * $scale);
+            $bbox = imagettfbbox($nameFontSize, 0, $fontRecipient, $studentName);
             $nameWidth = abs($bbox[4] - $bbox[0]);
-            if ($nameWidth > 580) {
-                $nameFontSize = max(20, (int) (40 * (580 / $nameWidth)));
-                $bbox = imagettfbbox($nameFontSize, 0, $fontScript, $studentName);
+            $maxWidth = (int) (1800 * $scale);
+            if ($nameWidth > $maxWidth) {
+                $nameFontSize = max((int) (26 * $scale), (int) ($nameFontSize * ($maxWidth / $nameWidth)));
+                $bbox = imagettfbbox($nameFontSize, 0, $fontRecipient, $studentName);
                 $nameWidth = abs($bbox[4] - $bbox[0]);
             }
-            $nameX = (int) ((942 - $nameWidth) / 2);
-            $nameY = 328;
-            imagettftext($im, $nameFontSize, 0, $nameX, $nameY, $darkGreen, $fontScript, $studentName);
-
-            // Centered horizontal green underline
-            $lineWidth = min(560, max(380, (int) ($nameWidth * 1.15)));
-            $lineX1 = (int) ((942 - $lineWidth) / 2);
-            $lineX2 = $lineX1 + $lineWidth;
-            imagesetthickness($im, 2);
-            imageline($im, $lineX1, 344, $lineX2, 344, $lineGreen);
+            $nameX = (int) (($w - $nameWidth) / 2);
+            $nameY = (int) (740 * $scale);
+            imagettftext($im, $nameFontSize, 0, $nameX, $nameY, $darkPine, $fontRecipient, $studentName);
         } else {
-            // GD built-in font fallback
-            $nameWidth = strlen($studentName) * 9;
-            $nameX = max(60, (int) ((942 - $nameWidth) / 2));
-            imagestring($im, 5, $nameX, 315, $studentName, $darkGreen);
+            $nameWidth = strlen($studentName) * (int) (16 * $scale);
+            $nameX = max(60, (int) (($w - $nameWidth) / 2));
+            imagestring($im, 5, $nameX, (int) (720 * $scale), $studentName, $darkPine);
         }
 
         // 2. Draw Course Title (Bold Emerald Green)
         if (file_exists($fontSans) && function_exists('imagettfbbox')) {
-            $courseFontSize = 18;
+            $courseFontSize = (int) (30 * $scale);
             $cBox = imagettfbbox($courseFontSize, 0, $fontSans, $courseTitle);
             $courseWidth = abs($cBox[4] - $cBox[0]);
-            if ($courseWidth > 580) {
-                $courseFontSize = max(11, (int) (18 * (580 / $courseWidth)));
+            $maxCourseW = (int) (1850 * $scale);
+            if ($courseWidth > $maxCourseW) {
+                $courseFontSize = max((int) (16 * $scale), (int) ($courseFontSize * ($maxCourseW / $courseWidth)));
                 $cBox = imagettfbbox($courseFontSize, 0, $fontSans, $courseTitle);
                 $courseWidth = abs($cBox[4] - $cBox[0]);
             }
-            $courseX = (int) ((942 - $courseWidth) / 2);
-            $courseY = 404;
+            $courseX = (int) (($w - $courseWidth) / 2);
+            $courseY = (int) (940 * $scale);
             imagettftext($im, $courseFontSize, 0, $courseX, $courseY, $courseGreen, $fontSans, $courseTitle);
         } else {
-            $courseWidth = strlen($courseTitle) * 9;
-            $courseX = max(60, (int) ((942 - $courseWidth) / 2));
-            imagestring($im, 5, $courseX, 392, $courseTitle, $courseGreen);
+            $courseWidth = strlen($courseTitle) * (int) (14 * $scale);
+            $courseX = max(60, (int) (($w - $courseWidth) / 2));
+            imagestring($im, 5, $courseX, (int) (920 * $scale), $courseTitle, $courseGreen);
         }
 
         // 3. Draw Completion Date
-        if (file_exists($fontSans)) {
-            imagettftext($im, 10, 0, 137, 540, $darkSlate, $fontSans, $issuedDate);
+        $dateX = (int) (370 * $scale);
+        $dateY = (int) (1355 * $scale);
+        if (file_exists($fontMeta)) {
+            imagettftext($im, (int) (22 * $scale), 0, $dateX, $dateY, $darkCharcoal, $fontMeta, $issuedDate);
         } else {
-            imagestring($im, 3, 137, 532, $issuedDate, $darkSlate);
+            imagestring($im, 5, $dateX, (int) (1335 * $scale), $issuedDate, $darkCharcoal);
         }
 
         // 4. Draw Certificate ID
-        if (file_exists($fontSans)) {
-            imagettftext($im, 10, 0, 480, 540, $darkSlate, $fontSans, $certNumber);
+        $idX = (int) (1260 * $scale);
+        $idY = (int) (1355 * $scale);
+        if (file_exists($fontMeta)) {
+            imagettftext($im, (int) (22 * $scale), 0, $idX, $idY, $darkCharcoal, $fontMeta, $certNumber);
         } else {
-            imagestring($im, 3, 480, 532, $certNumber, $darkSlate);
+            imagestring($im, 5, $idX, (int) (1335 * $scale), $certNumber, $darkCharcoal);
         }
 
-        // 5. Draw Dynamic QR Code
+        // 5. Draw Signature
+        $sigCandidates = [
+            public_path('images/certificate_signature.png'),
+            public_path('uploads/branding/signature.png'),
+        ];
+        if (!empty($settings['certificate_signature_url'])) {
+            $sigCandidates[] = public_path(ltrim((string) $settings['certificate_signature_url'], '/'));
+        }
+        foreach ($sigCandidates as $cand) {
+            if ($cand && file_exists($cand) && is_file($cand)) {
+                $sigIm = @imagecreatefrompng($cand);
+                if ($sigIm) {
+                    $sw = (int) (280 * $scale);
+                    $sh = (int) (100 * $scale);
+                    $sx = (int) (1720 * $scale);
+                    $sy = (int) (1250 * $scale);
+                    imagecopyresampled($im, $sigIm, $sx, $sy, 0, 0, $sw, $sh, imagesx($sigIm), imagesy($sigIm));
+                    @imagedestroy($sigIm);
+                    break;
+                }
+            }
+        }
+
+        // 6. Draw Dynamic Scannable QR Code
         $qrDir = storage_path('app/public/certificates');
         if (!is_dir($qrDir)) {
             @mkdir($qrDir, 0755, true);
@@ -311,7 +352,7 @@ class CertificateGeneratorService
         if (file_exists($qrFilePath) && filesize($qrFilePath) > 50) {
             $qrRaw = @file_get_contents($qrFilePath);
         } else {
-            $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=0&data=' . urlencode($verificationUrl);
+            $qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=' . urlencode($verificationUrl);
             try {
                 $resp = Http::timeout(3)->get($qrApiUrl);
                 if ($resp->successful() && strlen($resp->body()) > 50) {
@@ -324,13 +365,16 @@ class CertificateGeneratorService
         if ($qrRaw && function_exists('imagecreatefromstring')) {
             $qrIm = @imagecreatefromstring($qrRaw);
             if ($qrIm) {
-                imagecopyresampled($im, $qrIm, 817, 476, 0, 0, 60, 60, imagesx($qrIm), imagesy($qrIm));
+                $qrSize = (int) (135 * $scale);
+                $qrX = (int) (2170 * $scale);
+                $qrY = (int) (1265 * $scale);
+                imagecopyresampled($im, $qrIm, $qrX, $qrY, 0, 0, $qrSize, $qrSize, imagesx($qrIm), imagesy($qrIm));
                 @imagedestroy($qrIm);
             }
         }
 
         ob_start();
-        imagejpeg($im, null, 96);
+        imagejpeg($im, null, 98);
         $compositeData = ob_get_clean();
         @imagedestroy($im);
 
@@ -339,8 +383,8 @@ class CertificateGeneratorService
 
     /**
      * High-fidelity pure-PHP PDF generator (specification-compliant PDF 1.4 binary).
-     * Embeds the exact Cambridge certificate template image and renders dynamic typography,
-     * dates, IDs, and scannable QR codes without requiring ext-dom, ext-xml, or Masterminds\HTML5.
+     * Embeds the high-resolution 300 DPI Cambridge certificate image with invisible
+     * searchable/selectable text operators for 100% clarity and zero blur.
      */
     public function buildPurePhpCertificatePdf(
         Certificate $certificate,
@@ -365,7 +409,7 @@ class CertificateGeneratorService
             return str_replace(['\\', '(', ')'], ['\\\\', '\\(', '\\)'], $clean);
         };
 
-        // 1. Resolve composite certificate image (with exact fonts and dynamic fields)
+        // 1. Resolve composite certificate image (with exact fonts and dynamic fields at 2528x1696)
         $bgJpgData = $this->generateCertificateCompositeImage($certificate, $user, $course, $verificationUrl, $settings);
         if (empty($bgJpgData)) {
             $templatePath = public_path('images/certificate_template_base.jpg');
@@ -374,33 +418,44 @@ class CertificateGeneratorService
                 : null;
         }
 
+        // Determine actual pixel dimensions of background image
+        $imgWidth = 2528;
+        $imgHeight = 1696;
+        if (!empty($bgJpgData) && function_exists('getimagesizefromstring')) {
+            $sizeInfo = @getimagesizefromstring($bgJpgData);
+            if ($sizeInfo && !empty($sizeInfo[0]) && !empty($sizeInfo[1])) {
+                $imgWidth = (int) $sizeInfo[0];
+                $imgHeight = (int) $sizeInfo[1];
+            }
+        }
+
         // 2. Page stream commands
         $s = '';
 
         if (!empty($bgJpgData)) {
-            // Draw exact template background across full A4 landscape page
+            // Draw exact high-resolution template background across full A4 landscape page (841.89 x 595.28 pt)
             $s .= "q 841.89 0 0 595.28 0 0 cm /Im1 Do Q\n";
 
-            // Searchable / accessible PDF text operators overlay
+            // Invisible text operators (rendering mode 3 Tr) for 100% searchability & copy-paste without visual collision
             $escapedName = $escape($studentName);
             $nameLen = strlen($escapedName);
-            $nameFontSize = $nameLen > 30 ? 21 : ($nameLen > 22 ? 23 : 26);
-            $nameWidth = $nameLen * ($nameFontSize * 0.58);
+            $nameFontSize = $nameLen > 30 ? 20 : ($nameLen > 22 ? 22 : 25);
+            $nameWidth = $nameLen * ($nameFontSize * 0.55);
             $nameX = max(60.0, (841.89 - $nameWidth) / 2);
-            $s .= "BT /F4 {$nameFontSize} Tf 0.047 0.29 0.20 rg {$nameX} 320 Td ({$escapedName}) Tj ET\n";
+            $s .= "BT 3 Tr /F4 {$nameFontSize} Tf {$nameX} 336 Td ({$escapedName}) Tj ET\n";
 
             $escapedCourse = $escape($courseTitle);
             $courseLen = strlen($escapedCourse);
-            $courseFontSize = $courseLen > 45 ? 14 : ($courseLen > 32 ? 16 : 18);
-            $courseWidth = $courseLen * ($courseFontSize * 0.58);
+            $courseFontSize = $courseLen > 45 ? 13 : ($courseLen > 32 ? 15 : 17);
+            $courseWidth = $courseLen * ($courseFontSize * 0.55);
             $courseX = max(60.0, (841.89 - $courseWidth) / 2);
-            $s .= "BT /F2 {$courseFontSize} Tf 0.02 0.55 0.38 rg {$courseX} 244 Td ({$escapedCourse}) Tj ET\n";
+            $s .= "BT 3 Tr /F2 {$courseFontSize} Tf {$courseX} 265 Td ({$escapedCourse}) Tj ET\n";
 
             $escapedDate = $escape($issuedDate);
-            $s .= "BT /F2 10 Tf 0.06 0.09 0.16 rg 127 115.5 Td ({$escapedDate}) Tj ET\n";
+            $s .= "BT 3 Tr /F2 10 Tf 123 120 Td ({$escapedDate}) Tj ET\n";
 
             $escapedCertNum = $escape($certNumber);
-            $s .= "BT /F2 10 Tf 0.06 0.09 0.16 rg 447 115.5 Td ({$escapedCertNum}) Tj ET\n";
+            $s .= "BT 3 Tr /F2 10 Tf 420 120 Td ({$escapedCertNum}) Tj ET\n";
         } else {
             // High-fidelity vector fallback if background template image is missing
             $s .= "1 1 1 rg 0 0 841.89 595.28 re f\n";
@@ -491,7 +546,7 @@ class CertificateGeneratorService
         $objCount = 8;
         if (!empty($bgJpgData)) {
             $bgLen = strlen($bgJpgData);
-            $objects[9] = "<< /Type /XObject /Subtype /Image /Width 942 /Height 670 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length {$bgLen} >>\nstream\n{$bgJpgData}\nendstream";
+            $objects[9] = "<< /Type /XObject /Subtype /Image /Width {$imgWidth} /Height {$imgHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length {$bgLen} >>\nstream\n{$bgJpgData}\nendstream";
             $objCount = 9;
         }
 

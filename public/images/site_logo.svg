@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320">
+  <defs>
+    <style>
+      .brand-bold-dark { font-family: 'Montserrat', 'Segoe UI', -apple-system, sans-serif; font-weight: 800; font-size: 110px; fill: #00362F; letter-spacing: -1px; }
+      .brand-bold-green { font-family: 'Montserrat', 'Segoe UI', -apple-system, sans-serif; font-weight: 800; font-size: 110px; fill: #00A859; letter-spacing: -1px; }
+      .tagline { font-family: 'Segoe UI', 'Montserrat', sans-serif; font-weight: 600; font-size: 32px; fill: #00362F; letter-spacing: 12px; }
+      .dot { fill: #00A859; font-size: 28px; }
+    </style>
+  </defs>
+
+  <!-- ATC Emblem -->
+    <g transform="translate(40, 20) scale(0.55)">
+    <!-- Diamond Top -->
+    <polygon points="256,40 470,140 256,236 42,140" fill="#00362F" />
+    <polyline points="42,140 256,236 470,140" fill="none" stroke="#004D40" stroke-width="4" />
+    <!-- Cap Skull Base -->
+    <path d="M 148,188 L 148,252 C 148,252 186,300 256,300 C 326,300 364,252 364,252 L 364,188 C 340,204 300,218 256,218 C 212,218 172,204 148,188 Z" fill="#00362F" />
+    <!-- Golden Tassel -->
+    <ellipse cx="256" cy="138" rx="8" ry="5" fill="#D97706" />
+    <path d="M 256,138 Q 330,150 376,190 L 376,235" fill="none" stroke="#D97706" stroke-width="5" stroke-linecap="round" />
+    <circle cx="376" cy="238" r="4.5" fill="#B45309" />
+    <polygon points="372,242 380,242 383,286 369,286" fill="#D97706" />
+    <ellipse cx="376" cy="286" rx="7" ry="2.5" fill="#B45309" />
+    <!-- Book Pages (Emerald) -->
+    <path d="M 244,286 C 180,286 98,250 56,242 C 50,241 46,246 46,252 L 46,396 C 46,401 50,405 56,407 C 104,416 186,444 244,482 C 248,485 252,482 252,476 L 252,292 C 252,288 248,286 244,286 Z" fill="#10B981" />
+    <path d="M 268,286 C 332,286 414,250 456,242 C 462,241 466,246 466,252 L 466,396 C 466,401 462,405 456,407 C 408,416 326,444 268,482 C 264,485 260,482 260,476 L 260,292 C 260,288 264,286 268,286 Z" fill="#10B981" />
+    <!-- Book Binding (Dark Pine) -->
+    <path d="M 32,254 L 32,410 C 32,418 38,425 46,427 C 106,442 190,472 252,506 C 255,508 257,508 260,506 C 322,472 406,442 466,427 C 474,425 480,418 480,410 L 480,254 C 480,248 474,244 468,246 L 460,248 C 456,249 454,252 454,256 L 454,398 C 398,412 324,440 256,478 C 188,440 114,412 58,398 L 58,256 C 58,252 56,249 52,248 L 44,246 C 38,244 32,248 32,254 Z" fill="#00362F" />
+  </g>
+
+  <!-- Typography -->
+  <text x="350" y="175">
+    <tspan class="brand-bold-dark">AllThings</tspan><tspan class="brand-bold-green">Cambridge</tspan>
+  </text>
+  <text x="355" y="248" class="tagline">
+    LEARN  <tspan class="dot">•</tspan>  GROW  <tspan class="dot">•</tspan>  ACHIEVE
+  </text>
+</svg>
